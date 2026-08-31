@@ -1,4 +1,4 @@
 interface:
   display_name: "Lecture Slides to Obsidian"
   short_description: "Build complete Obsidian course-material folders"
-  default_prompt: "Use $lecture-slides-to-obsidian to convert this external course file with MinerU into complete Markdown, assets, a relationship canvas, and a report."
+  default_prompt: "Use $lecture-slides-to-obsidian to convert this external course file with MinerU into complete Markdown, assets, and a relationship canvas, using temporary QA outside the vault."

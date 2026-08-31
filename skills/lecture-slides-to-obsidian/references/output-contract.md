@@ -12,10 +12,9 @@ The source original remains outside the Obsidian vault. The default deliverable 
             ├── assets/
             │   ├── page-003-figure-01.png
             │   └── page-007-fallback.png
-            └── conversion-report.md
 ```
 
-The folder must not contain PDF, PPT/PPTX, DOC/DOCX, XLS/XLSX, or archive originals. It must not depend on staging paths.
+The folder must not contain a conversion report, PDF, PPT/PPTX, DOC/DOCX, XLS/XLSX, or archive original. It must not depend on staging paths.
 
 ## Complete Markdown
 
@@ -58,9 +57,9 @@ Do not store the absolute source path in the note by default.
 
 Create `<document-slug>.canvas` according to [canvas-contract.md](canvas-contract.md). It links the full Markdown, its headings, extracted assets, key concepts, and evidence-based relationships. It must not link or embed the source original.
 
-## Conversion report
+## Temporary conversion report
 
-Fill [../templates/conversion-report.md](../templates/conversion-report.md). The report must contain these fixed sections:
+Build a context JSON matching [../templates/report-context.example.json](../templates/report-context.example.json), then run `scripts/fill-report.py`. Write the result under staging, outside the Obsidian vault. It is Agent-only QA state, not a user knowledge artifact. The rendered report contains these fixed sections:
 
 - `## Matched routing`
 - `## Pipeline`
@@ -73,6 +72,8 @@ Fill [../templates/conversion-report.md](../templates/conversion-report.md). The
 Include figures, tables, equations, fallback pages, page headers, page footers, and page footnotes even when counts are zero. Record omitted auxiliary blocks and the conversion profile.
 
 Never include the API token, Authorization header, signed upload URL, result URL, CDN query parameters, raw response headers, or absolute source path. A redacted task/batch reference is allowed for timeout recovery.
+
+Use the report to drive validation and the concise final user summary. Delete it immediately after successful validation/summary. Preserve it only when validation fails and debugging must continue; delete it when the failure is resolved or the task is abandoned.
 
 ## Overwrite and idempotence
 

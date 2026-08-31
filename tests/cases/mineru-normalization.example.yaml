@@ -14,6 +14,13 @@ cases:
       - "full.md"
     expected_page_source: "group-by-page-idx"
 
+  - id: "conflicting-page-counts"
+    spotlight_pages: 14
+    file_command_pages: 8
+    content_list_v2_pages: 14
+    expected_source_pages: 14
+    expected_action: "trust-v2-length-and-record-discrepancy-in-temp-report"
+
   - id: "duplicate-overview-anchor"
     repeated_text_pages:
       - 3

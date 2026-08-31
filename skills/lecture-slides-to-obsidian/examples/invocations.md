@@ -18,7 +18,7 @@ Agent: 这个学期的根目录在哪儿？
 User: /path/to/vault/2026-fall
 ```
 
-The agent records the mapping and creates a derived document folder for Markdown, assets, Canvas, and report. The PDF remains at `./downloads/week-01.pdf` outside the vault.
+The agent records the mapping and creates a derived document folder for Markdown, assets, and Canvas. The PDF remains at `./downloads/week-01.pdf`; temporary QA remains in staging outside the vault.
 
 ## Reused course binding
 

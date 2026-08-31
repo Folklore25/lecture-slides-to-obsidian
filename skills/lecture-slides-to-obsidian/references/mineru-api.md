@@ -11,8 +11,9 @@ This is the only PDF extraction backend for the skill. Local parsing, local Mine
 - Maximum upload URLs requested at once: 50.
 - Signed upload URLs are valid for 24 hours.
 - Default `model_version`: `vlm`.
-- Default `language`: `ch` for mixed Chinese/English slides.
-- Formula and table recognition are enabled. OCR has no hard-coded default: confirm `is_ocr` for every document. Recommend true when the user identifies a scan, image-only document, or unreliable existing OCR; otherwise explain the tradeoff and ask.
+- Formula and table recognition are enabled.
+- `language` has no API-request default in this skill. Infer from the user's description, filename/course context, or known document metadata, then confirm an actual MinerU language enum before submission. Never send the literal value `auto`.
+- OCR has no hard-coded default. Confirm a boolean `is_ocr` for every document. Recommend true when the user identifies a scan, image-only document, or unreliable existing OCR; otherwise explain the tradeoff and ask.
 
 ## Encrypted token lifecycle
 
@@ -38,6 +39,7 @@ Rules:
 
 - never repeat or quote any token/passphrase characters;
 - never persist plaintext token/passphrase in registry, configuration, environment profiles, shell history, temporary files, reports, logs, or Git;
+- do not create `/tmp/.mineru-token`, mode-0600 plaintext token files, `with-token.sh`, or `Bearer $(cat ...)` wrappers; encrypted state plus in-process `load_token()` supersedes them;
 - never copy the encrypted file outside the installed skill state directory;
 - send `Authorization: Bearer <token>` only to HTTPS requests whose origin is exactly `https://mineru.net`;
 - on `A0202` or `A0211`, delete or replace the encrypted token through `token-store.py`; never show the rejected value;
@@ -72,9 +74,24 @@ Example request shape with no secret values:
 }
 ```
 
-This example assumes the user explicitly chose `is_ocr: false`; it is not a default.
+This example assumes the user explicitly chose `language: ch` and `is_ocr: false`; neither is a default.
 
 Do not use `POST /api/v4/extract/task` for a local file; that endpoint accepts a remotely accessible file URL and does not directly upload the file.
+
+### Signed PUT header boundary
+
+The signed OSS request expects the Content-Type component used by the signature to remain empty. Adding `Content-Type: application/pdf`, `multipart/form-data`, or another value can produce `403 SignatureDoesNotMatch`. Upload raw file bytes, not a multipart body. Never forward the MinerU Bearer token to the signed URL.
+
+Equivalent diagnostic curl shape:
+
+```bash
+curl --fail-with-body --request PUT \
+  --header 'Content-Type:' \
+  --upload-file "$SOURCE_FILE" \
+  "$SIGNED_UPLOAD_URL"
+```
+
+Keep both variables out of shell history and command transcripts; the future API client should perform this request in process rather than constructing a logged shell command.
 
 ## Poll response shape
 
@@ -112,8 +129,10 @@ On `failed`, report the documented error code/message after checking that no tok
 
 Download the ZIP into staging. Before extraction, reject absolute member paths, `..` traversal, symlinks, device files, or any member resolving outside the staging directory. Enforce reasonable extracted-size and member-count limits.
 
+Treat a nested ZIP/TAR/archive member as unexpected. Do not recursively extract it; reject the result or quarantine that member for explicit review. MinerU's expected outputs are Markdown, JSON, images, and related derived files, not another opaque archive layer.
+
 Preserve the raw API artifacts, including `full.md`, images, `content_list.json`, and other JSON when present. Never treat a successful archive download as proof that every page was parsed correctly.
 
 ## Secret-safe reporting
 
-The conversion report may contain the provider (`MinerU Precision API v4`), model, non-secret options, result state, and redacted task/batch reference. It must not contain the API token, Authorization header, signed upload URL, full result URL, or raw response headers.
+The temporary staging report may contain the provider (`MinerU Precision API v4`), model, non-secret options, result state, and redacted task/batch reference. It must not contain the API token, Authorization header, signed upload URL, full result URL, or raw response headers, and it is deleted after successful validation.

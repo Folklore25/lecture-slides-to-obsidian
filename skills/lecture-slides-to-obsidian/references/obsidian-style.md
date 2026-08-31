@@ -44,8 +44,8 @@ Omit unsupported optional metadata instead of inventing it. Do not include the a
 
 ## Auxiliary blocks
 
-Handle page headers, footers, page numbers, aside text, and footnotes according to [mineru-normalization.md](mineru-normalization.md). Repeated decorative blocks may be omitted only with report evidence.
+Handle page headers, footers, page numbers, aside text, and footnotes according to [mineru-normalization.md](mineru-normalization.md). Repeated decorative blocks may be omitted only with temporary QA evidence.
 
 ## Assets and zero counts
 
-Embed derived visual assets near the corresponding source content. If the source yields zero figures, tables, equations, and fallback pages, create no fake assets; the report must state all four zero counts.
+Embed derived visual assets near the corresponding source content. If the source yields zero figures, tables, equations, and fallback pages, create no fake assets; the temporary QA context must state all four zero counts before it is deleted.

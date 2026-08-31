@@ -19,19 +19,26 @@ references/document-profiles.md
 references/requirements.md
 references/mineru-api.md
 references/mineru-normalization.md
+references/normalization-examples.md
 references/canvas-contract.md
 references/output-contract.md
 references/obsidian-style.md
 references/quality-gates.md
 references/validation.md
 scripts/README.md
+scripts/build-canvas.py
+scripts/fill-report.py
+scripts/preflight.py
+scripts/reconstruct-note.py
 scripts/purge-state.sh
 scripts/token-store.py
 scripts/validate-output.py
 state/README.md
 state/course-registry.example.yaml
-templates/conversion-report.md
-templates/relationship.canvas'
+templates/report-context.example.json
+templates/relationship.lecture-notes.canvas
+templates/relationship.policy-document.canvas
+templates/relationship.paper.canvas'
 
 printf '%s\n' "$required_files" | while IFS= read -r relative_path; do
   if [ ! -f "$skill_dir/$relative_path" ]; then
@@ -100,6 +107,17 @@ if ! grep -q 'POST /api/v4/file-urls/batch' "$skill_dir/requirements/services.ya
   exit 1
 fi
 
+if grep -q 'language: "ch"\|is_ocr: false\|is_ocr: "confirm-per-document"' \
+  "$skill_dir/requirements/services.yaml" "$skill_dir/config/pipeline.example.yaml"; then
+  printf 'language and is_ocr must have no hard-coded request defaults\n' >&2
+  exit 1
+fi
+
+if ! grep -q 'required_confirmation:' "$skill_dir/requirements/services.yaml"; then
+  printf 'language/OCR confirmation contract is missing\n' >&2
+  exit 1
+fi
+
 if ! grep -q 'persistence: "encrypted-at-rest"' "$skill_dir/requirements/services.yaml" || \
    ! grep -q 'file: "state/mineru-api-token.enc.json"' "$skill_dir/requirements/tools.yaml"; then
   printf 'encrypted token-store contract is missing or out of sync\n' >&2
@@ -125,11 +143,14 @@ if ! git -C "$repo_dir" check-ignore -q \
 fi
 
 python3 "$skill_dir/scripts/validate-output.py" \
-  "$repo_dir/tests/fixtures/synthetic/valid-document-folder" >/dev/null
+  "$repo_dir/tests/fixtures/synthetic/valid-document-folder" \
+  --fixture-mode \
+  --report "$repo_dir/tests/fixtures/staging/conversion-report.md" >/dev/null
 
 python3 -m unittest discover -s "$repo_dir/tests" -p 'test_*.py' >/dev/null
 
-python3 - "$skill_dir/templates/relationship.canvas" <<'PY'
+for canvas_template in "$skill_dir"/templates/relationship.*.canvas; do
+python3 - "$canvas_template" <<'PY'
 import json
 import re
 import sys
@@ -144,5 +165,6 @@ assert all(re.fullmatch(r"[0-9a-f]{16}", item) for item in ids)
 node_ids = {node["id"] for node in nodes}
 assert all(edge.get("fromNode") in node_ids and edge.get("toNode") in node_ids for edge in edges)
 PY
+done
 
 printf 'repository skeleton: ok\n'

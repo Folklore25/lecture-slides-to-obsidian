@@ -16,6 +16,8 @@ Future test layers should be separated:
 10. **Visual review cases** — diagrams, tables, equations, OCR, and mixed-language pages.
 11. **End-to-end tests** — source file outside vault to official API to validated Obsidian folder.
 
+The current offline integration test covers V2 reconstruction → Canvas build → temporary report render → validation → report deletion. Live MinerU network calls remain out of test scope.
+
 Run the current checks from the repository root:
 
 ```bash

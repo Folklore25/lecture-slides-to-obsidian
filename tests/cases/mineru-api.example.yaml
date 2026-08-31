@@ -14,6 +14,15 @@ cases:
     upload_authorization_header: true
     expected_action: "reject-request"
 
+  - id: "signed-put-content-type-added"
+    upload_content_type: "application/pdf"
+    expected_action: "reject-before-signature-mismatch"
+
+  - id: "signed-put-empty-content-type"
+    upload_content_type: ""
+    upload_body: "raw-file-bytes"
+    expected_action: "continue"
+
   - id: "plaintext-token-persistence"
     token_written_to: "state-or-config-or-log-or-report"
     expected_action: "fail-secret-safety-gate"
@@ -67,6 +76,10 @@ cases:
   - id: "unsafe-zip-member"
     zip_member: "../../outside.md"
     expected_action: "reject-archive-before-extraction"
+
+  - id: "nested-archive-member"
+    zip_member: "nested-output.zip"
+    expected_action: "reject-without-recursive-extraction"
 
   - id: "official-api-file-too-large"
     api_error: "-60005"

@@ -37,7 +37,7 @@ Automatic routing requires a unique exact match in this order:
 
 If no exact match exists, inspect immediate course directories and list plausible candidates before creating anything. A directory such as `Information_systems` may be related to `IS6000` even when it is not a course folder. Show the candidates and ask whether to reuse one or create the canonical course folder. Never auto-route or silently dismiss a fuzzy candidate.
 
-Record the candidate list and the user's decision in the conversion report. If no plausible candidate exists, create a safe course folder from the course code, otherwise a sanitized course name.
+Record the candidate list and the user's decision in the temporary QA context. If no plausible candidate exists, create a safe course folder from the course code, otherwise a sanitized course name.
 
 ## Derived output layout
 
@@ -50,11 +50,10 @@ Every source document gets one self-contained derived folder:
         └── <document-slug>/
             ├── <document-slug>.md
             ├── <document-slug>.canvas
-            ├── assets/
-            └── conversion-report.md
+            └── assets/
 ```
 
-Registered role paths may differ, but the document folder must contain the complete Markdown, its extracted assets, its relationship canvas, and its report.
+Registered role paths may differ, but the document folder must contain only the complete Markdown, extracted assets, and relationship canvas. Temporary QA reports remain in staging outside the vault.
 
 ## Source originals stay external
 

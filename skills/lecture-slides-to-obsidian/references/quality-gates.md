@@ -7,7 +7,7 @@ A conversion is complete only when required gates pass or the report marks an ex
 - Semester ID/label and vault root are independently validated.
 - Course matching is exact, or near-match candidates and the user's choice are recorded.
 - The source resolves outside the Obsidian vault and remains unchanged.
-- The document folder contains only derived Markdown, Canvas, assets, and report artifacts.
+- The document folder contains only derived Markdown, Canvas, and assets; the temporary report is outside the vault.
 
 ## API and secret safety
 

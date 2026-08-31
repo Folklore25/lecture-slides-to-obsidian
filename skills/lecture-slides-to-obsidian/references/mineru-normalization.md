@@ -4,6 +4,8 @@ Canonical output documentation: <https://opendatalab.github.io/MinerU/reference/
 
 Use structured MinerU output as the source of page identity and block type. `full.md` is a rendering aid, not a reliable page-index database.
 
+For concrete before/after cases, read [normalization-examples.md](normalization-examples.md) and use `scripts/reconstruct-note.py` as the reference implementation.
+
 ## Preferred page source
 
 1. Prefer `*_content_list_v2.json` when present. Its top level is grouped by page, so each outer array is one page in source order.
@@ -12,6 +14,16 @@ Use structured MinerU output as the source of page identity and block type. `ful
 4. Never locate pages with a global `full.md.find(anchor)` or an unscoped repeated text anchor.
 
 Overview pages and detail pages often repeat text. Page grouping prevents a repeated item from resolving to the earlier summary occurrence.
+
+## Page-count source of truth
+
+Set `source_pages` from the structured MinerU result:
+
+1. `len(content_list_v2)` when V2 exists;
+2. otherwise `max(page_idx) + 1` from legacy `content_list.json`;
+3. otherwise the page collection in `layout.json`/`middle.json`.
+
+Spotlight metadata, `file` output, PDF metadata, and other local estimates are diagnostic only. When they disagree, keep the structured MinerU count and record every observed count/source in the temporary QA report. Do not ask the Agent to choose ad hoc.
 
 ## Page marker semantics
 

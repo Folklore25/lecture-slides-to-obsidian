@@ -1,0 +1,51 @@
+{
+  "routing": {
+    "semester_id": "2026-fall",
+    "course_key": "IS6000",
+    "document_folder": "IS6000/Lectures/l01-code-of-conduct",
+    "routing_decision": "confirmed exact course folder"
+  },
+  "pipeline": {
+    "provider": "MinerU Precision API v4",
+    "model": "vlm",
+    "profile": "policy-document",
+    "language": "en",
+    "is_ocr": false,
+    "loaded_helper_skills": [
+      "obsidian-markdown",
+      "json-canvas"
+    ],
+    "page_count_source": "content_list_v2 length",
+    "page_count_observations": {
+      "content_list_v2": 14,
+      "spotlight_metadata": 14,
+      "file_command": 8
+    }
+  },
+  "outputs": {
+    "markdown": "IS6000/Lectures/l01-code-of-conduct/l01-code-of-conduct.md",
+    "canvas": "IS6000/Lectures/l01-code-of-conduct/l01-code-of-conduct.canvas",
+    "assets": "IS6000/Lectures/l01-code-of-conduct/assets"
+  },
+  "inventory": {
+    "pages": 14,
+    "figures_images": 0,
+    "tables": 0,
+    "equations": 0,
+    "fallback_pages": 0,
+    "page_headers": 1,
+    "page_footers": 0,
+    "page_footnotes": 1
+  },
+  "quality_gates": {
+    "source_original_excluded": "PASS",
+    "structural_alignment": "PASS",
+    "markdown_validation": "PASS",
+    "canvas_validation": "PASS",
+    "pixel_visual_diff": "NOT-CHECKED"
+  },
+  "review_items": [],
+  "not_checked": [
+    "Pixel-level visual diff against rendered source pages"
+  ]
+}

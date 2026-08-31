@@ -10,7 +10,7 @@ MinerU Precision API v4, VLM, lecture-notes profile.
 
 ## Outputs
 
-Complete Markdown, relationship canvas, empty assets, and this report.
+Complete Markdown, relationship canvas, empty assets, and temporary QA report.
 
 ## Content inventory
 

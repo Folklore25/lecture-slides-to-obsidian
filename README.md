@@ -10,7 +10,7 @@
 - 文字、层级、列表、公式和表格尽量结构化。
 - 图表、复杂排版、手写标注和低置信度页面保留视觉兜底。
 - 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。
-- 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets、关系 Canvas 和固定格式报告。
+- 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和关系 Canvas。QA report 只存在于 staging，验证完成即删除。
 - 用户在一个新学期首次提供课程名称时，只询问一次学期根目录并持久记录学期与课程映射。
 - 后续通过课程代码、正式名称或已登记别名唯一匹配，自动归档到对应学期的课程子目录。
 - 同一份技能内容兼容 Claude Code 和 Pi，并适合作为 cc-switch 自定义技能源。
@@ -69,8 +69,7 @@ lecture-slides-to-obsidian/
         └── <document-slug>/
             ├── <document-slug>.md       # 完整课件/文档
             ├── <document-slug>.canvas   # 关系画布
-            ├── assets/                  # MinerU 派生图片/表格/兜底页
-            └── conversion-report.md
+            └── assets/                  # MinerU 派生图片/表格/兜底页
 ```
 
 原始 PDF/PPT 等不会复制、移动、symlink、embed 或作为 Canvas file node 放进 vault。Canvas 只连接完整 Markdown 的章节、关键概念和 `assets/` 中的派生文件。
@@ -159,6 +158,17 @@ ln -s /absolute/path/to/lecture-slides-to-obsidian/skills/lecture-slides-to-obsi
 
 ## 本地验证
 
+技能提供四个 Agent-facing automation entry：
+
+```text
+preflight.py          分段收集/验证 vault、course、profile、language、OCR、helper skills、token state
+reconstruct-note.py  content_list_v2.json → 完整 profile-aware Markdown + normalization context
+build-canvas.py       note headings/assets → 完整 vault-relative JSON Canvas
+fill-report.py        QA context JSON → staging 临时 report
+```
+
+完整处理完成后：
+
 ```bash
 ./scripts/validate.sh
 ```
@@ -166,10 +176,12 @@ ln -s /absolute/path/to/lecture-slides-to-obsidian/skills/lecture-slides-to-obsi
 仓库验证检查技能规范与模板。实际输出还必须运行：
 
 ```bash
-python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py <document-folder> --vault-root <vault-root>
+python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py \
+  <document-folder> --vault-root <vault-root> \
+  --report <staging>/conversion-report.md --delete-report-on-success
 ```
 
-它验证 source-original exclusion、frontmatter、H1/page markers、wikilinks/assets、Canvas IDs/edges/paths/non-overlap，以及固定报告 sections。
+它验证 source-original exclusion、frontmatter、H1/page markers、wikilinks/assets、Canvas IDs/edges/paths/non-overlap，以及 staging 临时报告；成功后删除该报告。
 
 ## 测试素材政策
 

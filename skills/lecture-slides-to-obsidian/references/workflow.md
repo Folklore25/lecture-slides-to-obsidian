@@ -4,13 +4,13 @@ MinerU Precision API v4 is the only extraction backend. Source originals remain 
 
 ## 1. Intake and routing
 
-Identify the source file, course, document title, language, and any explicit profile. Resolve semester/course using [course-routing.md](course-routing.md). Confirm near-match course folders instead of silently creating a duplicate.
+Run `scripts/preflight.py` early. Ask its questions in stages: vault root and course first; profile next; language/OCR and credential unlock only when upload is ready. Identify the source file, course, document title, language, and any explicit profile. Resolve semester/course using [course-routing.md](course-routing.md). Confirm near-match course folders instead of silently creating a duplicate.
 
 Reject a source that resolves inside the destination vault. Do not copy or move the original.
 
 ## 2. Profile and API options
 
-Select or confirm `lecture-notes`, `policy-document`, or `paper` using [document-profiles.md](document-profiles.md). Validate extension and size without parsing the source locally. Confirm OCR for this document; never apply a hard-coded false default.
+Select or confirm `lecture-notes`, `policy-document`, or `paper` using filename/user context before upload. A name such as `Code of Conduct` should trigger a `policy-document` suggestion immediately. Validate extension and size without parsing the source locally. Infer then confirm the MinerU language enum and confirm an OCR boolean; neither field has a request default.
 
 Load `obsidian-markdown` and `json-canvas`. Verify the encrypted token store, disclose the MinerU upload, then request only the encryption passphrase through a hidden prompt. On first setup, create encrypted state through `token-store.py`.
 
@@ -29,11 +29,11 @@ Create the document folder only after extraction/profile decisions are stable. W
 - complete `<document-slug>.md`;
 - derived `assets/` only;
 - `<document-slug>.canvas` using evidence-based relationships;
-- `conversion-report.md` from the fixed template.
+- a temporary `conversion-report.md` under staging for Agent QA only.
 
 ## 6. Validation and delivery
 
-Run `scripts/validate-output.py`, structural alignment checks, and [quality-gates.md](quality-gates.md). Move only validated derived artifacts from staging into the document folder. Report routing decisions, output paths, zero counts, review items, and not-checked gates.
+Run `scripts/validate-output.py` with the staging report, structural alignment checks, and [quality-gates.md](quality-gates.md). Move only validated Markdown/Canvas/assets into the document folder. Extract routing decisions, output paths, zero counts, review items, and not-checked gates for the final response; then delete the temporary report and send that response.
 
 ## Failure behavior
 

@@ -3,7 +3,17 @@ schema_version: 1
 cases:
   - id: "valid-derived-folder"
     fixture: "fixtures/synthetic/valid-document-folder"
+    report: "fixtures/staging/conversion-report.md"
     expected_action: "pass"
+
+  - id: "conversion-report-inside-document-folder"
+    report: "fixtures/synthetic/valid-document-folder/conversion-report.md"
+    expected_action: "fail-report-must-be-staging-only"
+
+  - id: "delete-temporary-report-after-success"
+    report_location: "outside-vault-staging"
+    validation: "pass"
+    expected_action: "delete-exact-report"
 
   - id: "source-pdf-inside-vault-folder"
     extra_file: "source.pdf"

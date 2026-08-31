@@ -4,13 +4,13 @@ The skill accepts course slides and other course documents. Select one profile b
 
 ## Profile selection
 
-Use an explicit user choice when provided. Otherwise use `auto-confirm`:
+There is no silent `lecture-notes` default. Use `preflight.py` and `auto-confirm`:
 
-1. Before upload, infer only from the user's description and filename; do not parse the source locally.
-2. After MinerU returns, use page-grouped blocks and layout metadata to assess whether the document is slide-like.
+1. Before upload, infer from the user's description and filename, show the suggestion, and obtain a profile choice. A filename such as `Code of Conduct` should suggest `policy-document` even if the initial conversational wording said lecture notes.
+2. After MinerU returns, use page-grouped blocks and layout metadata as a mismatch guard, not as the first profile decision.
 3. Slide-like signals include short page-local blocks, repeated title/body patterns, presentation-sized pages, and frequent page-level headings.
 4. Dense paragraphs, policy numbering, references, abstracts, or continuous prose signal a non-slide document.
-5. If the result is not clearly lecture slides, say so and ask the user to confirm `policy-document` or `paper` before writing to the vault.
+5. If structured output contradicts the pre-upload choice, say so and reconfirm before writing to the vault; no second upload is required.
 
 Do not stop merely because the input is not slides; use the appropriate profile.
 

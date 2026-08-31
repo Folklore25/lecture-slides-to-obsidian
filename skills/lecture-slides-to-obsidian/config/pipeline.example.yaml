@@ -17,7 +17,11 @@ output:
   note_name: "{document_slug}.md"
   canvas_name: "{document_slug}.canvas"
   assets_directory: "assets"
+
+staging:
   report_name: "conversion-report.md"
+  report_inside_vault: false
+  delete_report_on_success: true
 
 mineru_api:
   base_url: "https://mineru.net"
@@ -28,10 +32,13 @@ mineru_api:
   token_encryption: "aes-256-cbc-pbkdf2-etm-hmac-sha256"
   persist_plaintext_token: false
   persist_decryption_passphrase: false
-  language: "ch"
+  language: null
+  language_selection: "infer-then-confirm"
   enable_formula: true
   enable_table: true
-  is_ocr: "confirm-per-document"
+  is_ocr: null
+  require_explicit_language: true
+  require_explicit_is_ocr: true
   poll_schedule_seconds:
     first_30_seconds: 3
     seconds_31_to_120: 10

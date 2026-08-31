@@ -38,8 +38,14 @@ required_services:
       model_version: "vlm"
       enable_formula: true
       enable_table: true
-      is_ocr: "confirm-per-document"
-      language: "ch"
+    required_confirmation:
+      is_ocr:
+        type: "boolean"
+        default: null
+      language:
+        type: "enum"
+        default: null
+        selection: "infer-from-user-filename-course-then-confirm"
     limits:
       max_file_bytes: 209715200
       max_pages: 200

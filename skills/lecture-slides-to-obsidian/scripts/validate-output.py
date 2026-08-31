@@ -242,16 +242,32 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("document_folder", type=Path)
     parser.add_argument("--vault-root", type=Path)
+    parser.add_argument("--fixture-mode", action="store_true", help="Allow document-relative Canvas paths in tests only")
+    parser.add_argument("--report", required=True, type=Path, help="Temporary QA report outside the vault")
+    parser.add_argument("--delete-report-on-success", action="store_true")
     args = parser.parse_args()
 
     folder = args.document_folder.resolve()
     vault_root = args.vault_root.resolve() if args.vault_root else None
+    report_input = args.report
+    report = report_input.resolve()
     errors: list[str] = []
+
+    if vault_root is None and not args.fixture_mode:
+        errors.append("--vault-root is required outside explicit --fixture-mode")
+    if vault_root is not None and args.fixture_mode:
+        errors.append("--fixture-mode cannot be combined with --vault-root")
+    if report_input.is_symlink():
+        errors.append("temporary conversion report must not be a symlink")
+    if report.name != "conversion-report.md":
+        errors.append("temporary report filename must be conversion-report.md")
 
     if not folder.is_dir():
         errors.append(f"document folder not found: {folder}")
     elif vault_root and not inside(folder, vault_root):
         errors.append("document folder is outside --vault-root")
+    if inside(report, folder) or (vault_root and inside(report, vault_root)):
+        errors.append("temporary conversion report must be outside the document folder and vault")
 
     if not errors:
         forbidden = [path for path in folder.rglob("*") if path.is_file() and path.suffix.lower() in SOURCE_EXTENSIONS]
@@ -260,14 +276,15 @@ def main() -> int:
 
         markdown_files = [path for path in folder.glob("*.md") if path.name != "conversion-report.md"]
         canvas_files = list(folder.glob("*.canvas"))
-        report = folder / "conversion-report.md"
         assets = folder / "assets"
         if len(markdown_files) != 1:
             errors.append(f"expected one primary Markdown file, found {len(markdown_files)}")
         if len(canvas_files) != 1:
             errors.append(f"expected one Canvas file, found {len(canvas_files)}")
+        if (folder / "conversion-report.md").exists():
+            errors.append("conversion-report.md is temporary QA state and must not be in the document folder")
         if not report.is_file():
-            errors.append("conversion-report.md is missing")
+            errors.append("temporary conversion report is missing")
         if not assets.is_dir():
             errors.append("assets directory is missing")
 
@@ -278,7 +295,17 @@ def main() -> int:
         if report.is_file():
             errors += validate_report(report)
 
-    result = {"valid": not errors, "document_folder": str(folder), "errors": errors}
+    report_deleted = False
+    if not errors and args.delete_report_on_success:
+        report.unlink()
+        report_deleted = True
+    result = {
+        "valid": not errors,
+        "document_folder": str(folder),
+        "temporary_report": str(report),
+        "report_deleted": report_deleted,
+        "errors": errors,
+    }
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if not errors else 1
 

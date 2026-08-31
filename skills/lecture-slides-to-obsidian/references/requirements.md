@@ -24,12 +24,14 @@ OpenSSL with `aes-256-cbc` support is required only for the encrypted token stor
 
 Before uploading course content:
 
-1. Inspect the harness's available skill list for exact names `obsidian-markdown` and `json-canvas`, then load both completely.
+1. Inspect the harness's available skill list for exact names `obsidian-markdown` and `json-canvas`, then explicitly invoke the Skill tool for both and read each `SKILL.md` completely. Merely seeing them in the available list is not sufficient.
 2. Verify OpenSSL and `state/mineru-api-token.enc.json`.
 3. If encrypted state is absent, run `scripts/token-store.py set`. The script must collect the token and a 12+ character encryption passphrase through hidden prompts; do not place either in command arguments.
 4. Validate the local file type and size against `requirements/services.yaml` without parsing its content locally.
 5. Tell the user that the file will be uploaded to MinerU, then unlock the encrypted token through a hidden passphrase prompt.
 6. If either Obsidian skill, OpenSSL, network access, encrypted token, or passphrase is unavailable, stop and report the exact requirement. Do not use plaintext storage or fall back to local parsing.
+
+Run `scripts/preflight.py` and pass `--loaded-skill obsidian-markdown --loaded-skill json-canvas`; its JSON output is the machine-readable record that helper skills were loaded.
 
 The manifests are declarative. Enforcement belongs to this preflight and future contract tests.
 

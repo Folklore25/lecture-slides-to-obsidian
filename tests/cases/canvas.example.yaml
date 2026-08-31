@@ -38,3 +38,14 @@ cases:
   - id: "source-pdf-file-node"
     file: "lecture.pdf"
     expected_action: "reject-source-original-node"
+
+  - id: "complete-vault-relative-markdown-path"
+    vault_root: "/example/vault"
+    document_folder: "/example/vault/IS6000/Lectures/l01-code-of-conduct"
+    file_node: "IS6000/Lectures/l01-code-of-conduct/l01-code-of-conduct.md"
+    expected_action: "resolve-inside-document-folder"
+
+  - id: "bare-markdown-filename"
+    vault_root: "/example/vault"
+    file_node: "l01-code-of-conduct.md"
+    expected_action: "reject-as-vault-root-relative-miss"
