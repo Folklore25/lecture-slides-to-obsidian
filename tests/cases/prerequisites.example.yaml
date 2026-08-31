@@ -1,35 +1,37 @@
 schema_version: 1
 
 cases:
-  - id: "all-required-skills-and-runtime-present"
+  - id: "obsidian-skill-and-api-token-ready"
     available_skills:
-      - "mineru-pdf"
       - "obsidian-markdown"
-    mineru_runtime: "available"
+    mineru_network: "available"
+    token_input: "provided-after-disclosure"
     expected_action: "continue"
 
-  - id: "mineru-skill-missing"
-    available_skills:
-      - "obsidian-markdown"
-    mineru_runtime: "available"
-    expected_action: "stop-and-report-mineru-pdf"
-
   - id: "obsidian-skill-missing"
-    available_skills:
-      - "mineru-pdf"
-    mineru_runtime: "available"
+    available_skills: []
+    mineru_network: "available"
+    token_input: "not-requested"
     expected_action: "stop-and-report-obsidian-markdown"
 
-  - id: "mineru-runtime-missing"
+  - id: "token-not-yet-provided"
     available_skills:
-      - "mineru-pdf"
       - "obsidian-markdown"
-    mineru_runtime: "missing"
-    expected_action: "stop-and-report-mineru-runtime"
+    mineru_network: "available"
+    token_input: "missing"
+    expected_action: "show-upload-disclosure-then-request-plaintext-token"
 
-  - id: "similarly-named-skills-only"
+  - id: "token-invalid-or-expired"
     available_skills:
-      - "mineru-ai"
-      - "obsidian"
-    mineru_runtime: "available"
-    expected_action: "stop-and-report-both-required-skills"
+      - "obsidian-markdown"
+    mineru_network: "available"
+    api_error: "A0202-or-A0211"
+    expected_action: "discard-and-request-one-replacement-without-echo"
+
+  - id: "local-mineru-present-but-api-unavailable"
+    available_skills:
+      - "obsidian-markdown"
+      - "mineru-pdf"
+    local_mineru_runtime: "available"
+    mineru_network: "unavailable"
+    expected_action: "stop-without-local-fallback"

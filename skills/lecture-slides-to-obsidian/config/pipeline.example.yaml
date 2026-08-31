@@ -16,11 +16,21 @@ output:
   assets_directory: "assets/{source_stem}"
   report_name: "{source_stem}.conversion-report.md"
 
+mineru_api:
+  base_url: "https://mineru.net"
+  api_version: "v4"
+  submission: "signed-batch-upload"
+  model_version: "vlm"
+  token_source: "interactive-plaintext"
+  persist_token: false
+  language: "ch"
+  enable_formula: true
+  enable_table: true
+  is_ocr: false
+  poll_interval_seconds: 3
+  poll_timeout_seconds: 300
+
 conversion:
-  mode: "auto"
-  language_hints:
-    - "en"
-    - "zh"
   page_provenance: "html-comment"
   visual_fallback: "uncertain-pages"
   equation_policy: "preserve-and-flag"

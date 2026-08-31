@@ -47,12 +47,14 @@ The report should state:
 
 - matched semester, course key, and classified relative destinations;
 - source filename and page count;
-- backend and version, when known;
+- provider `MinerU Precision API v4`, model version, and non-secret request options;
 - conversion time and effective configuration;
 - pages requiring OCR, fallback images, or manual review;
 - counts of generated notes and assets;
 - warnings, failures, and skipped content;
 - validation performed and limitations not checked.
+
+Do not include the API token, Authorization header, signed upload URL, full ZIP URL, CDN query parameters, or raw response headers. A redacted task/batch reference is allowed when it helps resume a timed-out task.
 
 The report is diagnostic, not part of the lecture note's learning content.
 

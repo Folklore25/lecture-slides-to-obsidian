@@ -1,0 +1,36 @@
+schema_version: 1
+
+required_services:
+  - name: "mineru-precision-api"
+    provider: "MinerU"
+    api_version: "v4"
+    base_url: "https://mineru.net"
+    docs: "https://mineru.net/apiManage/docs"
+    network_upload_required: true
+    authentication:
+      type: "bearer"
+      token_source: "interactive-plaintext"
+      persistence: "forbidden"
+      allowed_origin: "https://mineru.net"
+    endpoints:
+      request_upload_urls: "POST /api/v4/file-urls/batch"
+      poll_batch_result: "GET /api/v4/extract-results/batch/{batch_id}"
+    upload:
+      method: "PUT"
+      authorization_header: false
+      content_type_header: false
+      signed_url_persistence: "forbidden"
+    defaults:
+      model_version: "vlm"
+      enable_formula: true
+      enable_table: true
+      is_ocr: false
+      language: "ch"
+    limits:
+      max_file_bytes: 209715200
+      max_pages: 200
+      max_files_per_request: 50
+      upload_url_valid_hours: 24
+    result:
+      type: "zip"
+      primary_markdown: "full.md"

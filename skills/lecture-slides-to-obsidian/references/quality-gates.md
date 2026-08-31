@@ -8,6 +8,11 @@ A conversion is complete only when the applicable gates pass or the report names
 - The resolved course and destination paths remain under the registered semester root.
 - The source PDF copy, note, assets, and report use their registered role directories.
 - The source PDF remains unchanged.
+- The PDF was uploaded only through the MinerU Precision API v4 signed-upload flow.
+- No local PDF parser, local MinerU runtime, lightweight API, or third-party wrapper was used.
+- The Bearer token was sent only to `https://mineru.net`; signed upload/result downloads received no Bearer header.
+- No API token, Authorization header, signed URL, or raw secret-bearing response exists in state, staging, output, reports, logs, or Git.
+- ZIP members passed traversal, symlink, type, count, and extracted-size safety checks.
 - The final Markdown file opens as UTF-8 and contains no unresolved temporary paths.
 - All relative image links resolve inside the destination.
 - Page provenance is monotonic and references valid source pages.
@@ -16,7 +21,7 @@ A conversion is complete only when the applicable gates pass or the report names
 - Equations and tables are either validated, preserved visually, or explicitly flagged.
 - Complex diagrams retain a nearby visual fallback.
 - Existing user-authored notes were not overwritten.
-- The conversion report identifies the backend, warnings, fallback pages, and checks performed.
+- The conversion report identifies MinerU Precision API v4, model/options, warnings, fallback pages, and checks performed without secret URLs.
 
 ## Useful metrics
 

@@ -4,7 +4,7 @@ cases:
   - id: "synthetic-simple-reading-order"
     fixture: "fixtures/synthetic/simple-reading-order.pdf"
     redistribution: "synthetic"
-    capability_class: "fast"
+    extraction_profile: "mineru-api-v4-vlm"
     languages:
       - "en"
     checks:

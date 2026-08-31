@@ -1,4 +1,4 @@
 interface:
   display_name: "Lecture Slides to Obsidian"
   short_description: "Convert lecture PDFs into editable Obsidian notes"
-  default_prompt: "Use $lecture-slides-to-obsidian to route this course's lecture PDF into its registered semester folder and create an Obsidian-ready note."
+  default_prompt: "Use $lecture-slides-to-obsidian to route this course's lecture PDF, parse it with the official MinerU API, and create an Obsidian-ready note."

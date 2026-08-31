@@ -2,7 +2,7 @@
 
 一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 lecture-slide PDF，整理成适合课前预习、课上补充的 Obsidian Markdown。
 
-当前是 **Phase 1：规范与骨架**。仓库已经定义技能入口、前置技能要求、技能内持久课程路由、输出契约、质量门槛、测试素材规则和跨工具安装方式，但**尚未实现自己的 PDF 提取引擎**。
+当前是 **Phase 1：规范与骨架**。仓库已经定义技能入口、MinerU 官方 API 契约、技能内持久课程路由、输出契约、质量门槛、测试素材规则和跨工具安装方式，但**尚未实现 API client**。
 
 ## 设计目标
 
@@ -13,7 +13,8 @@
 - 用户在一个新学期首次提供课程名称时，只询问一次学期根目录并持久记录学期与课程映射。
 - 后续通过课程代码、正式名称或已登记别名唯一匹配，自动归档到对应学期的课程子目录。
 - 同一份技能内容兼容 Claude Code 和 Pi，并适合作为 cc-switch 自定义技能源。
-- 默认本地处理，不把课件上传到第三方服务。
+- 除明确声明的 MinerU 官方 API 上传外，不把课件发送到其他第三方服务。
+- PDF 内容解析只使用 MinerU 官方精准解析 API，不下载本地模型、不依赖本地 MinerU CLI。
 
 ## 仓库结构
 
@@ -77,16 +78,25 @@ cc-switch 卸载时可能创建自己的 skill backup。若要求卸载备份中
 
 目录整体替换式更新必须保留并原位恢复 `state/`。在自动迁移实现前，更新器不应把 package 内容覆盖到一个已有运行态目录而忽略其中的 registry。
 
-## 前置技能要求
+## 解析策略与前置要求
 
-转换前必须能发现并加载：
+PDF 会上传到 MinerU 官方服务进行解析。转换前必须：
 
-- `mineru-pdf`：负责复杂 PDF、公式、表格、图片和 OCR 提取。
-- `obsidian-markdown`：负责 Obsidian properties、wikilinks、embeds、callouts 和最终 Markdown 语法校验。
+- 能发现并加载 `obsidian-markdown`，用于 Obsidian properties、wikilinks、embeds、callouts 和最终 Markdown 语法校验。
+- 能访问 MinerU Precision API v4。
+- 由 Agent 在输入框向用户明文收集 MinerU API token。
 
-`mineru-pdf` 还要求本机 MinerU runtime 可用。机器可读声明位于 `requirements/skills.yaml`，详细预检与职责边界位于 `references/requirements.md`。
+明文 token 会进入当前会话，可能由所使用的 Agent 宿主保留。Agent 必须在收集前提示这一点，并且不得回显 token，不得把它写入 skill state、配置、文件、报告、日志、shell history 或 Git。
 
-当前 Agent Skills 和 cc-switch 没有通用的 skill-to-skill 自动依赖安装字段，因此本技能会显式验证并报告缺失项，但不会静默安装前置技能。
+本地 PDF 使用官方上传流程：
+
+1. `POST /api/v4/file-urls/batch` 获取 `batch_id` 与签名上传 URL。
+2. 使用 `PUT` 上传 PDF；上传请求不附带 Bearer token，也不设置 `Content-Type`。
+3. 轮询 `GET /api/v4/extract-results/batch/{batch_id}`。
+4. 下载完成状态返回的 ZIP，安全解压 `full.md`、JSON 和图片。
+5. 使用 `obsidian-markdown` 整理为最终笔记。
+
+机器可读声明位于 `requirements/skills.yaml` 和 `requirements/services.yaml`，完整安全契约位于 `references/mineru-api.md`。
 
 ## 安装与加载
 
@@ -146,16 +156,14 @@ ln -s /absolute/path/to/lecture-slides-to-obsidian/skills/lecture-slides-to-obsi
 
 1. 用代表性课件建立合成/公开基准集。
 2. 实现技能内课程注册表的原子读写、唯一匹配和目录路由测试。
-3. 定义 fast path 与 layout-aware path 的适配接口。
-4. 选择并实现第一个本地提取后端。
-5. 加入输出契约验证、回归测试和转换报告。
-6. 在真实课前工作流中小范围试用，再依据失败样例修订技能。
+3. 实现 MinerU Precision API v4 client、token 生命周期和安全 ZIP 解压。
+4. 加入 API 契约验证、回归测试和转换报告。
+5. 在真实课前工作流中小范围试用，再依据失败样例修订技能。
 
 ## 暂未决定
 
-- 默认提取引擎及其版本。
-- Python、Node 或其他实现语言。
-- OCR、公式识别与表格识别的具体依赖。
+- API client 使用 Python、Node 或其他实现语言。
+- API token 输入如何由不同 Agent 宿主传递到 client 且不进入工具日志。
 - GitHub 仓库地址、许可证和发布策略。
 
 这些内容应在有实现和测试证据后再确定。

@@ -11,12 +11,13 @@ config/pipeline.example.yaml
 examples/invocations.md
 examples/expected-note.md
 requirements/skills.yaml
+requirements/services.yaml
 references/workflow.md
 references/course-routing.md
 references/requirements.md
+references/mineru-api.md
 references/output-contract.md
 references/obsidian-style.md
-references/engine-adapters.md
 references/quality-gates.md
 scripts/README.md
 scripts/purge-state.sh
@@ -63,8 +64,24 @@ if grep -R -n '~/.config/lecture-slides-to-obsidian\|XDG_CONFIG_HOME' "$skill_di
   exit 1
 fi
 
-if ! grep -q 'required-skills: "mineru-pdf, obsidian-markdown"' "$skill_dir/SKILL.md"; then
+if ! grep -q 'required-skills: "obsidian-markdown"' "$skill_dir/SKILL.md"; then
   printf 'skill prerequisite metadata is missing or out of sync\n' >&2
+  exit 1
+fi
+
+if ! grep -q 'required-services: "MinerU Precision API v4"' "$skill_dir/SKILL.md"; then
+  printf 'service prerequisite metadata is missing or out of sync\n' >&2
+  exit 1
+fi
+
+if grep -q 'mineru-pdf\|runtime_command' "$skill_dir/requirements/skills.yaml"; then
+  printf 'local MinerU skill/runtime dependency is forbidden\n' >&2
+  exit 1
+fi
+
+if ! grep -q 'POST /api/v4/file-urls/batch' "$skill_dir/requirements/services.yaml" || \
+   ! grep -q 'GET /api/v4/extract-results/batch/{batch_id}' "$skill_dir/requirements/services.yaml"; then
+  printf 'MinerU API endpoint contract is missing or out of sync\n' >&2
   exit 1
 fi
 

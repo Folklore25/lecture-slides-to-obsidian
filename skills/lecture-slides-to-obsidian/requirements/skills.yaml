@@ -2,17 +2,6 @@ schema_version: 1
 install_behavior: "report-only"
 
 required_skills:
-  - name: "mineru-pdf"
-    purpose: "Extract page-ordered text, formulas, tables, images, OCR content, and layout-aware Markdown from lecture PDFs."
-    source: "https://github.com/hawkongz/mineru-pdf"
-    verify:
-      skill_name: "mineru-pdf"
-      runtime_command: "mineru"
-    runtime:
-      name: "MinerU"
-      source: "https://github.com/opendatalab/MinerU"
-      install_hint: "pip install \"mineru[pipeline]\""
-
   - name: "obsidian-markdown"
     purpose: "Normalize and validate Obsidian properties, wikilinks, embeds, callouts, comments, and Markdown conventions."
     source: "https://github.com/kepano/obsidian-skills/tree/main/skills/obsidian-markdown"

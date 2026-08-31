@@ -1,0 +1,36 @@
+schema_version: 1
+
+cases:
+  - id: "local-pdf-signed-upload"
+    input: "lecture.pdf"
+    expected_sequence:
+      - "post-file-urls-batch-with-bearer"
+      - "put-file-to-signed-url-without-bearer-or-content-type"
+      - "poll-extract-results-batch-with-bearer"
+      - "download-zip-without-bearer"
+      - "safe-extract-in-staging"
+
+  - id: "bearer-forwarded-to-signed-url"
+    upload_authorization_header: true
+    expected_action: "reject-request"
+
+  - id: "plaintext-token-persistence"
+    token_written_to: "state-or-config-or-log-or-report"
+    expected_action: "fail-secret-safety-gate"
+
+  - id: "poll-timeout"
+    state: "running"
+    elapsed_seconds: 300
+    expected_action: "stop-and-report-redacted-batch-reference"
+
+  - id: "unsafe-zip-member"
+    zip_member: "../../outside.md"
+    expected_action: "reject-archive-before-extraction"
+
+  - id: "official-api-file-too-large"
+    api_error: "-60005"
+    expected_action: "stop-and-report-size-limit"
+
+  - id: "official-api-page-limit"
+    api_error: "-60006"
+    expected_action: "stop-and-report-page-limit"
