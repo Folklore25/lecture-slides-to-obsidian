@@ -14,23 +14,34 @@ This is the only PDF extraction backend for the skill. Local parsing, local Mine
 - Default `language`: `ch` for mixed Chinese/English slides.
 - Formula and table recognition are enabled. OCR has no hard-coded default: confirm `is_ocr` for every document. Recommend true when the user identifies a scan, image-only document, or unreliable existing OCR; otherwise explain the tradeoff and ask.
 
-## Plaintext token collection
+## Encrypted token lifecycle
 
-Collect the API token from the Agent's interactive input only after course routing, file validation, and upload disclosure are complete. Use this prompt or an equivalent concise warning:
+Persist the token only at:
 
 ```text
-这份课件将上传到 MinerU 官方 API。请在输入框粘贴本次使用的 API token。token 会以明文进入当前会话，可能由当前 Agent 宿主保留；我不会回显、写入文件、注册表、配置、日志或报告。
+<skill-directory>/state/mineru-api-token.enc.json
 ```
 
-Treat the token as session-only:
+`scripts/token-store.py` implements authenticated encryption using OpenSSL AES-256-CBC with PBKDF2-HMAC-SHA256 (600,000 iterations) and an independent Encrypt-then-HMAC-SHA256 integrity key. The passphrase is never stored. The encrypted file is mode `0600`; `state/` is mode `0700` when written.
 
-- do not repeat or quote any part of it;
-- do not persist it in `state/`, configuration, environment profiles, shell history, temporary files, reports, or Git;
-- do not include it directly in a command line or diagnostic output;
+First setup:
+
+```text
+scripts/token-store.py set
+```
+
+The script prompts for token and passphrase without echo. If the Agent already collected the token in its input box, pass it through stdin with `set --token-stdin`; never place it in command arguments. The conversation host may retain the original user message, which this skill cannot delete.
+
+Later conversions ask only for the encryption passphrase through a hidden prompt. The API client imports `load_token()` and keeps plaintext in memory only. There is intentionally no CLI command that prints the token.
+
+Rules:
+
+- never repeat or quote any token/passphrase characters;
+- never persist plaintext token/passphrase in registry, configuration, environment profiles, shell history, temporary files, reports, logs, or Git;
+- never copy the encrypted file outside the installed skill state directory;
 - send `Authorization: Bearer <token>` only to HTTPS requests whose origin is exactly `https://mineru.net`;
-- on `A0202` or `A0211`, discard it and ask once for a replacement without showing the rejected value.
-
-The conversation host may retain the plaintext user message. Do not promise deletion that the Agent cannot verify.
+- on `A0202` or `A0211`, delete or replace the encrypted token through `token-store.py`; never show the rejected value;
+- if the passphrase is lost, the token cannot be recovered locally—delete and recreate the encrypted file.
 
 ## Local-file submission
 

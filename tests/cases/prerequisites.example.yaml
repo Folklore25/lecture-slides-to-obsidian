@@ -1,36 +1,51 @@
 schema_version: 1
 
 cases:
-  - id: "obsidian-skill-and-api-token-ready"
+  - id: "skills-openssl-and-encrypted-token-ready"
     available_skills:
       - "obsidian-markdown"
+      - "json-canvas"
+    openssl: "available-with-aes-256-cbc"
     mineru_network: "available"
-    token_input: "provided-after-disclosure"
+    encrypted_token_file: "valid"
+    passphrase: "provided-through-hidden-prompt"
     expected_action: "continue"
 
   - id: "obsidian-skill-missing"
     available_skills: []
     mineru_network: "available"
-    token_input: "not-requested"
+    encrypted_token_file: "not-created"
     expected_action: "stop-and-report-obsidian-markdown"
 
-  - id: "token-not-yet-provided"
+  - id: "encrypted-token-not-configured"
     available_skills:
       - "obsidian-markdown"
+      - "json-canvas"
+    openssl: "available-with-aes-256-cbc"
     mineru_network: "available"
-    token_input: "missing"
-    expected_action: "show-upload-disclosure-then-request-plaintext-token"
+    encrypted_token_file: "missing"
+    expected_action: "run-token-store-set-with-hidden-prompts"
+
+  - id: "openssl-missing"
+    available_skills:
+      - "obsidian-markdown"
+      - "json-canvas"
+    openssl: "missing"
+    encrypted_token_file: "missing"
+    expected_action: "stop-without-plaintext-storage-fallback"
 
   - id: "token-invalid-or-expired"
     available_skills:
       - "obsidian-markdown"
+      - "json-canvas"
     mineru_network: "available"
     api_error: "A0202-or-A0211"
-    expected_action: "discard-and-request-one-replacement-without-echo"
+    expected_action: "replace-encrypted-token-without-echo"
 
   - id: "local-mineru-present-but-api-unavailable"
     available_skills:
       - "obsidian-markdown"
+      - "json-canvas"
       - "mineru-pdf"
     local_mineru_runtime: "available"
     mineru_network: "unavailable"

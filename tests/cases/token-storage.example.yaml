@@ -1,0 +1,30 @@
+schema_version: 1
+
+cases:
+  - id: "encrypted-token-round-trip"
+    file: "state/mineru-api-token.enc.json"
+    plaintext_present: false
+    file_mode: "0600"
+    directory_mode: "0700"
+    expected_action: "decrypt-in-memory-only"
+
+  - id: "wrong-passphrase"
+    hmac_verification: "failed"
+    expected_action: "reject-before-decryption"
+
+  - id: "tampered-ciphertext"
+    hmac_verification: "failed"
+    expected_action: "reject-before-decryption"
+
+  - id: "passphrase-lost"
+    expected_action: "delete-and-recreate-token-store"
+
+  - id: "plaintext-token-file"
+    file: "state/mineru-api-token.txt"
+    expected_action: "reject-and-remove"
+
+  - id: "uninstall-purge"
+    purge_targets:
+      - "course-registry.yaml"
+      - "mineru-api-token.enc.json"
+    expected_action: "remove-only-skill-owned-state"

@@ -2,7 +2,8 @@
 
 This directory contains only state cleanup in phase one; it remains empty of conversion code.
 
-- `purge-state.sh --confirm` removes the registry and its in-skill backups before uninstall. It does not touch course files or any path outside `state/`.
+- `purge-state.sh --confirm` removes the registry, encrypted token, and their in-skill backups before uninstall. It does not touch course files or any path outside `state/`.
+- `token-store.py set|verify|status|delete` manages the encrypted MinerU token without printing it. API clients import `load_token()` and keep plaintext in memory only.
 - `validate-output.py <document-folder> [--vault-root <vault-root>]` validates a completed derived folder without modifying it.
 
 Future scripts belong here only when they provide deterministic, reusable behavior such as:

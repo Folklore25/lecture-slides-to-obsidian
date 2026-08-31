@@ -9,8 +9,10 @@ required_services:
     network_upload_required: true
     authentication:
       type: "bearer"
-      token_source: "interactive-plaintext"
-      persistence: "forbidden"
+      token_source: "encrypted-skill-state-file"
+      encrypted_file: "state/mineru-api-token.enc.json"
+      persistence: "encrypted-at-rest"
+      passphrase_persistence: "forbidden"
       allowed_origin: "https://mineru.net"
     endpoints:
       request_upload_urls: "POST /api/v4/file-urls/batch"

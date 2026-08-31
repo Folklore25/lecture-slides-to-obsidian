@@ -10,7 +10,7 @@ Resolve the directory containing this skill's `SKILL.md`, then use:
 <skill-directory>/state/course-registry.yaml
 ```
 
-Use [../state/course-registry.example.yaml](../state/course-registry.example.yaml) as the schema. Write atomically inside `state/`; keep migration backups there. Never store credentials, Canvas sessions, course content, or API tokens.
+Use [../state/course-registry.example.yaml](../state/course-registry.example.yaml) as the schema. Write atomically inside `state/`; keep migration backups there. The registry never stores credentials, Canvas sessions, course content, or plaintext API tokens; encrypted token state is owned separately by `token-store.py`.
 
 ## Semester identity is independent from the path
 

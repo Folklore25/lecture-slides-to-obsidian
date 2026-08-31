@@ -16,7 +16,11 @@ if [ ! -d "$state_dir" ] || [ "$(basename -- "$state_dir")" != "state" ]; then
 fi
 
 find "$state_dir" -maxdepth 1 -type f \
-  \( -name 'course-registry.yaml' -o -name 'course-registry.yaml.bak-*' \) \
+  \( -name 'course-registry.yaml' \
+     -o -name 'course-registry.yaml.bak-*' \
+     -o -name 'mineru-api-token.enc.json' \
+     -o -name 'mineru-api-token.enc.json.bak-*' \
+     -o -name '.mineru-token-*' \) \
   -delete
 
-printf 'skill-owned course registry state removed\n'
+printf 'skill-owned registry and encrypted token state removed\n'

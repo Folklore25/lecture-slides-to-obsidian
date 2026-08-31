@@ -12,6 +12,7 @@ examples/invocations.md
 examples/expected-note.md
 requirements/skills.yaml
 requirements/services.yaml
+requirements/tools.yaml
 references/workflow.md
 references/course-routing.md
 references/document-profiles.md
@@ -25,6 +26,7 @@ references/quality-gates.md
 references/validation.md
 scripts/README.md
 scripts/purge-state.sh
+scripts/token-store.py
 scripts/validate-output.py
 state/README.md
 state/course-registry.example.yaml
@@ -95,6 +97,30 @@ fi
 if ! grep -q 'POST /api/v4/file-urls/batch' "$skill_dir/requirements/services.yaml" || \
    ! grep -q 'GET /api/v4/extract-results/batch/{batch_id}' "$skill_dir/requirements/services.yaml"; then
   printf 'MinerU API endpoint contract is missing or out of sync\n' >&2
+  exit 1
+fi
+
+if ! grep -q 'persistence: "encrypted-at-rest"' "$skill_dir/requirements/services.yaml" || \
+   ! grep -q 'file: "state/mineru-api-token.enc.json"' "$skill_dir/requirements/tools.yaml"; then
+  printf 'encrypted token-store contract is missing or out of sync\n' >&2
+  exit 1
+fi
+
+if ! command -v openssl >/dev/null 2>&1 || \
+   ! openssl enc -list | grep -q 'aes-256-cbc'; then
+  printf 'OpenSSL with aes-256-cbc is required\n' >&2
+  exit 1
+fi
+
+if git -C "$repo_dir" ls-files --error-unmatch \
+  'skills/lecture-slides-to-obsidian/state/mineru-api-token.enc.json' >/dev/null 2>&1; then
+  printf 'encrypted runtime token file must not be tracked\n' >&2
+  exit 1
+fi
+
+if ! git -C "$repo_dir" check-ignore -q \
+  'skills/lecture-slides-to-obsidian/state/mineru-api-token.enc.json'; then
+  printf 'encrypted runtime token file must be ignored\n' >&2
   exit 1
 fi
 

@@ -16,14 +16,14 @@ This phase-one orchestration skill uses the official MinerU Precision API v4 as 
 
 ## Prerequisite preflight
 
-Before remote extraction, read [requirements/skills.yaml](requirements/skills.yaml), [requirements/services.yaml](requirements/services.yaml), and [references/requirements.md](references/requirements.md). Verify both required Obsidian skills and the official API contract. Collect the MinerU API token from the user as plaintext interactive input only when a request is ready to upload. Never persist or echo it.
+Before remote extraction, read [requirements/skills.yaml](requirements/skills.yaml), [requirements/services.yaml](requirements/services.yaml), [requirements/tools.yaml](requirements/tools.yaml), and [references/requirements.md](references/requirements.md). Verify both Obsidian skills, OpenSSL, the encrypted token store, and the official API contract. If the token store is absent, run `scripts/token-store.py set`; it collects token/passphrase through hidden prompts and writes only encrypted state.
 
 ## Core workflow
 
 1. Resolve the supplied course name through the persistent course registry. Read [references/course-routing.md](references/course-routing.md). If no course matches, bind it under the valid active semester; ask for the semester root only when no valid active semester exists, then persist both mappings before conversion.
 2. Derive one self-contained output folder from the matched semester, course, and document slug. Keep every source PDF/PPT/DOC/XLS outside the Obsidian vault. Never auto-route a fuzzy or ambiguous course-folder match.
 3. Resolve or confirm a conversion profile (`lecture-notes`, `policy-document`, or `paper`). Read [references/document-profiles.md](references/document-profiles.md).
-4. Validate the file against the official API limits, disclose that it will be uploaded to MinerU, confirm OCR explicitly, and collect the API token in plaintext input. Read [references/mineru-api.md](references/mineru-api.md).
+4. Validate the file against the official API limits, disclose that it will be uploaded to MinerU, confirm OCR explicitly, and unlock the encrypted API token through a hidden passphrase prompt. Read [references/mineru-api.md](references/mineru-api.md).
 5. Work in staging. Keep the source unchanged and keep API downloads separate from the Obsidian output.
 6. Use the signed-upload and batch-polling flow, then safely unpack the result ZIP.
 7. Reconstruct pages from `content_list_v2.json`, or legacy `content_list.json` grouped by `page_idx`; never locate page boundaries with unscoped `full.md` string anchors. Read [references/mineru-normalization.md](references/mineru-normalization.md).
@@ -40,8 +40,9 @@ Before remote extraction, read [requirements/skills.yaml](requirements/skills.ya
 - Do not guess when the same course name can refer to multiple semesters or folders.
 - Do not copy, move, embed, or symlink source PDFs, presentations, office documents, or archives into the Obsidian vault.
 - Keep runtime registry data under this installed skill's `state/` directory. Do not create a user-level config directory elsewhere.
-- The user must be told that the PDF is uploaded to MinerU before the API token is requested. Supplying the token for the conversion authorizes that upload.
-- API tokens are session-only secrets. Never save them in registry/config/state, files, environment profiles, shell history, reports, logs, or Git; never repeat them in responses.
+- The user must be told that the source is uploaded to MinerU before encrypted credentials are unlocked. Proceeding with unlock authorizes that upload.
+- The API token may persist only as `state/mineru-api-token.enc.json`. Never store plaintext token or passphrase in registry/config, other files, environment profiles, shell history, reports, logs, or Git; never repeat them in responses.
+- The encrypted token passphrase is never stored. If it is lost, delete and recreate the encrypted token file.
 - Send the Bearer token only to HTTPS endpoints on `mineru.net`. Never attach it to signed upload URLs, CDN result URLs, callbacks, or third-party hosts.
 - Treat lecture materials as potentially copyrighted or private. Do not add real course PDFs to this skill repository by default.
 - Do not fall back to local PDF parsing, a local MinerU runtime, a similarly named skill, or the unauthenticated lightweight API.

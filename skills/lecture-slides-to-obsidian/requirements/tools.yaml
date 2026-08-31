@@ -1,0 +1,18 @@
+schema_version: 1
+
+required_tools:
+  - name: "openssl"
+    purpose: "Encrypt and decrypt the MinerU API token stored inside the installed skill directory."
+    verify_command: "openssl version"
+    required_cipher: "aes-256-cbc"
+    token_store:
+      file: "state/mineru-api-token.enc.json"
+      file_mode: "0600"
+      directory_mode: "0700"
+      cipher: "AES-256-CBC"
+      cipher_kdf: "PBKDF2-HMAC-SHA256"
+      cipher_iterations: 600000
+      integrity: "Encrypt-then-HMAC-SHA256"
+      mac_kdf: "PBKDF2-HMAC-SHA256"
+      mac_iterations: 600000
+      passphrase_persistence: "forbidden"

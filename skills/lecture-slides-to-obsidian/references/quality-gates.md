@@ -14,7 +14,8 @@ A conversion is complete only when required gates pass or the report marks an ex
 - MinerU Precision API v4 signed-upload flow was used; no local/lightweight fallback.
 - Per-file state came from `data.extract_result[]`, matched by `data_id` or `file_name`.
 - Bearer token was sent only to `https://mineru.net`; upload/result URLs received no Bearer header.
-- Token, Authorization header, signed URLs, and secret-bearing responses are absent from files, reports, logs, state, and Git.
+- Plaintext token/passphrase, Authorization header, signed URLs, and secret-bearing responses are absent from registry, reports, logs, staging, output, and Git.
+- Encrypted token state exists only at `state/mineru-api-token.enc.json`, has mode `0600`, passes HMAC verification, and has no plaintext token substring.
 - ZIP path/type/count/size safety checks passed.
 
 ## Structural alignment — required

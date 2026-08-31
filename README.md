@@ -90,9 +90,23 @@ PDF 会上传到 MinerU 官方服务进行解析。转换前必须：
 - 能发现并加载 `obsidian-markdown`，用于 Obsidian properties、wikilinks、embeds、callouts 和 Markdown 语法。
 - 能发现并加载 `json-canvas`，用于关系画布生成与 JSON Canvas 校验。
 - 能访问 MinerU Precision API v4。
-- 由 Agent 在输入框向用户明文收集 MinerU API token。
+- 本机具有支持 `aes-256-cbc` 的 OpenSSL。
 
-明文 token 会进入当前会话，可能由所使用的 Agent 宿主保留。Agent 必须在收集前提示这一点，并且不得回显 token，不得把它写入 skill state、配置、文件、报告、日志、shell history 或 Git。
+API token 加密保存为：
+
+```text
+<installed-skill-directory>/state/mineru-api-token.enc.json
+```
+
+首次配置：
+
+```bash
+skills/lecture-slides-to-obsidian/scripts/token-store.py set
+```
+
+脚本使用隐藏输入收集 token 和至少 12 字符的加密口令。若 Agent 已从输入框收到 token，只能通过 stdin 调用 `set --token-stdin`，不能放进命令参数。之后每次转换只需隐藏输入解密口令；口令不落盘，CLI 也没有输出明文 token 的命令。
+
+密文采用 AES-256-CBC + PBKDF2-HMAC-SHA256（600,000 iterations），并用独立的 Encrypt-then-HMAC-SHA256 做完整性校验。token 文件权限为 `0600`，state 目录写入时设为 `0700`。删除技能目录会连同密文一起删除。
 
 本地 PDF 使用官方上传流程：
 
@@ -171,14 +185,13 @@ python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py <document-f
 
 1. 用代表性课件建立合成/公开基准集。
 2. 实现技能内课程注册表的原子读写、唯一匹配和目录路由测试。
-3. 实现 MinerU Precision API v4 client、token 生命周期、安全 ZIP 解压和结构化分页。
+3. 实现 MinerU Precision API v4 client 与加密 token store 的内存解锁集成、安全 ZIP 解压和结构化分页。
 4. 加入完整 Canvas 生成、输出 validator、API 契约和回归测试。
 5. 在真实课前工作流中小范围试用，再依据失败样例修订技能。
 
 ## 暂未决定
 
 - API client 使用 Python、Node 或其他实现语言。
-- API token 输入如何由不同 Agent 宿主传递到 client 且不进入工具日志。
 - 许可证和发布策略。
 
 这些内容应在有实现和测试证据后再确定。

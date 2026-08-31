@@ -36,16 +36,20 @@ Prepare ./downloads/week-01.pdf for CS0001.
 
 If `CS0001` is not registered but the active semester root is valid, the agent discovers or creates its course folder under that root and records it without asking for the semester path again.
 
-## Official API token collection
+## First encrypted-token setup
 
-After routing and file validation, the agent discloses the upload and requests the token:
+If encrypted state is absent, the agent discloses the upload and configures it:
 
 ```text
-Agent: 这份课件将上传到 MinerU 官方 API。请在输入框粘贴本次使用的 API token。token 会以明文进入当前会话，可能由当前 Agent 宿主保留；我不会回显、写入文件、注册表、配置、日志或报告。
+Agent: 这份课件将上传到 MinerU 官方 API。请提供 API token；我会立即加密保存到当前技能的 state 目录，不会回显或保存明文。
 User: <plaintext MinerU API token>
 ```
 
-The agent must not quote the user's second message. It uses the token only for MinerU API requests in the current conversion and discards it afterward.
+The agent sends the token to `token-store.py set --token-stdin` through stdin, never a command argument. The script asks for a hidden encryption passphrase and writes `state/mineru-api-token.enc.json`.
+
+## Reusing encrypted credentials
+
+For later conversions, the agent does not ask for the API token again. It asks for the encryption passphrase through a hidden prompt, decrypts the token in process memory, and never prints it.
 
 ## Explicit review policy
 

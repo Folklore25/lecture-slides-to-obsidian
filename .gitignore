@@ -12,6 +12,9 @@ output/
 # Runtime state belongs to the installed skill but not to the public repository.
 skills/lecture-slides-to-obsidian/state/course-registry.yaml
 skills/lecture-slides-to-obsidian/state/course-registry.yaml.bak-*
+skills/lecture-slides-to-obsidian/state/mineru-api-token.enc.json
+skills/lecture-slides-to-obsidian/state/mineru-api-token.enc.json.bak-*
+skills/lecture-slides-to-obsidian/state/.mineru-token-*
 
 # Local or private course material must never be committed.
 tests/fixtures/private/**

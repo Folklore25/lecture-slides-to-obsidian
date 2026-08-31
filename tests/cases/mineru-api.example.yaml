@@ -18,6 +18,21 @@ cases:
     token_written_to: "state-or-config-or-log-or-report"
     expected_action: "fail-secret-safety-gate"
 
+  - id: "encrypted-token-persistence"
+    token_file: "state/mineru-api-token.enc.json"
+    plaintext_present: false
+    file_mode: "0600"
+    expected_action: "pass"
+
+  - id: "wrong-token-store-passphrase"
+    encrypted_token_file: "valid"
+    passphrase: "wrong"
+    expected_action: "reject-without-api-request"
+
+  - id: "tampered-encrypted-token"
+    hmac_valid: false
+    expected_action: "reject-before-decryption"
+
   - id: "poll-timeout"
     state: "running"
     elapsed_seconds: 300

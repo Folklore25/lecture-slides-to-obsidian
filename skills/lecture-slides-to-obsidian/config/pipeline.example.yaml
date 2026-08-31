@@ -24,8 +24,10 @@ mineru_api:
   api_version: "v4"
   submission: "signed-batch-upload"
   model_version: "vlm"
-  token_source: "interactive-plaintext"
-  persist_token: false
+  token_source: "state/mineru-api-token.enc.json"
+  token_encryption: "aes-256-cbc-pbkdf2-etm-hmac-sha256"
+  persist_plaintext_token: false
+  persist_decryption_passphrase: false
   language: "ch"
   enable_formula: true
   enable_table: true

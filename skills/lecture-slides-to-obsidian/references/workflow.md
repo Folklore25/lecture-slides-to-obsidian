@@ -12,7 +12,7 @@ Reject a source that resolves inside the destination vault. Do not copy or move 
 
 Select or confirm `lecture-notes`, `policy-document`, or `paper` using [document-profiles.md](document-profiles.md). Validate extension and size without parsing the source locally. Confirm OCR for this document; never apply a hard-coded false default.
 
-Load `obsidian-markdown` and `json-canvas`. Disclose the MinerU upload and plaintext-token retention risk, then request the token.
+Load `obsidian-markdown` and `json-canvas`. Verify the encrypted token store, disclose the MinerU upload, then request only the encryption passphrase through a hidden prompt. On first setup, create encrypted state through `token-store.py`.
 
 ## 3. Staging and API extraction
 
@@ -37,7 +37,7 @@ Run `scripts/validate-output.py`, structural alignment checks, and [quality-gate
 
 ## Failure behavior
 
-- Missing/invalid token: request one replacement without echo; otherwise stop.
+- Missing/invalid encrypted token: configure or replace it through `token-store.py` without echo; otherwise stop.
 - Upload declined or network unavailable: stop without local fallback.
 - Unknown poll schema/state for 30 seconds: stop and show only a redacted key/type diagnostic.
 - Poll timeout: report redacted batch reference and last per-file state; do not poll forever.
