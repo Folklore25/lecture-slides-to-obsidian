@@ -1,0 +1,31 @@
+schema_version: 1
+
+cases:
+  - id: "slide-like-output"
+    signals:
+      - "short-page-blocks"
+      - "repeated-page-titles"
+      - "presentation-page-size"
+    expected_profile: "lecture-notes"
+    expected_tail_section: "In-class notes"
+
+  - id: "policy-document-output"
+    signals:
+      - "dense-prose"
+      - "numbered-obligations"
+      - "definitions-and-exceptions"
+    expected_action: "ask-to-confirm-policy-document"
+    preserve_source_numbering: true
+    in_class_notes: false
+
+  - id: "academic-paper-output"
+    signals:
+      - "abstract"
+      - "methods"
+      - "references"
+    expected_action: "ask-to-confirm-paper"
+    in_class_notes: false
+
+  - id: "explicit-user-profile"
+    requested_profile: "policy-document"
+    expected_action: "use-requested-profile"

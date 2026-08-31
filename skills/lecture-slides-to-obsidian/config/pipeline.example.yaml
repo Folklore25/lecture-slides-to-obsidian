@@ -2,7 +2,8 @@ schema_version: 1
 
 input:
   preserve_source: true
-  copy_source_into_course: true
+  copy_source_into_vault: false
+  reject_source_inside_vault: true
 
 course_routing:
   registry: "state/course-registry.yaml"
@@ -12,9 +13,11 @@ course_routing:
 
 output:
   overwrite: false
-  note_name: "{source_stem}.md"
-  assets_directory: "assets/{source_stem}"
-  report_name: "{source_stem}.conversion-report.md"
+  document_folder: "{document_slug}"
+  note_name: "{document_slug}.md"
+  canvas_name: "{document_slug}.canvas"
+  assets_directory: "assets"
+  report_name: "conversion-report.md"
 
 mineru_api:
   base_url: "https://mineru.net"
@@ -26,17 +29,28 @@ mineru_api:
   language: "ch"
   enable_formula: true
   enable_table: true
-  is_ocr: false
-  poll_interval_seconds: 3
+  is_ocr: "confirm-per-document"
+  poll_schedule_seconds:
+    first_30_seconds: 3
+    seconds_31_to_120: 10
+    after_120_seconds: 30
   poll_timeout_seconds: 300
+  unknown_state_timeout_seconds: 30
 
 conversion:
+  profile: "auto-confirm"
+  profiles:
+    - "lecture-notes"
+    - "policy-document"
+    - "paper"
+  page_source: "content-list-v2-or-page-idx"
   page_provenance: "html-comment"
   visual_fallback: "uncertain-pages"
   equation_policy: "preserve-and-flag"
   table_policy: "markdown-or-image"
 
 obsidian:
-  wikilinks: false
+  wikilinks: true
   warning_callouts: true
   relative_asset_links: true
+  relationship_canvas: true

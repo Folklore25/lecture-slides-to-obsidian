@@ -1,0 +1,33 @@
+{
+  "nodes": [
+    {
+      "id": "0123456789abcdef",
+      "type": "file",
+      "x": 0,
+      "y": 0,
+      "width": 400,
+      "height": 300,
+      "file": "sample.md"
+    },
+    {
+      "id": "123456789abcdef0",
+      "type": "text",
+      "x": 500,
+      "y": 0,
+      "width": 360,
+      "height": 220,
+      "text": "# Concepts\n\nFirst concept depends on the second concept."
+    }
+  ],
+  "edges": [
+    {
+      "id": "23456789abcdef01",
+      "fromNode": "0123456789abcdef",
+      "fromSide": "right",
+      "toNode": "123456789abcdef0",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "explains"
+    }
+  ]
+}

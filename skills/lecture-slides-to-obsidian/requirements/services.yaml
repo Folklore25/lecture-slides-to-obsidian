@@ -15,6 +15,18 @@ required_services:
     endpoints:
       request_upload_urls: "POST /api/v4/file-urls/batch"
       poll_batch_result: "GET /api/v4/extract-results/batch/{batch_id}"
+    batch_result:
+      items_path: "data.extract_result"
+      state_path: "data.extract_result[].state"
+      match_by:
+        - "data_id"
+        - "file_name"
+      unknown_state_timeout_seconds: 30
+      poll_schedule_seconds:
+        elapsed_0_to_30: 3
+        elapsed_31_to_120: 10
+        elapsed_after_120: 30
+      overall_timeout_seconds: 300
     upload:
       method: "PUT"
       authorization_header: false
@@ -24,7 +36,7 @@ required_services:
       model_version: "vlm"
       enable_formula: true
       enable_table: true
-      is_ocr: false
+      is_ocr: "confirm-per-document"
       language: "ch"
     limits:
       max_file_bytes: 209715200
@@ -34,3 +46,5 @@ required_services:
     result:
       type: "zip"
       primary_markdown: "full.md"
+      preferred_page_structure: "*_content_list_v2.json"
+      fallback_page_structure: "*_content_list.json grouped by page_idx"

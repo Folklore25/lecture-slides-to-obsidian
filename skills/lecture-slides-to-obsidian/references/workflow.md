@@ -1,44 +1,47 @@
 # Conversion workflow
 
-Use this process when performing a real conversion. MinerU Precision API v4 is the only extraction backend.
+MinerU Precision API v4 is the only extraction backend. Source originals remain outside the Obsidian vault.
 
-## 1. Intake
+## 1. Intake and routing
 
-Identify the source PDF, course name or code, lecture label, and language hints. Resolve the course using the persistent registry and [course-routing.md](course-routing.md). For an unmatched course, collect and persist the semester root before continuing. Tell the user that extraction uploads the file to MinerU. Never infer permission to overwrite an existing note.
+Identify the source file, course, document title, language, and any explicit profile. Resolve semester/course using [course-routing.md](course-routing.md). Confirm near-match course folders instead of silently creating a duplicate.
 
-## 2. Preflight
+Reject a source that resolves inside the destination vault. Do not copy or move the original.
 
-Validate the file extension and size against [mineru-api.md](mineru-api.md). Select `language`, OCR, formula, table, and page-range options from known course/user context without parsing the PDF locally. Load `obsidian-markdown`, then collect the plaintext API token with the required disclosure.
+## 2. Profile and API options
 
-## 3. Staging
+Select or confirm `lecture-notes`, `policy-document`, or `paper` using [document-profiles.md](document-profiles.md). Validate extension and size without parsing the source locally. Confirm OCR for this document; never apply a hard-coded false default.
 
-Create a dedicated working directory outside the final vault path. Preserve the original PDF byte-for-byte. Store downloaded API output separately from normalized output so failures remain diagnosable. Never store the token or signed URLs.
+Load `obsidian-markdown` and `json-canvas`. Disclose the MinerU upload and plaintext-token retention risk, then request the token.
 
-## 4. API extraction
+## 3. Staging and API extraction
 
-Request signed upload URLs, upload the PDF without the Bearer header, poll the batch result, download the result ZIP, and safely extract it in staging. Preserve `full.md`, images, JSON, page boundaries, API state, and warnings. Do not run a local PDF parser.
+Create staging outside the vault. Preserve the source hash. Request signed upload URLs, upload without forwarding Bearer/Content-Type, poll with the nested batch result path and backoff schedule, then safely download/extract the ZIP. Follow [mineru-api.md](mineru-api.md).
 
-## 5. Normalization
+## 4. Page reconstruction
 
-Transform raw output into the shared output contract. Repair obvious mechanical issues only when the evidence is clear. Keep page provenance, use relative asset links, and add visual fallback for complex or uncertain pages.
+Prefer page-grouped `content_list_v2.json`. Otherwise group legacy blocks by `page_idx`. Apply [mineru-normalization.md](mineru-normalization.md): no global repeated anchor search, no blanket heading regex, explicit auxiliary-block inventory, and precise marker semantics.
 
-## 6. Validation
+## 5. Derived artifact generation
 
-Run the quality gates. Compare a representative selection of opening, middle, and ending pages, plus every flagged page, against the PDF. Validate Markdown links and asset existence.
+Create the document folder only after extraction/profile decisions are stable. Write:
 
-## 7. Delivery
+- complete `<document-slug>.md`;
+- derived `assets/` only;
+- `<document-slug>.canvas` using evidence-based relationships;
+- `conversion-report.md` from the fixed template.
 
-Copy or move only validated final artifacts into the registered course destinations. Copy the source PDF to the registered slides folder without deleting the original. Report the matched semester/course, classified paths, fallback pages, unresolved uncertainty, and whether manual review is required.
+## 6. Validation and delivery
+
+Run `scripts/validate-output.py`, structural alignment checks, and [quality-gates.md](quality-gates.md). Move only validated derived artifacts from staging into the document folder. Report routing decisions, output paths, zero counts, review items, and not-checked gates.
 
 ## Failure behavior
 
-- If no suitable backend is available, stop and name the missing capability.
-- If the API token is absent, invalid, or expired, stop or request one replacement according to the API contract; never print the token.
-- If upload disclosure is declined, stop without sending the file.
-- If polling times out, report the non-secret batch reference and current state rather than treating the task as failed or polling forever.
-- If the result archive is unsafe, incomplete, or malformed, stop before normalization.
-- If extraction produces empty or implausibly short output, do not generate a confident-looking note.
-- If a page's reading order is ambiguous, preserve blocks conservatively and include the page image.
-- If the destination already exists, create a distinct candidate or request overwrite approval.
-- If course matching is ambiguous or the registered root is stale, stop before conversion and repair the mapping.
-- Keep partial output in staging until the user decides whether it is useful.
+- Missing/invalid token: request one replacement without echo; otherwise stop.
+- Upload declined or network unavailable: stop without local fallback.
+- Unknown poll schema/state for 30 seconds: stop and show only a redacted key/type diagnostic.
+- Poll timeout: report redacted batch reference and last per-file state; do not poll forever.
+- Unsafe/malformed ZIP or implausibly empty output: stop before normalization.
+- Ambiguous page order/heading: preserve structured blocks conservatively and record review.
+- Existing document folder: use an explicit merge/overwrite decision.
+- Validator failure: do not deliver as complete.

@@ -7,3 +7,9 @@ required_skills:
     source: "https://github.com/kepano/obsidian-skills/tree/main/skills/obsidian-markdown"
     verify:
       skill_name: "obsidian-markdown"
+
+  - name: "json-canvas"
+    purpose: "Create and validate Obsidian JSON Canvas relationship maps with file, text, group, and asset nodes."
+    source: "https://github.com/kepano/obsidian-skills/tree/main/skills/json-canvas"
+    verify:
+      skill_name: "json-canvas"

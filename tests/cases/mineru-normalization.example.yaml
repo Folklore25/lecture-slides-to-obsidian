@@ -1,0 +1,52 @@
+schema_version: 1
+
+cases:
+  - id: "prefer-page-grouped-v2"
+    files:
+      - "document_content_list_v2.json"
+      - "document_content_list.json"
+      - "full.md"
+    expected_page_source: "content-list-v2"
+
+  - id: "legacy-page-idx-fallback"
+    files:
+      - "document_content_list.json"
+      - "full.md"
+    expected_page_source: "group-by-page-idx"
+
+  - id: "duplicate-overview-anchor"
+    repeated_text_pages:
+      - 3
+      - 4
+    expected_action: "use-page-group-not-global-string-find"
+
+  - id: "marker-before-first-page-block"
+    page_idx: 3
+    marker: "<!-- source-page: 4 -->"
+    expected_action: "place-immediately-before-first-included-block"
+
+  - id: "inconsistent-numbered-heading-level"
+    items:
+      - text: "1. First rule"
+        text_level: 2
+      - text: "11. Later rule"
+        text_level: 0
+    expected_action: "normalize-series-with-structured-context-and-report"
+
+  - id: "preserve-policy-numbering"
+    heading: "11. Use archival material"
+    expected_output: "number-preserved"
+
+  - id: "auxiliary-block-inventory"
+    block_types:
+      - "page_header"
+      - "page_footer"
+      - "page_footnote"
+    expected_action: "record-kept-or-omitted-pages-in-report"
+
+  - id: "zero-visual-artifacts"
+    figures: 0
+    tables: 0
+    equations: 0
+    fallback_pages: 0
+    expected_action: "report-all-zero-without-fake-assets"

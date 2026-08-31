@@ -3,6 +3,7 @@
 This directory contains only state cleanup in phase one; it remains empty of conversion code.
 
 - `purge-state.sh --confirm` removes the registry and its in-skill backups before uninstall. It does not touch course files or any path outside `state/`.
+- `validate-output.py <document-folder> [--vault-root <vault-root>]` validates a completed derived folder without modifying it.
 
 Future scripts belong here only when they provide deterministic, reusable behavior such as:
 

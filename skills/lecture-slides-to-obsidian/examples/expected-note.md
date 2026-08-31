@@ -1,8 +1,13 @@
 ---
-type: lecture-note
+type: course-material
 course: IS0000
-lecture: 03
-source: IS0000-Lecture03.pdf
+title: Lecture 03 — Example Topic
+source_filename: IS0000-Lecture03.pdf
+source_format: pdf
+source_sha256: 0000000000000000000000000000000000000000000000000000000000000000
+source_pages: 3
+conversion_profile: lecture-notes
+mineru_model: vlm
 status: pre-class
 tags:
   - lecture
@@ -11,7 +16,7 @@ tags:
 # Lecture 03 — Example Topic
 
 > [!info] Conversion scope
-> Prepared from the lecture slides. Pages with spatial diagrams retain a visual fallback.
+> Complete Markdown derived through MinerU Precision API v4. The source PDF remains outside the vault.
 
 <!-- source-page: 1 -->
 
@@ -22,17 +27,17 @@ tags:
 
 <!-- source-page: 2 -->
 
-## Core idea
+## 1. Core idea
 
-The main idea is represented as editable text. Important terminology remains close to the original wording.
+The main idea is represented as editable text. Source numbering is preserved because it may be used by later cross-references.
 
 <!-- source-page: 3 -->
 
-## Process diagram
+## 2. Process diagram
 
 The diagram shows a three-stage relationship that cannot be represented confidently as linear prose.
 
-![Page 3 diagram](assets/is0000-lecture03/page-003-fallback.png)
+![[assets/page-003-fallback.png]]
 
 > [!warning] Manual review
 > Confirm the arrow direction and labels against source page 3.

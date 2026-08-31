@@ -1,6 +1,6 @@
 # Lecture Slides to Obsidian
 
-一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 lecture-slide PDF，整理成适合课前预习、课上补充的 Obsidian Markdown。
+一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 PDF、PPT/PPTX、政策文档和论文，通过 MinerU 官方 API 整理成适合 Obsidian 阅读、连接和课堂补充的派生资料。
 
 当前是 **Phase 1：规范与骨架**。仓库已经定义技能入口、MinerU 官方 API 契约、技能内持久课程路由、输出契约、质量门槛、测试素材规则和跨工具安装方式，但**尚未实现 API client**。
 
@@ -9,12 +9,13 @@
 - 追求 semantic fidelity，而不是宣称 PDF → Markdown “无损”。
 - 文字、层级、列表、公式和表格尽量结构化。
 - 图表、复杂排版、手写标注和低置信度页面保留视觉兜底。
-- 输出可直接放进 Obsidian vault，资源使用相对路径。
+- 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。
+- 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets、关系 Canvas 和固定格式报告。
 - 用户在一个新学期首次提供课程名称时，只询问一次学期根目录并持久记录学期与课程映射。
 - 后续通过课程代码、正式名称或已登记别名唯一匹配，自动归档到对应学期的课程子目录。
 - 同一份技能内容兼容 Claude Code 和 Pi，并适合作为 cc-switch 自定义技能源。
 - 除明确声明的 MinerU 官方 API 上传外，不把课件发送到其他第三方服务。
-- PDF 内容解析只使用 MinerU 官方精准解析 API，不下载本地模型、不依赖本地 MinerU CLI。
+- 课程文件内容解析只使用 MinerU 官方精准解析 API，不下载本地模型、不依赖本地 MinerU CLI。
 
 ## 仓库结构
 
@@ -33,6 +34,7 @@ lecture-slides-to-obsidian/
 │       ├── requirements/
 │       ├── references/
 │       ├── scripts/
+│       ├── templates/
 │       └── state/
 └── tests/
     ├── cases/
@@ -53,24 +55,27 @@ lecture-slides-to-obsidian/
 首次处理一门尚未登记的课程时：
 
 1. 用户输入课程名称或课程代码。
-2. 若没有可用的 active semester，Agent 询问该学期的根目录；同一学期只需提供一次。
-3. Agent 在根目录内精确查找课程文件夹；没有现成目录时创建安全的课程目录和默认子目录。
-4. Agent 将学期根目录、课程别名、课程相对目录和分类规则写入本机注册表。
-5. 以后只要 active semester 仍有效，新课程也会直接在该根目录下登记；已登记课程唯一匹配时直接分类，不再询问路径。
+2. 若没有 active semester，Agent 询问 Obsidian 内的目标根目录。
+3. 学期 ID 与路径独立：路径能明确推断学期时提出建议；像 `CityU` 这样的通用路径会再询问一次学期 ID/label。
+4. Agent 精确匹配课程目录；存在 `Information_systems` 之类疑似候选时，先列出让用户选择，不能静默新建。
+5. Agent 持久记录学期、课程、别名和派生目录规则；原件路径只保存在 skill-owned registry，且必须位于 vault 外。
 
 默认分类契约为：
 
 ```text
-<semester-root>/
+<vault-root>/
 └── <course-folder>/
-    ├── Slides/                 # 原始 PDF 的保留副本
     └── Lectures/
-        ├── <lecture>.md        # Obsidian 课堂笔记
-        ├── assets/<lecture>/   # 图像与页面兜底
-        └── reports/            # 转换报告
+        └── <document-slug>/
+            ├── <document-slug>.md       # 完整课件/文档
+            ├── <document-slug>.canvas   # 关系画布
+            ├── assets/                  # MinerU 派生图片/表格/兜底页
+            └── conversion-report.md
 ```
 
-如果学期根目录已有明确的课程/课件/笔记子目录，Agent 应优先复用并记录它们。模糊匹配、多个同名学期课程、失效根目录或多个候选课程文件夹不会自动选择。
+原始 PDF/PPT 等不会复制、移动、symlink、embed 或作为 Canvas file node 放进 vault。Canvas 只连接完整 Markdown 的章节、关键概念和 `assets/` 中的派生文件。
+
+关系 Canvas 参考 [phd-deepread-workflow](https://github.com/heleninsights-dot/phd-deepread-workflow/tree/main) 的“中心文档 + 观点/证据/问题节点 + 有向边 + verifier”模式，但改为动态支持 lecture、policy 和 paper，不采用它的本地 PDF parser 或固定论文模板。
 
 注册表是 skill-owned 本机状态，不应提交 GitHub。正常删除整个技能目录时，注册表会一起删除，不会另行残留在 `~/.config`。完整匹配与安全规则见 `references/course-routing.md`。
 
@@ -82,7 +87,8 @@ cc-switch 卸载时可能创建自己的 skill backup。若要求卸载备份中
 
 PDF 会上传到 MinerU 官方服务进行解析。转换前必须：
 
-- 能发现并加载 `obsidian-markdown`，用于 Obsidian properties、wikilinks、embeds、callouts 和最终 Markdown 语法校验。
+- 能发现并加载 `obsidian-markdown`，用于 Obsidian properties、wikilinks、embeds、callouts 和 Markdown 语法。
+- 能发现并加载 `json-canvas`，用于关系画布生成与 JSON Canvas 校验。
 - 能访问 MinerU Precision API v4。
 - 由 Agent 在输入框向用户明文收集 MinerU API token。
 
@@ -93,8 +99,11 @@ PDF 会上传到 MinerU 官方服务进行解析。转换前必须：
 1. `POST /api/v4/file-urls/batch` 获取 `batch_id` 与签名上传 URL。
 2. 使用 `PUT` 上传 PDF；上传请求不附带 Bearer token，也不设置 `Content-Type`。
 3. 轮询 `GET /api/v4/extract-results/batch/{batch_id}`。
-4. 下载完成状态返回的 ZIP，安全解压 `full.md`、JSON 和图片。
-5. 使用 `obsidian-markdown` 整理为最终笔记。
+4. 从 `data.extract_result[]` 读取每个文件的 state，并采用 3s → 10s → 30s 退避式轮询。
+5. 下载 ZIP，优先使用 `content_list_v2.json` 的页分组；否则按 legacy `page_idx` 分页。
+6. 使用 `obsidian-markdown` 生成完整文档，并用 `json-canvas` 创建关系画布。
+
+支持三个 conversion profile：`lecture-notes`、`policy-document`、`paper`。不是 slides 的资料不会被拒绝，而会在写入 vault 前要求确认合适的 profile。
 
 机器可读声明位于 `requirements/skills.yaml` 和 `requirements/services.yaml`，完整安全契约位于 `references/mineru-api.md`。
 
@@ -140,7 +149,13 @@ ln -s /absolute/path/to/lecture-slides-to-obsidian/skills/lecture-slides-to-obsi
 ./scripts/validate.sh
 ```
 
-验证包括：Agent Skills frontmatter、必需资源、未完成占位符、目录边界和合成测试素材约定。它只证明骨架一致，不证明转换质量。
+仓库验证检查技能规范与模板。实际输出还必须运行：
+
+```bash
+python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py <document-folder> --vault-root <vault-root>
+```
+
+它验证 source-original exclusion、frontmatter、H1/page markers、wikilinks/assets、Canvas IDs/edges/paths/non-overlap，以及固定报告 sections。
 
 ## 测试素材政策
 
@@ -156,14 +171,14 @@ ln -s /absolute/path/to/lecture-slides-to-obsidian/skills/lecture-slides-to-obsi
 
 1. 用代表性课件建立合成/公开基准集。
 2. 实现技能内课程注册表的原子读写、唯一匹配和目录路由测试。
-3. 实现 MinerU Precision API v4 client、token 生命周期和安全 ZIP 解压。
-4. 加入 API 契约验证、回归测试和转换报告。
+3. 实现 MinerU Precision API v4 client、token 生命周期、安全 ZIP 解压和结构化分页。
+4. 加入完整 Canvas 生成、输出 validator、API 契约和回归测试。
 5. 在真实课前工作流中小范围试用，再依据失败样例修订技能。
 
 ## 暂未决定
 
 - API client 使用 Python、Node 或其他实现语言。
 - API token 输入如何由不同 Agent 宿主传递到 client 且不进入工具日志。
-- GitHub 仓库地址、许可证和发布策略。
+- 许可证和发布策略。
 
 这些内容应在有实现和测试证据后再确定。

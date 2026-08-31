@@ -6,6 +6,16 @@ cases:
     registry_state: "empty"
     expected_action: "ask-semester-root"
 
+  - id: "generic-cityu-root"
+    vault_root_basename: "CityU"
+    semester_id: "unknown"
+    expected_action: "ask-semester-id-separately"
+
+  - id: "root-with-clear-semester-token"
+    vault_root_basename: "2026-fall"
+    semester_id: "inferred-candidate"
+    expected_action: "propose-and-allow-correction"
+
   - id: "active-semester-code-match"
     query: "is 0000"
     registry_state: "one-active-exact-code"
@@ -31,6 +41,11 @@ cases:
     registry_state: "one-fuzzy-candidate"
     expected_action: "ask-for-confirmation"
 
+  - id: "information-systems-near-is6000"
+    query: "IS6000"
+    candidate_folder: "Information_systems"
+    expected_action: "show-candidate-before-reuse-or-create"
+
   - id: "stale-semester-root"
     query: "IS0000"
     registry_state: "exact-match-missing-root"
@@ -40,3 +55,7 @@ cases:
     query: "IS0000"
     registry_state: "exact-match-parent-traversal"
     expected_action: "reject-registry-entry"
+
+  - id: "source-original-inside-vault"
+    source_location: "inside-vault-root"
+    expected_action: "reject-until-source-is-external"

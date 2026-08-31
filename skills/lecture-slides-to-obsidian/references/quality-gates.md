@@ -1,32 +1,41 @@
 # Quality gates
 
-A conversion is complete only when the applicable gates pass or the report names the unresolved failure.
+A conversion is complete only when required gates pass or the report marks an explicit failure/not-checked result.
 
-## Required checks
+## Routing and containment
 
-- The course resolved to one registered semester/course record without fuzzy or ambiguous matching.
-- The resolved course and destination paths remain under the registered semester root.
-- The source PDF copy, note, assets, and report use their registered role directories.
-- The source PDF remains unchanged.
-- The PDF was uploaded only through the MinerU Precision API v4 signed-upload flow.
-- No local PDF parser, local MinerU runtime, lightweight API, or third-party wrapper was used.
-- The Bearer token was sent only to `https://mineru.net`; signed upload/result downloads received no Bearer header.
-- No API token, Authorization header, signed URL, or raw secret-bearing response exists in state, staging, output, reports, logs, or Git.
-- ZIP members passed traversal, symlink, type, count, and extracted-size safety checks.
-- The final Markdown file opens as UTF-8 and contains no unresolved temporary paths.
-- All relative image links resolve inside the destination.
-- Page provenance is monotonic and references valid source pages.
-- Opening, middle, ending, and all flagged pages were visually compared with the source.
-- Headings and lists follow the intended reading order.
-- Equations and tables are either validated, preserved visually, or explicitly flagged.
-- Complex diagrams retain a nearby visual fallback.
-- Existing user-authored notes were not overwritten.
-- The conversion report identifies MinerU Precision API v4, model/options, warnings, fallback pages, and checks performed without secret URLs.
+- Semester ID/label and vault root are independently validated.
+- Course matching is exact, or near-match candidates and the user's choice are recorded.
+- The source resolves outside the Obsidian vault and remains unchanged.
+- The document folder contains only derived Markdown, Canvas, assets, and report artifacts.
 
-## Useful metrics
+## API and secret safety
 
-Record page count, text-bearing pages, OCR pages, fallback pages, extracted assets, broken links, and manual-review pages. Metrics support maintenance decisions; they are not substitutes for visual inspection.
+- MinerU Precision API v4 signed-upload flow was used; no local/lightweight fallback.
+- Per-file state came from `data.extract_result[]`, matched by `data_id` or `file_name`.
+- Bearer token was sent only to `https://mineru.net`; upload/result URLs received no Bearer header.
+- Token, Authorization header, signed URLs, and secret-bearing responses are absent from files, reports, logs, state, and Git.
+- ZIP path/type/count/size safety checks passed.
+
+## Structural alignment — required
+
+- Page reconstruction used V2 page groups or legacy `page_idx`, not global `full.md` anchors.
+- Page markers are 1-based, monotonic, and precede the first included block from that page.
+- Heading levels use structured MinerU signals plus series/context consistency; source numbering is preserved.
+- Auxiliary headers/footers/footnotes are inventoried and omissions documented.
+- Figures, tables, equations, and fallback pages are counted, including zeros.
+
+## Pixel-level visual comparison — optional
+
+Pixel-level visual diff against rendered source pages is not provided by this API-only skill. Mark `NOT-CHECKED` unless a separate renderer was explicitly used and evidence is recorded. Never treat structural alignment as pixel-level PASS.
+
+## Obsidian and Canvas
+
+- `scripts/validate-output.py` passes.
+- Complete Markdown has required properties, one H1, valid markers, and resolving assets.
+- Canvas JSON, IDs, edges, paths, and non-overlap checks pass.
+- Existing user-authored content was not overwritten without approval.
 
 ## Completion language
 
-Say “converted with the listed fallbacks and review items,” not “lossless” or “perfect.” If visual comparison was sampled rather than exhaustive, state the sample and do not imply every page was checked.
+Say “converted with structural checks and listed review items.” State whether pixel-level rendering was not checked. Never claim lossless/perfect conversion.

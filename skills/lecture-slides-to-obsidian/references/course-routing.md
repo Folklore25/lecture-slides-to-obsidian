@@ -1,8 +1,8 @@
 # Persistent course routing
 
-Use a local registry so the user supplies a semester root once per semester and later conversions can route by course name alone.
+Use the skill-owned registry so semester and course destinations survive across sessions. Source originals remain at their external input locations; the registry routes only derived Obsidian artifacts.
 
-## Registry location and ownership
+## Registry
 
 Resolve the directory containing this skill's `SKILL.md`, then use:
 
@@ -10,76 +10,67 @@ Resolve the directory containing this skill's `SKILL.md`, then use:
 <skill-directory>/state/course-registry.yaml
 ```
 
-The real registry is skill-owned local state. Do not redirect it to a user-level config directory, an Obsidian note, or this Git repository. It may contain private absolute paths, but never credentials or Canvas session data. Removing the installed skill directory removes this state with it.
+Use [../state/course-registry.example.yaml](../state/course-registry.example.yaml) as the schema. Write atomically inside `state/`; keep migration backups there. Never store credentials, Canvas sessions, course content, or API tokens.
 
-Use [../state/course-registry.example.yaml](../state/course-registry.example.yaml) as the schema example. Preserve unknown fields when updating a compatible schema. Write changes atomically inside `state/` and keep a recoverable previous copy there before a schema migration. Do not place registry backups outside the skill directory.
+## Semester identity is independent from the path
 
-## First encounter
+Each semester record has an explicit `id`, `label`, and absolute `vault_root`. Do not assume the root folder name is the semester ID.
 
-When the user supplies a course name or course code:
+When registering a semester:
 
-1. Normalize it for matching without replacing the original display value.
-2. Read the registry before asking for a destination.
-3. If the course has one exact match in the valid active semester, reuse it without asking for a path.
-4. If the course is new but a valid active semester exists, bind it under that semester root without asking for the root again.
-5. If there is no valid active semester, ask: “这个学期的根目录在哪儿？” Validate the response and create a semester record. Derive a stable semester ID and display label from the root folder name without requiring another answer.
-6. Inspect the semester root's immediate course directories. Prefer an exact normalized course-code or exact name match.
-7. If one course directory matches, register it. If none matches, create a safe course folder from the course code when present, otherwise from a sanitized course name.
-8. Detect existing classification subfolders by exact known role names. When no subfolders exist, create the default layout below.
-9. Persist the semester, course aliases, relative course folder, and relative role destinations before conversion.
+1. Ask for the destination root inside the Obsidian vault.
+2. If the path contains an unambiguous semester token such as a year plus `fall`, `spring`, `semester-1`, or `semester-2`, propose a normalized ID and let the user correct it.
+3. If the path is generic, such as `CityU`, ask once for the semester label/ID. Store the generic path unchanged and the semester identity separately.
+4. Do not fabricate `2026-fall` from a school or vault name.
 
-The normal first-use flow needs only the semester root response once per semester. Ask another question only when multiple plausible semester/course records, course folders, or subfolder-role candidates would make automatic classification unsafe.
+The normal case needs one root response. A second semester-ID question is required only when the path does not carry reliable semester information.
 
-## Default layout
+## Course matching
 
-```text
-<semester-root>/
-└── <course-folder>/
-    ├── Slides/
-    └── Lectures/
-        ├── <lecture-slug>.md
-        ├── assets/<lecture-slug>/
-        └── reports/<lecture-slug>.conversion-report.md
-```
-
-- Copy the source PDF into `Slides/`; never move or delete the original.
-- Place the Markdown note in `Lectures/`.
-- Place extracted and fallback images in `Lectures/assets/<lecture-slug>/`.
-- Place the conversion report in `Lectures/reports/`.
-- If the user already has equivalent folders, register and reuse those relative paths instead of creating duplicates.
-
-Recognize only exact role names during discovery. Suggested aliases are `Slides`, `Lecture Slides`, or `课件` for source slides, and `Lectures`, `Lecture Notes`, or `课堂笔记` for notes. If more than one existing folder fits a role, ask instead of choosing by similarity.
-
-## Matching rules
-
-Normalize candidate strings with Unicode compatibility normalization, case folding, trimmed/collapsed whitespace, and equivalent spacing/hyphen treatment in course codes. Keep every original alias for display and audit.
+Normalize strings with Unicode compatibility normalization, case folding, collapsed whitespace, and equivalent spaces/hyphens in course codes. Keep original values as aliases.
 
 Automatic routing requires a unique exact match in this order:
 
 1. course key or normalized course code in the active semester;
 2. registered exact alias or full course name in the active semester;
-3. a unique exact match across all registered semesters only when no valid active semester is configured.
+3. a unique exact match across all semesters only when no valid active semester exists.
 
-Do not auto-route a fuzzy match. Fuzzy similarity may be shown as a suggestion, but the user must confirm it. If the same course exists in more than one semester, prefer the explicitly active semester; otherwise ask which semester applies. A course that is new to a valid active semester is registered there without asking for the semester root again.
+If no exact match exists, inspect immediate course directories and list plausible candidates before creating anything. A directory such as `Information_systems` may be related to `IS6000` even when it is not a course folder. Show the candidates and ask whether to reuse one or create the canonical course folder. Never auto-route or silently dismiss a fuzzy candidate.
+
+Record the candidate list and the user's decision in the conversion report. If no plausible candidate exists, create a safe course folder from the course code, otherwise a sanitized course name.
+
+## Derived output layout
+
+Every source document gets one self-contained derived folder:
+
+```text
+<vault_root>/
+└── <course-folder>/
+    └── Lectures/
+        └── <document-slug>/
+            ├── <document-slug>.md
+            ├── <document-slug>.canvas
+            ├── assets/
+            └── conversion-report.md
+```
+
+Registered role paths may differ, but the document folder must contain the complete Markdown, its extracted assets, its relationship canvas, and its report.
+
+## Source originals stay external
+
+- Never copy, move, symlink, embed, or create a Canvas file node for the original PDF/PPT/PPTX/DOC/DOCX/XLS/XLSX/archive.
+- Read and upload the source from its existing external path.
+- The final note may record source basename, format, size, page count, and SHA-256, but not an absolute source path unless the user explicitly requests it.
+- Optional `source_materials_root` belongs in the skill-owned registry and must resolve outside the registered `vault_root`.
 
 ## Path safety
 
-- Store the semester root as an absolute path and every child destination as a relative path.
-- Reject empty child paths, absolute child paths, path separators in generated course keys, and any `..` segment.
-- Resolve symlinks and verify the course folder remains under the semester root and every destination remains under the course folder.
-- If the registered root is missing or moved, ask for its new location once and update the existing semester record instead of creating a duplicate.
-- Never fall back to the current working directory when a registered destination cannot be validated.
-
-## Source-file collisions
-
-If the target `Slides/` already contains the same filename:
-
-- reuse it when content hashes match;
-- when hashes differ, keep both with a deterministic disambiguated name and report the collision;
-- never overwrite a different PDF silently.
+- Store `vault_root` and optional `source_materials_root` as absolute paths; store all derived child destinations as relative paths.
+- Reject empty child paths, absolute child paths, path separators in generated keys, and any `..` segment.
+- Resolve symlinks and verify every derived destination remains under the course folder.
+- Reject any source path that resolves inside `vault_root` unless the user first moves it outside the vault.
+- Never fall back to the working directory when a registered destination is invalid.
 
 ## Registry maintenance
 
-Add an alias only after a unique course has been resolved. Keep at most one active semester unless the user explicitly needs concurrent semesters. When a course folder or semester root changes, update the existing record and validate all derived destinations.
-
-Before uninstalling through a manager that creates skill backups, run `scripts/purge-state.sh --confirm` if the backup must not retain local course paths.
+Keep at most one active semester unless concurrent semesters are explicitly needed. When a path moves, update the existing record rather than creating a duplicate. Before a manager creates an uninstall backup, run `scripts/purge-state.sh --confirm` if local paths must not remain in that backup.

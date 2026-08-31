@@ -23,6 +23,32 @@ cases:
     elapsed_seconds: 300
     expected_action: "stop-and-report-redacted-batch-reference"
 
+  - id: "batch-state-path"
+    response_path: "data.extract_result[0].state"
+    state: "done"
+    expected_action: "read-per-file-state-and-result"
+
+  - id: "incorrect-flat-state-path"
+    response_path: "data.state"
+    state: "unknown"
+    expected_action: "reject-schema-before-poll-loop"
+
+  - id: "unknown-state-for-thirty-seconds"
+    state: "unknown"
+    elapsed_seconds: 30
+    expected_action: "stop-and-show-redacted-key-type-tree"
+
+  - id: "poll-backoff"
+    expected_intervals:
+      elapsed_0_to_30: 3
+      elapsed_31_to_120: 10
+      elapsed_after_120: 30
+    expected_action: "emit-only-state-transitions"
+
+  - id: "ocr-not-confirmed"
+    is_ocr: "unset"
+    expected_action: "ask-before-submit"
+
   - id: "unsafe-zip-member"
     zip_member: "../../outside.md"
     expected_action: "reject-archive-before-extraction"

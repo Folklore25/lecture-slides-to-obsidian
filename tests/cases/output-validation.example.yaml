@@ -1,0 +1,35 @@
+schema_version: 1
+
+cases:
+  - id: "valid-derived-folder"
+    fixture: "fixtures/synthetic/valid-document-folder"
+    expected_action: "pass"
+
+  - id: "source-pdf-inside-vault-folder"
+    extra_file: "source.pdf"
+    expected_action: "fail-source-original-exclusion"
+
+  - id: "page-marker-out-of-range"
+    source_pages: 2
+    marker: 3
+    expected_action: "fail-page-marker-validation"
+
+  - id: "canvas-dangling-edge"
+    to_node: "ffffffffffffffff"
+    expected_action: "fail-canvas-reference-validation"
+
+  - id: "canvas-overlapping-nodes"
+    overlap: true
+    expected_action: "fail-canvas-layout-validation"
+
+  - id: "report-zero-visual-counts"
+    figures: 0
+    tables: 0
+    equations: 0
+    fallback_pages: 0
+    expected_action: "pass-with-explicit-zero-inventory"
+
+  - id: "structural-pass-visual-not-checked"
+    structural_alignment: "PASS"
+    pixel_visual_diff: "NOT-CHECKED"
+    expected_action: "pass"

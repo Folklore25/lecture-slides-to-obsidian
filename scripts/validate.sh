@@ -14,15 +14,22 @@ requirements/skills.yaml
 requirements/services.yaml
 references/workflow.md
 references/course-routing.md
+references/document-profiles.md
 references/requirements.md
 references/mineru-api.md
+references/mineru-normalization.md
+references/canvas-contract.md
 references/output-contract.md
 references/obsidian-style.md
 references/quality-gates.md
+references/validation.md
 scripts/README.md
 scripts/purge-state.sh
+scripts/validate-output.py
 state/README.md
-state/course-registry.example.yaml'
+state/course-registry.example.yaml
+templates/conversion-report.md
+templates/relationship.canvas'
 
 printf '%s\n' "$required_files" | while IFS= read -r relative_path; do
   if [ ! -f "$skill_dir/$relative_path" ]; then
@@ -64,8 +71,14 @@ if grep -R -n '~/.config/lecture-slides-to-obsidian\|XDG_CONFIG_HOME' "$skill_di
   exit 1
 fi
 
-if ! grep -q 'required-skills: "obsidian-markdown"' "$skill_dir/SKILL.md"; then
+if ! grep -q 'required-skills: "obsidian-markdown, json-canvas"' "$skill_dir/SKILL.md"; then
   printf 'skill prerequisite metadata is missing or out of sync\n' >&2
+  exit 1
+fi
+
+if grep -R -n 'source_slides\|copy_source_into_course: true\|<course-folder>/Slides' \
+  "$skill_dir" "$repo_dir/README.md" >/dev/null 2>&1; then
+  printf 'source-original-in-vault contract found\n' >&2
   exit 1
 fi
 
@@ -84,5 +97,26 @@ if ! grep -q 'POST /api/v4/file-urls/batch' "$skill_dir/requirements/services.ya
   printf 'MinerU API endpoint contract is missing or out of sync\n' >&2
   exit 1
 fi
+
+python3 "$skill_dir/scripts/validate-output.py" \
+  "$repo_dir/tests/fixtures/synthetic/valid-document-folder" >/dev/null
+
+python3 -m unittest discover -s "$repo_dir/tests" -p 'test_*.py' >/dev/null
+
+python3 - "$skill_dir/templates/relationship.canvas" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+nodes = data.get("nodes", [])
+edges = data.get("edges", [])
+ids = [item.get("id", "") for item in nodes + edges]
+assert len(ids) == len(set(ids))
+assert all(re.fullmatch(r"[0-9a-f]{16}", item) for item in ids)
+node_ids = {node["id"] for node in nodes}
+assert all(edge.get("fromNode") in node_ids and edge.get("toNode") in node_ids for edge in edges)
+PY
 
 printf 'repository skeleton: ok\n'

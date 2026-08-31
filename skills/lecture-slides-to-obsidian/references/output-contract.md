@@ -1,63 +1,79 @@
 # Output contract
 
-The default deliverable is a portable set of artifacts classified under the registered semester and course:
+The source original remains outside the Obsidian vault. The default deliverable is one self-contained derived folder per document:
 
 ```text
-<semester-root>/
+<vault_root>/
 └── <course-folder>/
-    ├── Slides/<source-pdf>
     └── Lectures/
-        ├── <lecture-slug>.md
-        ├── assets/<lecture-slug>/
-        │   ├── page-003-figure-01.png
-        │   └── page-007-fallback.png
-        └── reports/<lecture-slug>.conversion-report.md
+        └── <document-slug>/
+            ├── <document-slug>.md
+            ├── <document-slug>.canvas
+            ├── assets/
+            │   ├── page-003-figure-01.png
+            │   └── page-007-fallback.png
+            └── conversion-report.md
 ```
 
-Registered destination names may differ, but their roles and containment rules remain the same. The final note must not depend on files left in a temporary directory.
+The folder must not contain PDF, PPT/PPTX, DOC/DOCX, XLS/XLSX, or archive originals. It must not depend on staging paths.
 
-## Lecture note
+## Complete Markdown
 
-The Markdown note should contain:
+The Markdown file is the complete course material, not a summary. It contains:
 
-1. YAML properties with known source metadata only.
-2. A title and optional short navigation section.
-3. Content in source order, divided into useful lecture sections.
-4. Page provenance at a stable granularity.
-5. Relative image or embed links.
-6. Visible uncertainty markers only where review is actually needed.
+1. YAML properties with supported source metadata and conversion profile.
+2. Exactly one H1 title.
+3. All substantive content in page/block reading order.
+4. Page markers immediately before the first included text/title block from each page.
+5. Relative Obsidian embeds for extracted images, tables, equations, or fallback pages.
+6. Explicit uncertainty markers only where review is required.
+7. Profile-specific additions such as `## In-class notes` only when appropriate.
 
-Recommended provenance marker:
+Required top-level properties:
 
-```markdown
-<!-- source-page: 7 -->
+```yaml
+type: course-material
+course: IS0000
+title: Example document
+source_filename: example.pdf
+source_format: pdf
+source_sha256: <sha256>
+source_pages: 14
+conversion_profile: lecture-notes
+mineru_model: vlm
+status: pre-class
 ```
+
+Do not store the absolute source path in the note by default.
 
 ## Assets
 
-- Use deterministic, lowercase filenames.
-- Keep the source page number in every extracted or fallback image filename.
-- Prefer one asset per semantic figure when extraction is reliable.
-- Prefer one full-page fallback image when relationships within the page cannot be represented safely.
-- Do not duplicate identical assets without a reason.
+- Copy only derived MinerU images or explicitly generated visual fallback pages.
+- Use deterministic lowercase filenames containing the 1-based source page number.
+- Keep assets local to the document folder.
+- When there are no figures, tables, equations, or fallback pages, keep `assets/` empty and report all four zero counts explicitly.
+- Never place the original document in `assets/`.
+
+## Relationship canvas
+
+Create `<document-slug>.canvas` according to [canvas-contract.md](canvas-contract.md). It links the full Markdown, its headings, extracted assets, key concepts, and evidence-based relationships. It must not link or embed the source original.
 
 ## Conversion report
 
-The report should state:
+Fill [../templates/conversion-report.md](../templates/conversion-report.md). The report must contain these fixed sections:
 
-- matched semester, course key, and classified relative destinations;
-- source filename and page count;
-- provider `MinerU Precision API v4`, model version, and non-secret request options;
-- conversion time and effective configuration;
-- pages requiring OCR, fallback images, or manual review;
-- counts of generated notes and assets;
-- warnings, failures, and skipped content;
-- validation performed and limitations not checked.
+- `## Matched routing`
+- `## Pipeline`
+- `## Outputs`
+- `## Content inventory`
+- `## Quality gates`
+- `## Review items`
+- `## Not checked`
 
-Do not include the API token, Authorization header, signed upload URL, full ZIP URL, CDN query parameters, or raw response headers. A redacted task/batch reference is allowed when it helps resume a timed-out task.
+Include figures, tables, equations, fallback pages, page headers, page footers, and page footnotes even when counts are zero. Record omitted auxiliary blocks and the conversion profile.
 
-The report is diagnostic, not part of the lecture note's learning content.
+Never include the API token, Authorization header, signed upload URL, result URL, CDN query parameters, raw response headers, or absolute source path. A redacted task/batch reference is allowed for timeout recovery.
 
 ## Overwrite and idempotence
 
-Default to no overwrite. A repeated conversion with identical input and configuration should produce stable paths and avoid uncontrolled duplicate assets. User-authored additions in an existing Obsidian note must never be replaced by an automated rerun without an explicit merge strategy.
+Default to no overwrite. Stable input/configuration should produce stable folder and asset names. Never replace user-authored additions without an explicit merge strategy. A filename collision with different source hashes requires a distinct document slug or user decision.

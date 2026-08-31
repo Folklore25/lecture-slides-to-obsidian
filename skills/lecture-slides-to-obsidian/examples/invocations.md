@@ -18,7 +18,7 @@ Agent: 这个学期的根目录在哪儿？
 User: /path/to/vault/2026-fall
 ```
 
-The agent then discovers or creates the `IS0000` course folder, records the mapping, and classifies the PDF, note, assets, and report under that course.
+The agent records the mapping and creates a derived document folder for Markdown, assets, Canvas, and report. The PDF remains at `./downloads/week-01.pdf` outside the vault.
 
 ## Reused course binding
 
@@ -52,6 +52,25 @@ The agent must not quote the user's second message. It uses the token only for M
 ```text
 Prepare Lecture 06 from ./slides/week-06.pdf. Use English and Chinese language hints, keep page provenance, and flag every equation you cannot verify from the source.
 ```
+
+The agent also asks whether OCR should be enabled for this document; it does not assume false.
+
+## Non-slide course document
+
+```text
+Convert ./downloads/research-code-of-conduct.pdf for IS0000.
+```
+
+If structured MinerU output shows continuous policy prose rather than slides, the agent pauses before vault delivery and asks to confirm `policy-document`. It preserves numbered policy headings and does not add `## In-class notes` by default.
+
+## Near-match course directory
+
+```text
+User: Convert week-01.pdf for IS6000.
+Agent: 我没有找到 IS6000 的精确目录，但发现 Information_systems/。请确认是复用该目录，还是新建 IS6000/？
+```
+
+The decision is recorded in the conversion report.
 
 ## Backend not chosen
 

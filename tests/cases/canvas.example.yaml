@@ -1,0 +1,40 @@
+schema_version: 1
+
+cases:
+  - id: "lecture-relationship-canvas"
+    profile: "lecture-notes"
+    required_nodes:
+      - "complete-markdown-file"
+      - "objectives"
+      - "concepts"
+      - "examples-or-evidence"
+      - "questions-or-connections"
+    source_original_nodes: 0
+    expected_action: "create-and-validate"
+
+  - id: "policy-relationship-canvas"
+    profile: "policy-document"
+    required_relationships:
+      - "scope-to-actors"
+      - "actors-to-obligations"
+      - "obligations-to-exceptions"
+      - "exceptions-to-enforcement"
+    expected_action: "create-dynamic-policy-canvas"
+
+  - id: "paper-critical-thinking-canvas"
+    profile: "paper"
+    reference_pattern: "phd-deepread"
+    required_relationships:
+      - "argument-to-evidence"
+      - "methods-to-findings"
+      - "assumptions-to-limitations"
+      - "limitations-to-open-questions"
+    expected_action: "create-dynamic-paper-canvas"
+
+  - id: "unsupported-inferred-edge"
+    relationship_evidence: "absent"
+    expected_action: "omit-edge"
+
+  - id: "source-pdf-file-node"
+    file: "lecture.pdf"
+    expected_action: "reject-source-original-node"

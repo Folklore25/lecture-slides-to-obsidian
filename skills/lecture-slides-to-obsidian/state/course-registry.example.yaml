@@ -1,10 +1,11 @@
-schema_version: 1
+schema_version: 2
 active_semester: "2026-fall"
 
 semesters:
   - id: "2026-fall"
     label: "2026 Fall"
-    root: "<absolute-semester-root>"
+    vault_root: "<absolute-obsidian-destination-root>"
+    source_materials_root: "<optional-absolute-path-outside-obsidian>"
     courses:
       - key: "is0000"
         name: "IS0000 Example Course"
@@ -14,7 +15,5 @@ semesters:
           - "Example Course"
         folder: "IS0000"
         destinations:
-          source_slides: "Slides"
-          lecture_notes: "Lectures"
-          note_assets: "Lectures/assets"
-          conversion_reports: "Lectures/reports"
+          documents_root: "Lectures"
+          document_folder_pattern: "{document_slug}"
