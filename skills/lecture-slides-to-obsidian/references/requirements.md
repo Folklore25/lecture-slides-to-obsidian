@@ -1,6 +1,6 @@
 # Prerequisite skills
 
-This skill orchestrates two Obsidian skills, OpenSSL-backed encrypted credential storage, and the official MinerU Precision API. The machine-readable sources of truth are [../requirements/skills.yaml](../requirements/skills.yaml), [../requirements/services.yaml](../requirements/services.yaml), and [../requirements/tools.yaml](../requirements/tools.yaml).
+This skill orchestrates two Obsidian skills, OpenSSL + macOS Keychain credential storage, and the official MinerU Precision API. The machine-readable sources of truth are [../requirements/skills.yaml](../requirements/skills.yaml), [../requirements/services.yaml](../requirements/services.yaml), and [../requirements/tools.yaml](../requirements/tools.yaml).
 
 ## Required skills
 
@@ -18,18 +18,18 @@ Use only the authenticated MinerU Precision API v4 documented at `https://mineru
 
 ## Required local tool
 
-OpenSSL with `aes-256-cbc` support is required only for the encrypted token store. Verify it with `openssl version` and `openssl enc -list`. Do not substitute plaintext files or reversible encoding when it is unavailable.
+OpenSSL with `aes-256-cbc` support and macOS Keychain's `security` CLI are required for automatic credential storage. Verify both tools. Do not substitute plaintext files or same-directory encryption keys.
 
 ## Preflight
 
 Before uploading course content:
 
 1. Inspect the harness's available skill list for exact names `obsidian-markdown` and `json-canvas`, then explicitly invoke the Skill tool for both and read each `SKILL.md` completely. Merely seeing them in the available list is not sufficient.
-2. Verify OpenSSL and `state/mineru-api-token.enc.json`.
-3. If encrypted state is absent, run `scripts/token-store.py set`. The script must collect the token and a 12+ character encryption passphrase through hidden prompts; do not place either in command arguments.
+2. Verify OpenSSL, macOS Keychain, and `state/mineru-api-token.enc.json`.
+3. If encrypted state is absent, send the chat-provided token through stdin to `scripts/token-store.py set --token-stdin`. The script creates the Keychain wrapping key automatically; never place the token in command arguments.
 4. Validate the local file type and size against `requirements/services.yaml` without parsing its content locally.
-5. Tell the user that the file will be uploaded to MinerU, then unlock the encrypted token through a hidden passphrase prompt.
-6. If either Obsidian skill, OpenSSL, network access, encrypted token, or passphrase is unavailable, stop and report the exact requirement. Do not use plaintext storage or fall back to local parsing.
+5. Load the encrypted token automatically. Do not ask for repeated consent or another secret.
+6. If either Obsidian skill, OpenSSL, Keychain, network access, or encrypted token state is unavailable, stop and report the exact requirement. Do not use plaintext storage or fall back to local parsing.
 
 Run `scripts/preflight.py` and pass `--loaded-skill obsidian-markdown --loaded-skill json-canvas`; its JSON output is the machine-readable record that helper skills were loaded.
 
@@ -37,4 +37,4 @@ The manifests are declarative. Enforcement belongs to this preflight and future 
 
 ## Invocation boundary
 
-The API client imports `load_token()` from `scripts/token-store.py`, uses the plaintext only in process memory, and never prints it. It then creates raw extraction artifacts in staging. Use `obsidian-markdown` for final note shaping and `json-canvas` for relationship mapping. Preserve API warnings and provenance instead of allowing normalization to hide uncertainty.
+The API client imports `load_token_auto()` from `scripts/token-store.py`, uses plaintext only in process memory, and never prints it. It then creates raw extraction artifacts in staging. Use `obsidian-markdown` for final note shaping and `json-canvas` for relationship mapping. Preserve API warnings and provenance instead of allowing normalization to hide uncertainty.

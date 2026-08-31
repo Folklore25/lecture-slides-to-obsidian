@@ -15,4 +15,9 @@ required_tools:
       integrity: "Encrypt-then-HMAC-SHA256"
       mac_kdf: "PBKDF2-HMAC-SHA256"
       mac_iterations: 600000
-      passphrase_persistence: "forbidden"
+      wrapping_key_backend: "macos-keychain"
+      wrapping_key_service: "lecture-slides-to-obsidian.mineru-token-key"
+  - name: "security"
+    purpose: "Store and retrieve the random wrapping key from macOS Keychain without repeated user input."
+    verify_command: "security help"
+    platform: "macos"

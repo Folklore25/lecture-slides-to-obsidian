@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -53,6 +54,7 @@ def main() -> int:
     parser.add_argument("--language")
     parser.add_argument("--is-ocr", choices=("true", "false"))
     parser.add_argument("--loaded-skill", action="append", default=[])
+    parser.add_argument("--fixture-mode", action="store_true")
     parser.add_argument(
         "--token-file",
         type=Path,
@@ -119,6 +121,11 @@ def main() -> int:
         errors.append("OpenSSL is unavailable")
     else:
         checks["openssl"] = openssl
+    security = shutil.which("security")
+    if not args.fixture_mode and (sys.platform != "darwin" or security is None):
+        errors.append("macOS Keychain security CLI is unavailable")
+    elif security:
+        checks["keychain_cli"] = security
 
     token_file = args.token_file.resolve()
     if not token_file.is_file():
@@ -129,6 +136,19 @@ def main() -> int:
         checks["encrypted_token_mode"] = f"{mode:04o}"
         if mode != 0o600:
             errors.append(f"encrypted token file mode must be 0600, found {mode:04o}")
+        if not args.fixture_mode:
+            status = subprocess.run(
+                [sys.executable, str(Path(__file__).resolve().parent / "token-store.py"), "status"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+            if status.returncode != 0:
+                questions.append({
+                    "id": "keychain_wrapping_key",
+                    "prompt": "加密 token 的 Keychain wrapping key 不可用；请重新提供 token 以替换 credential state。",
+                })
 
     result = {
         "ok": not errors and not questions,

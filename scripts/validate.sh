@@ -124,9 +124,20 @@ if ! grep -q 'persistence: "encrypted-at-rest"' "$skill_dir/requirements/service
   exit 1
 fi
 
+if ! grep -q 'repeated_user_confirmation: false' "$skill_dir/requirements/services.yaml"; then
+  printf 'automatic credential reuse contract is missing\n' >&2
+  exit 1
+fi
+
 if ! command -v openssl >/dev/null 2>&1 || \
    ! openssl enc -list | grep -q 'aes-256-cbc'; then
   printf 'OpenSSL with aes-256-cbc is required\n' >&2
+  exit 1
+fi
+
+if ! command -v security >/dev/null 2>&1 || \
+   ! grep -q 'wrapping_key_backend: "macos-keychain"' "$skill_dir/requirements/tools.yaml"; then
+  printf 'macOS Keychain security CLI is required for automatic token unlock\n' >&2
   exit 1
 fi
 

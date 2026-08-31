@@ -8,7 +8,7 @@ cases:
     openssl: "available-with-aes-256-cbc"
     mineru_network: "available"
     encrypted_token_file: "valid"
-    passphrase: "provided-through-hidden-prompt"
+    keychain_wrapping_key: "available"
     expected_action: "continue"
 
   - id: "obsidian-skill-missing"

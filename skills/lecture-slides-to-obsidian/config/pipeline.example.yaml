@@ -30,8 +30,8 @@ mineru_api:
   model_version: "vlm"
   token_source: "state/mineru-api-token.enc.json"
   token_encryption: "aes-256-cbc-pbkdf2-etm-hmac-sha256"
+  wrapping_key_backend: "macos-keychain"
   persist_plaintext_token: false
-  persist_decryption_passphrase: false
   language: null
   language_selection: "infer-then-confirm"
   enable_formula: true

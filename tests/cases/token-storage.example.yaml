@@ -8,16 +8,16 @@ cases:
     directory_mode: "0700"
     expected_action: "decrypt-in-memory-only"
 
-  - id: "wrong-passphrase"
-    hmac_verification: "failed"
+  - id: "wrong-keychain-wrapping-key"
+    keychain_key_match: false
     expected_action: "reject-before-decryption"
 
   - id: "tampered-ciphertext"
     hmac_verification: "failed"
     expected_action: "reject-before-decryption"
 
-  - id: "passphrase-lost"
-    expected_action: "delete-and-recreate-token-store"
+  - id: "keychain-item-missing"
+    expected_action: "replace-token-state-from-chat-provided-token"
 
   - id: "plaintext-token-file"
     file: "state/mineru-api-token.txt"
@@ -27,4 +27,5 @@ cases:
     purge_targets:
       - "course-registry.yaml"
       - "mineru-api-token.enc.json"
+      - "macos-keychain-wrapping-key"
     expected_action: "remove-only-skill-owned-state"

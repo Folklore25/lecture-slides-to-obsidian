@@ -12,7 +12,7 @@ SCRIPT = REPO / "skills/lecture-slides-to-obsidian/scripts/preflight.py"
 
 def run_preflight(arguments):
     result = subprocess.run(
-        [sys.executable, str(SCRIPT), *map(str, arguments)],
+        [sys.executable, str(SCRIPT), "--fixture-mode", *map(str, arguments)],
         capture_output=True,
         text=True,
         check=False,

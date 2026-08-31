@@ -47,7 +47,7 @@ Agent: This source will be uploaded to the official MinerU API. Provide the API 
 User: <MinerU API token>
 ```
 
-The Agent passes the token to `token-store.py set --token-stdin` through stdin, never a command argument. The script requests a hidden encryption passphrase. Later conversions request only that passphrase.
+The Agent passes the token to `token-store.py set --token-stdin` through stdin, never a command argument. The script automatically stores a random wrapping key in macOS Keychain. Later conversions unlock automatically without asking again.
 
 ## API option confirmation
 

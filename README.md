@@ -90,6 +90,7 @@ PDF 会上传到 MinerU 官方服务进行解析。转换前必须：
 - 能发现并加载 `json-canvas`，用于关系画布生成与 JSON Canvas 校验。
 - 能访问 MinerU Precision API v4。
 - 本机具有支持 `aes-256-cbc` 的 OpenSSL。
+- 当前自动 credential backend 为 macOS Keychain（`security` CLI）；其他平台会明确失败，不会退回明文或同目录 key 文件。
 
 API token 加密保存为：
 
@@ -103,9 +104,9 @@ API token 加密保存为：
 skills/lecture-slides-to-obsidian/scripts/token-store.py set
 ```
 
-脚本使用隐藏输入收集 token 和至少 12 字符的加密口令。若 Agent 已从输入框收到 token，只能通过 stdin 调用 `set --token-stdin`，不能放进命令参数。之后每次转换只需隐藏输入解密口令；口令不落盘，CLI 也没有输出明文 token 的命令。
+若 Agent 已从聊天框收到 token，只能通过 stdin 调用 `set --token-stdin`，不能放进命令参数。脚本自动生成随机 wrapping key 并写入 macOS Keychain；后续转换直接自动解锁，不再询问 token、额外口令或重复同意。CLI 没有输出明文 token 的命令。
 
-密文采用 AES-256-CBC + PBKDF2-HMAC-SHA256（600,000 iterations），并用独立的 Encrypt-then-HMAC-SHA256 做完整性校验。token 文件权限为 `0600`，state 目录写入时设为 `0700`。删除技能目录会连同密文一起删除。
+密文采用 AES-256-CBC + PBKDF2-HMAC-SHA256（600,000 iterations），并用独立的 Encrypt-then-HMAC-SHA256 做完整性校验。token 文件权限为 `0600`，state 目录写入时设为 `0700`。`purge-state.sh --confirm` 会同时删除密文与对应 Keychain 项。
 
 本地 PDF 使用官方上传流程：
 
@@ -197,7 +198,7 @@ python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py \
 
 1. 用代表性课件建立合成/公开基准集。
 2. 实现技能内课程注册表的原子读写、唯一匹配和目录路由测试。
-3. 实现 MinerU Precision API v4 client 与加密 token store 的内存解锁集成、安全 ZIP 解压和结构化分页。
+3. 实现 MinerU Precision API v4 client 与自动 Keychain 解锁集成、安全 ZIP 解压和结构化分页。
 4. 加入完整 Canvas 生成、输出 validator、API 契约和回归测试。
 5. 在真实课前工作流中小范围试用，再依据失败样例修订技能。
 

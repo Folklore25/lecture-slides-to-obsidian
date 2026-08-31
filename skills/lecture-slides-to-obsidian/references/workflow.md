@@ -12,7 +12,7 @@ Reject a source that resolves inside the destination vault. Do not copy or move 
 
 Select or confirm `lecture-notes`, `policy-document`, or `paper` using filename/user context before upload. A name such as `example-policy.pdf` should trigger a `policy-document` suggestion immediately. Validate extension and size without parsing the source locally. Infer then confirm the MinerU language enum and confirm an OCR boolean; neither field has a request default.
 
-Load `obsidian-markdown` and `json-canvas`. Verify the encrypted token store, disclose the MinerU upload, then request only the encryption passphrase through a hidden prompt. On first setup, create encrypted state through `token-store.py`.
+Load `obsidian-markdown` and `json-canvas`. Verify the encrypted token file and Keychain wrapping key. On first setup, store the chat-provided token through `token-store.py set --token-stdin`; later runs unlock automatically without another conversational prompt.
 
 ## 3. Staging and API extraction
 

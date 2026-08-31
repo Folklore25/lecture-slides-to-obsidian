@@ -33,9 +33,9 @@ cases:
     file_mode: "0600"
     expected_action: "pass"
 
-  - id: "wrong-token-store-passphrase"
+  - id: "wrong-token-store-wrapping-key"
     encrypted_token_file: "valid"
-    passphrase: "wrong"
+    keychain_key_match: false
     expected_action: "reject-without-api-request"
 
   - id: "tampered-encrypted-token"

@@ -15,6 +15,8 @@ if [ ! -d "$state_dir" ] || [ "$(basename -- "$state_dir")" != "state" ]; then
   exit 1
 fi
 
+"$script_dir/token-store.py" delete --confirm >/dev/null
+
 find "$state_dir" -maxdepth 1 -type f \
   \( -name 'course-registry.yaml' \
      -o -name 'course-registry.yaml.bak-*' \
@@ -23,4 +25,4 @@ find "$state_dir" -maxdepth 1 -type f \
      -o -name '.mineru-token-*' \) \
   -delete
 
-printf 'skill-owned registry and encrypted token state removed\n'
+printf 'skill-owned registry, encrypted token, and Keychain wrapping key removed\n'

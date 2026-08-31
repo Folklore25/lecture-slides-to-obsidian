@@ -12,7 +12,8 @@ required_services:
       token_source: "encrypted-skill-state-file"
       encrypted_file: "state/mineru-api-token.enc.json"
       persistence: "encrypted-at-rest"
-      passphrase_persistence: "forbidden"
+      wrapping_key_backend: "macos-keychain"
+      repeated_user_confirmation: false
       allowed_origin: "https://mineru.net"
     endpoints:
       request_upload_urls: "POST /api/v4/file-urls/batch"

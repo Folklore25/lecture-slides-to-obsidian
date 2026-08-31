@@ -20,7 +20,7 @@ INVENTORY_KEYS = {
     "pages", "figures_images", "tables", "equations", "fallback_pages",
     "page_headers", "page_footers", "page_footnotes",
 }
-FORBIDDEN_KEY_PARTS = {"token", "passphrase", "authorization", "signed_url", "source_path"}
+FORBIDDEN_KEY_PARTS = {"token", "wrapping_secret", "authorization", "signed_url", "source_path"}
 SECRET_PATTERNS = [
     re.compile(r"Authorization:\s*Bearer", re.I),
     re.compile(r"https?://\S+\?\S+"),

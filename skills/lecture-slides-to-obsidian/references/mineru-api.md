@@ -23,7 +23,7 @@ Persist the token only at:
 <skill-directory>/state/mineru-api-token.enc.json
 ```
 
-`scripts/token-store.py` implements authenticated encryption using OpenSSL AES-256-CBC with PBKDF2-HMAC-SHA256 (600,000 iterations) and an independent Encrypt-then-HMAC-SHA256 integrity key. The passphrase is never stored. The encrypted file is mode `0600`; `state/` is mode `0700` when written.
+`scripts/token-store.py` implements authenticated encryption using OpenSSL AES-256-CBC with PBKDF2-HMAC-SHA256 (600,000 iterations) and an independent Encrypt-then-HMAC-SHA256 integrity key. A random wrapping key is stored in macOS Keychain. The encrypted file is mode `0600`; `state/` is mode `0700` when written.
 
 First setup:
 
@@ -31,19 +31,19 @@ First setup:
 scripts/token-store.py set
 ```
 
-The script prompts for token and passphrase without echo. If the Agent already collected the token in its input box, pass it through stdin with `set --token-stdin`; never place it in command arguments. The conversation host may retain the original user message, which this skill cannot delete.
+If the Agent collected the token in chat, pass it through stdin with `set --token-stdin`; never place it in command arguments. The script automatically creates the Keychain wrapping key. The conversation host may retain the original user message, which this skill cannot delete.
 
-Later conversions ask only for the encryption passphrase through a hidden prompt. The API client imports `load_token()` and keeps plaintext in memory only. There is intentionally no CLI command that prints the token.
+Later conversions import `load_token_auto()` and unlock without another user prompt. Plaintext exists in process memory only. There is intentionally no CLI command that prints the token.
 
 Rules:
 
-- never repeat or quote any token/passphrase characters;
-- never persist plaintext token/passphrase in registry, configuration, environment profiles, shell history, temporary files, reports, logs, or Git;
-- do not create `/tmp/.mineru-token`, mode-0600 plaintext token files, `with-token.sh`, or `Bearer $(cat ...)` wrappers; encrypted state plus in-process `load_token()` supersedes them;
+- never repeat or quote any token characters;
+- never persist plaintext token in registry, configuration, environment profiles, shell history, temporary files, reports, logs, or Git;
+- do not create `/tmp/.mineru-token`, mode-0600 plaintext token files, `with-token.sh`, or `Bearer $(cat ...)` wrappers; encrypted state plus in-process `load_token_auto()` supersedes them;
 - never copy the encrypted file outside the installed skill state directory;
 - send `Authorization: Bearer <token>` only to HTTPS requests whose origin is exactly `https://mineru.net`;
 - on `A0202` or `A0211`, delete or replace the encrypted token through `token-store.py`; never show the rejected value;
-- if the passphrase is lost, the token cannot be recovered locally—delete and recreate the encrypted file.
+- if Keychain state is missing or the skill path changes, replace the encrypted token state from the user-provided token.
 
 ## Local-file submission
 
