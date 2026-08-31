@@ -10,7 +10,7 @@ Use it after official CLI extraction to normalize and verify Obsidian Flavored M
 
 ### `json-canvas`
 
-Use it to create and validate the per-document relationship canvas. It owns JSON Canvas syntax, IDs, nodes, edges, layout, file-node paths, and reference integrity. It does not infer unsupported relationships or link the source original.
+Use it to create and validate the per-document knowledge-recall Canvas. It owns JSON Canvas syntax, IDs, nodes, edges, layout, file-node paths, and reference integrity. This composition skill owns the semantic recall model; neither skill may infer unsupported relationships or link the source original.
 
 ## Required service
 

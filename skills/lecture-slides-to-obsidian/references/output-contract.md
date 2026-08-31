@@ -11,7 +11,7 @@ The source original remains outside the Obsidian vault. The default deliverable 
             ├── <document-slug>.canvas
             ├── assets/
             │   ├── page-003-figure-01.png
-            │   └── page-007-fallback.png
+            │   └── page-007-fallback-01.png
 ```
 
 The folder must not contain a conversion report, PDF, PPT/PPTX, DOC/DOCX, XLS/XLSX, or archive original. It must not depend on staging paths.
@@ -55,7 +55,7 @@ Do not store the absolute source path in the note by default.
 
 ## Relationship canvas
 
-Create `<document-slug>.canvas` according to [canvas-contract.md](canvas-contract.md). It links the full Markdown, its headings, extracted assets, key concepts, and evidence-based relationships. It must not link or embed the source original.
+Create `<document-slug>.canvas` according to [canvas-contract.md](canvas-contract.md). It is a one-minute knowledge-recall map: central question and answer, concept modules, a connected semantic network, logic chain, distinctions, active-recall prompts, and only memory-critical visuals. It links every concept back to the complete Markdown and must not link or embed the source original. The staging `recall-model.json` is temporary QA state and must not enter the vault.
 
 ## Temporary conversion report
 

@@ -11,10 +11,11 @@
 - 图表、复杂排版、手写标注和低置信度页面保留视觉兜底。
 - 最终视觉资产统一命名为 `page-PPP-kind-NN.ext`，例如 `page-004-figure-01.png`。
 - 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。
-- 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和关系 Canvas。QA report 只存在于 staging，验证完成即删除。
+- 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和知识回忆 Canvas。QA report 与 recall model 只存在于 staging，验证完成即删除。
+- Canvas 不是目录图：它提炼中心问题、学习模块、概念依赖/因果/对比链、边界条件和主动回忆问题，并让每个概念回链到完整课件。
 - 用户在一个新学期首次提供课程名称时，只询问一次学期根目录并持久记录学期与课程映射。
 - 后续通过课程代码、正式名称或已登记别名唯一匹配，自动归档到对应学期的课程子目录。
-- 同一份技能内容兼容 Claude Code 和 Pi，并适合作为 cc-switch 自定义技能源。
+- 这是通用、运行环境无关的 Agent Skill；推荐通过 cc-switch 统一安装、更新和切换。
 - 除官方 CLI 访问 MinerU 服务外，不把课件发送到其他第三方服务。
 - 课程文件内容解析只使用官方 `mineru-open-api extract` 精准模式，不下载本地模型，也不维护自定义 HTTP client。
 
@@ -69,13 +70,13 @@ lecture-slides-to-obsidian/
     └── Lectures/
         └── <document-slug>/
             ├── <document-slug>.md       # 完整课件/文档
-            ├── <document-slug>.canvas   # 关系画布
+            ├── <document-slug>.canvas   # 一分钟知识回忆地图
             └── assets/                  # MinerU 派生图片/表格/兜底页
 ```
 
-原始 PDF/PPT 等不会复制、移动、symlink、embed 或作为 Canvas file node 放进 vault。Canvas 只连接完整 Markdown 的章节、关键概念和 `assets/` 中的派生文件。
+原始 PDF/PPT 等不会复制、移动、symlink、embed 或作为 Canvas file node 放进 vault。Canvas 只连接完整 Markdown、经语义建模的关键概念，以及最多六个真正有助于记忆的派生视觉素材。
 
-关系 Canvas 参考 [phd-deepread-workflow](https://github.com/heleninsights-dot/phd-deepread-workflow/tree/main) 的“中心文档 + 观点/证据/问题节点 + 有向边 + verifier”模式，但改为动态支持 lecture、policy 和 paper，不采用它的本地 PDF parser 或固定论文模板。
+知识回忆 Canvas 参考 [phd-deepread-workflow](https://github.com/heleninsights-dot/phd-deepread-workflow/tree/main) 的批判思考节点与有向关系，但改为两阶段生成：Agent 先通读完整 Markdown，写临时 `recall-model.json`；确定性脚本再负责布局和校验。它不会把标题顺序误当知识关系，也不采用固定论文模板。
 
 注册表是 skill-owned 本机状态，不应提交 GitHub。正常删除整个技能目录时，注册表会一起删除，不会另行残留在 `~/.config`。完整匹配与安全规则见 `references/course-routing.md`。
 
@@ -88,7 +89,7 @@ cc-switch 卸载时可能创建自己的 skill backup。若要求卸载备份中
 PDF 会上传到 MinerU 官方服务进行解析。转换前必须：
 
 - 能发现并加载 `obsidian-markdown`，用于 Obsidian properties、wikilinks、embeds、callouts 和 Markdown 语法。
-- 能发现并加载 `json-canvas`，用于关系画布生成与 JSON Canvas 校验。
+- 能发现并加载 `json-canvas`，用于知识回忆画布生成与 JSON Canvas 校验。
 - 已安装官方 `mineru-open-api` CLI，并能访问 MinerU Precision API。
 - 本机具有支持 `aes-256-cbc` 的 OpenSSL。
 - 当前自动 credential backend 为 macOS Keychain（`security` CLI）；其他平台会明确失败，不会退回明文或同目录 key 文件。
@@ -126,7 +127,8 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 3. 官方 CLI 执行 `extract -f md,json -o <staging>/`，负责上传、轮询、下载和 assets。
 4. Adapter 把 CLI legacy content-list JSON 按 `page_idx` 转成 page-group compatibility JSON。
 5. Adapter 按页码/类型/序号重命名图片，输出 `asset-map.json` 和 `normalized-assets/`。
-6. `reconstruct-note.py`、`obsidian-markdown` 和 `json-canvas` 继续完成派生文档。
+6. Agent 通读完整 Markdown，建立覆盖所有 H2 的临时 recall model，再由 `build-canvas.py` 生成可回忆的语义关系图。
+7. `obsidian-markdown` 和 `json-canvas` 完成语法与 Canvas 合规检查。
 
 支持三个 conversion profile：`lecture-notes`、`policy-document`、`paper`。不是 slides 的资料不会被拒绝，而会在写入 vault 前要求确认合适的 profile。
 
@@ -134,39 +136,9 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 ## 安装与加载
 
-### Claude Code
+推荐使用 **cc-switch** 管理。在自定义仓库中填写仓库 Owner、Name、Branch，并把 **Subdirectory** 设为 `skills`。让 cc-switch 负责安装、更新、切换和恢复运行态 `state/`；不要直接在它管理的安装目录中开发。
 
-开发期推荐软链接，改动可立即反映：
-
-```bash
-ln -s /absolute/path/to/lecture-slides-to-obsidian/skills/lecture-slides-to-obsidian \
-  ~/.claude/skills/lecture-slides-to-obsidian
-```
-
-Claude Code 中可让模型按描述自动加载，或显式运行：
-
-```text
-/lecture-slides-to-obsidian
-```
-
-### Pi
-
-Pi 可以直接从共享目录发现技能：
-
-```bash
-ln -s /absolute/path/to/lecture-slides-to-obsidian/skills/lecture-slides-to-obsidian \
-  ~/.agents/skills/lecture-slides-to-obsidian
-```
-
-也可以在 Pi 的 settings 中把本仓库的 `skills` 目录加入技能路径。显式调用名为：
-
-```text
-/skill:lecture-slides-to-obsidian
-```
-
-### cc-switch
-
-上传 GitHub 后，在 cc-switch 的自定义仓库中填写仓库 Owner、Name、Branch，并把 **Subdirectory** 设为 `skills`。仓库不要在 cc-switch 管理的安装目录里直接开发；让 cc-switch 负责复制或链接已发布版本。
+若不使用 cc-switch，把 `skills/lecture-slides-to-obsidian/` 整体复制或链接到当前运行环境支持的技能目录即可。具体目录位置和调用语法由运行环境决定。
 
 ## 本地验证
 
@@ -175,7 +147,7 @@ ln -s /absolute/path/to/lecture-slides-to-obsidian/skills/lecture-slides-to-obsi
 ```text
 preflight.py          分段收集/验证 vault、course、profile、language、OCR、helper skills、token state
 reconstruct-note.py  content_list_v2.json → 完整 profile-aware Markdown + normalization context
-build-canvas.py       note headings/assets → 完整 vault-relative JSON Canvas
+build-canvas.py       staging recall model → 可回忆、可追溯的 vault-relative JSON Canvas
 fill-report.py        QA context JSON → staging 临时 report
 ```
 
@@ -190,10 +162,11 @@ fill-report.py        QA context JSON → staging 临时 report
 ```bash
 python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py \
   <document-folder> --vault-root <vault-root> \
-  --report <staging>/conversion-report.md --delete-report-on-success
+  --report <staging>/conversion-report.md \
+  --recall-model <staging>/recall-model.json --delete-qa-on-success
 ```
 
-它验证 source-original exclusion、frontmatter、H1/page markers、wikilinks/assets、Canvas IDs/edges/paths/non-overlap，以及 staging 临时报告；成功后删除该报告。
+它验证 source-original exclusion、frontmatter、H1/page markers、wikilinks/assets，以及 Canvas 的一分钟回忆区、概念节点、语义边、密度、路径和非重叠布局；成功后删除 staging report 与 recall model。
 
 ## 测试素材政策
 

@@ -34,6 +34,11 @@ INVENTORY_LABELS = {
 }
 HEX_ID = re.compile(r"^[0-9a-f]{16}$")
 MARKER = re.compile(r"<!--\s*source-page:\s*(\d+)\s*-->")
+RECALL_ROLE = re.compile(r"<!--\s*recall-map:\s*([a-z-]+)\s*-->")
+BANNED_CANVAS_EDGE_LABELS = {
+    "related to", "contains", "contains section", "followed by", "includes asset",
+    "connects to", "next", "section",
+}
 
 
 def parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
@@ -153,9 +158,33 @@ def validate_canvas(path: Path, folder: Path, vault_root: Path | None) -> list[s
     if not isinstance(nodes, list) or not isinstance(edges, list):
         return ["canvas must contain nodes and edges arrays"]
 
+    note_candidates = [item for item in folder.glob("*.md") if item.name != "conversion-report.md"]
+    note_h2: set[str] = set()
+    note_h2_pages: dict[str, set[int]] = {}
+    note_page_count = 0
+    if len(note_candidates) == 1:
+        note_text = note_candidates[0].read_text(encoding="utf-8")
+        note_h2 = set(re.findall(r"(?m)^##\s+(.+?)\s*$", note_text))
+        current_page: int | None = None
+        for line in note_text.splitlines():
+            marker = re.fullmatch(r"<!--\s*source-page:\s*(\d+)\s*-->", line.strip())
+            if marker:
+                current_page = int(marker.group(1))
+                continue
+            heading = re.fullmatch(r"##\s+(.+?)\s*", line)
+            if heading and current_page is not None:
+                note_h2_pages.setdefault(heading.group(1).strip(), set()).add(current_page)
+        note_props, _ = parse_frontmatter(note_text)
+        try:
+            note_page_count = int(note_props.get("source_pages", "0"))
+        except ValueError:
+            note_page_count = 0
+
     all_ids: list[str] = []
     node_ids: set[str] = set()
     valid_nodes: list[dict] = []
+    role_nodes: dict[str, list[str]] = {}
+    group_count = 0
     for index, node in enumerate(nodes):
         if not isinstance(node, dict):
             errors.append(f"node {index} is not an object")
@@ -171,8 +200,37 @@ def validate_canvas(path: Path, folder: Path, vault_root: Path | None) -> list[s
         for field in ("x", "y", "width", "height"):
             if not isinstance(node.get(field), (int, float)):
                 errors.append(f"node {node_id} missing numeric {field}")
-        if node_type == "text" and not isinstance(node.get("text"), str):
-            errors.append(f"text node {node_id} missing text")
+        if node_type == "text":
+            text = node.get("text")
+            if not isinstance(text, str):
+                errors.append(f"text node {node_id} missing text")
+            else:
+                role_match = RECALL_ROLE.search(text)
+                if role_match:
+                    role_nodes.setdefault(role_match.group(1), []).append(node_id)
+                if any(marker in text for marker in ("[Populate", "[Replace", "TODO")):
+                    errors.append(f"text node {node_id} contains a placeholder")
+                if len(text) > 1400:
+                    errors.append(f"text node {node_id} is too dense for recall: {len(text)} characters")
+                if role_match and role_match.group(1) == "concept":
+                    if "**Recall cue:**" not in text:
+                        errors.append(f"concept node {node_id} is missing a recall cue")
+                    source_link = re.search(r"\[\[[^\]]+#([^\]|]+)\|[^\]]+\]\]", text)
+                    if not source_link:
+                        errors.append(f"concept node {node_id} is missing a source-heading link")
+                    elif source_link.group(1) not in note_h2:
+                        errors.append(f"concept node {node_id} links an unknown source heading: {source_link.group(1)}")
+                    source_page = re.search(r"\bsource page (\d+)\b", text)
+                    if not source_page:
+                        errors.append(f"concept node {node_id} is missing exact source-page provenance")
+                    elif not 1 <= int(source_page.group(1)) <= note_page_count:
+                        errors.append(f"concept node {node_id} source page is outside 1..{note_page_count}")
+                    elif source_link and source_link.group(1) in note_h2_pages and int(source_page.group(1)) not in note_h2_pages[source_link.group(1)]:
+                        errors.append(
+                            f"concept node {node_id} source heading/page pair does not occur in the note"
+                        )
+        if node_type == "group":
+            group_count += 1
         if node_type == "file":
             raw_file = node.get("file")
             if not isinstance(raw_file, str) or not raw_file:
@@ -207,6 +265,18 @@ def validate_canvas(path: Path, folder: Path, vault_root: Path | None) -> list[s
         for field in ("fromNode", "toNode"):
             if edge.get(field) not in node_ids:
                 errors.append(f"edge {edge_id} has dangling {field}: {edge.get(field)!r}")
+        label = edge.get("label")
+        if not isinstance(label, str) or not label.strip():
+            errors.append(f"edge {edge_id} is missing a meaningful label")
+        elif len(label.strip()) > 48:
+            errors.append(f"edge {edge_id} label is too long for scanning")
+        elif label.strip().casefold() in BANNED_CANVAS_EDGE_LABELS:
+            errors.append(f"edge {edge_id} uses a structural/generic label: {label!r}")
+        for field in ("fromSide", "toSide"):
+            if edge.get(field) not in {"top", "right", "bottom", "left"}:
+                errors.append(f"edge {edge_id} has invalid {field}: {edge.get(field)!r}")
+        if edge.get("toEnd", "arrow") not in {"none", "arrow"}:
+            errors.append(f"edge {edge_id} has invalid toEnd: {edge.get('toEnd')!r}")
 
     if len(all_ids) != len(set(all_ids)):
         errors.append("canvas IDs are not unique across nodes and edges")
@@ -215,6 +285,49 @@ def validate_canvas(path: Path, folder: Path, vault_root: Path | None) -> list[s
         for second in valid_nodes[index + 1 :]:
             if rectangles_overlap(first, second):
                 errors.append(f"canvas nodes overlap: {first.get('id')} and {second.get('id')}")
+
+    for role in ("overview", "synthesis", "distinctions", "prompts"):
+        if len(role_nodes.get(role, [])) != 1:
+            errors.append(f"knowledge-recall Canvas requires exactly one {role} node")
+    concept_ids = set(role_nodes.get("concept", []))
+    if not 4 <= len(concept_ids) <= 20:
+        errors.append(f"knowledge-recall Canvas requires 4..20 concept nodes, found {len(concept_ids)}")
+    if not 2 <= group_count <= 7:
+        errors.append(f"knowledge-recall Canvas requires 2..7 learning-module groups, found {group_count}")
+    overview_ids = role_nodes.get("overview", [])
+    if overview_ids:
+        overview = next(node for node in nodes if node.get("id") == overview_ids[0])
+        overview_text = overview.get("text", "")
+        for phrase in ("# One-minute recall", "**Central question:**", "**Answer:**", "**Takeaways**"):
+            if phrase not in overview_text:
+                errors.append(f"overview node is missing {phrase}")
+
+    semantic_edges = [
+        edge for edge in edges
+        if edge.get("fromNode") in concept_ids and edge.get("toNode") in concept_ids
+    ]
+    if concept_ids and not len(concept_ids) - 1 <= len(semantic_edges) <= len(concept_ids) * 2:
+        errors.append("concept relations must stay between N-1 and 2N edges")
+    adjacency = {node_id: set() for node_id in concept_ids}
+    for edge in semantic_edges:
+        source = edge.get("fromNode")
+        target = edge.get("toNode")
+        adjacency[source].add(target)
+        adjacency[target].add(source)
+    if adjacency:
+        visited: set[str] = set()
+        stack = [next(iter(adjacency))]
+        while stack:
+            current = stack.pop()
+            if current in visited:
+                continue
+            visited.add(current)
+            stack.extend(adjacency[current] - visited)
+        if visited != concept_ids:
+            errors.append("concept relation graph is disconnected")
+        crowded = sorted(node_id for node_id, neighbours in adjacency.items() if len(neighbours) > 6)
+        if crowded:
+            errors.append(f"concept nodes exceed six semantic connections: {', '.join(crowded)}")
 
     return errors
 
@@ -282,13 +395,20 @@ def main() -> int:
     parser.add_argument("--vault-root", type=Path)
     parser.add_argument("--fixture-mode", action="store_true", help="Allow document-relative Canvas paths in tests only")
     parser.add_argument("--report", required=True, type=Path, help="Temporary QA report outside the vault")
-    parser.add_argument("--delete-report-on-success", action="store_true")
+    parser.add_argument("--recall-model", type=Path, help="Temporary Agent-authored recall model outside the vault")
+    parser.add_argument(
+        "--delete-qa-on-success", "--delete-report-on-success",
+        dest="delete_qa_on_success", action="store_true",
+        help="Delete the report and supplied recall model after every check passes",
+    )
     args = parser.parse_args()
 
     folder = args.document_folder.resolve()
     vault_root = args.vault_root.resolve() if args.vault_root else None
     report_input = args.report
     report = report_input.resolve()
+    recall_model_input = args.recall_model
+    recall_model = recall_model_input.resolve() if recall_model_input else None
     errors: list[str] = []
 
     if vault_root is None and not args.fixture_mode:
@@ -299,6 +419,12 @@ def main() -> int:
         errors.append("temporary conversion report must not be a symlink")
     if report.name != "conversion-report.md":
         errors.append("temporary report filename must be conversion-report.md")
+    if vault_root is not None and recall_model is None:
+        errors.append("--recall-model is required outside explicit --fixture-mode")
+    if recall_model_input is not None and recall_model_input.is_symlink():
+        errors.append("temporary recall model must not be a symlink")
+    if recall_model is not None and recall_model.name != "recall-model.json":
+        errors.append("temporary recall model filename must be recall-model.json")
 
     if not folder.is_dir():
         errors.append(f"document folder not found: {folder}")
@@ -306,6 +432,18 @@ def main() -> int:
         errors.append("document folder is outside --vault-root")
     if inside(report, folder) or (vault_root and inside(report, vault_root)):
         errors.append("temporary conversion report must be outside the document folder and vault")
+    if recall_model is not None and (inside(recall_model, folder) or (vault_root and inside(recall_model, vault_root))):
+        errors.append("temporary recall model must be outside the document folder and vault")
+    if recall_model is not None:
+        if not recall_model.is_file():
+            errors.append("temporary recall model is missing")
+        else:
+            try:
+                recall_data = json.loads(recall_model.read_text(encoding="utf-8"))
+                if not isinstance(recall_data, dict) or recall_data.get("schema_version") != 1:
+                    errors.append("temporary recall model must use schema_version 1")
+            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                errors.append(f"invalid temporary recall model JSON: {exc}")
 
     if not errors:
         forbidden = [path for path in folder.rglob("*") if path.is_file() and path.suffix.lower() in SOURCE_EXTENSIONS]
@@ -336,14 +474,20 @@ def main() -> int:
             errors += validate_assets(assets, markdown_files[0])
 
     report_deleted = False
-    if not errors and args.delete_report_on_success:
+    recall_model_deleted = False
+    if not errors and args.delete_qa_on_success:
         report.unlink()
         report_deleted = True
+        if recall_model is not None:
+            recall_model.unlink()
+            recall_model_deleted = True
     result = {
         "valid": not errors,
         "document_folder": str(folder),
         "temporary_report": str(report),
         "report_deleted": report_deleted,
+        "temporary_recall_model": str(recall_model) if recall_model else None,
+        "recall_model_deleted": recall_model_deleted,
         "errors": errors,
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))

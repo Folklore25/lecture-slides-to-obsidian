@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "profile": "policy-document",
+  "mode": "pre-class",
+  "title": "Example policy",
+  "orientation": {
+    "central_question": "How does this policy turn its general purpose into an enforceable rule?",
+    "one_sentence_answer": "The policy states a governing rule, identifies the affected conduct, and applies that rule to the detailed category.",
+    "takeaways": [
+      "The overview introduces the governing rule.",
+      "The detailed category applies the same rule in context.",
+      "Interpretation requires linking the general statement to the detailed provision."
+    ]
+  },
+  "groups": [
+    {"id":"scope","title":"Scope and rule","summary":"The general purpose and governing requirement.","order":1},
+    {"id":"application","title":"Application","summary":"How the detailed category applies and limits the rule.","order":2}
+  ],
+  "concepts": [
+    {"id":"purpose","group":"scope","kind":"foundation","title":"Policy purpose","statement":"The overview establishes the conduct the policy is intended to govern.","details":["It supplies the context for the numbered rule."],"recall_cue":"What behavior is the document trying to govern?","source_heading":"Overview","source_page":1},
+    {"id":"general-rule","group":"scope","kind":"rule","title":"General rule","statement":"The numbered statement expresses the primary obligation in direct form.","details":["Its numbering should be preserved for cross-reference."],"recall_cue":"What is the main obligation?","source_heading":"Overview","source_page":1},
+    {"id":"category","group":"application","kind":"application","title":"Detailed category","statement":"The category places the general rule inside a more specific part of the policy.","details":["The repeated wording is interpreted in its local context."],"recall_cue":"Where is the general rule applied?","source_heading":"Category One","source_page":2},
+    {"id":"interpretation","group":"application","kind":"boundary","title":"Interpretation boundary","statement":"A summary occurrence must not replace the more detailed occurrence when reading the rule.","details":["Page provenance distinguishes overview from detail."],"recall_cue":"Which occurrence carries the detailed context?","source_heading":"Category One","source_page":2}
+  ],
+  "relations": [
+    {"from":"purpose","to":"general-rule","type":"explains","label":"gives the rule its purpose","why":"The overview supplies context for the obligation."},
+    {"from":"general-rule","to":"category","type":"applies-to","label":"is applied in the category","why":"The category repeats and contextualizes the numbered rule."},
+    {"from":"interpretation","to":"category","type":"qualifies","label":"requires the detailed occurrence","why":"The detailed occurrence has page-local context absent from the overview."}
+  ],
+  "coverage": [
+    {"source_heading":"Overview","source_page":1,"concepts":["purpose","general-rule"]},
+    {"source_heading":"Category One","source_page":2,"concepts":["category","interpretation"]}
+  ],
+  "synthesis": {
+    "logic_chain": [
+      "Read the overview to identify purpose.",
+      "Extract the numbered governing rule.",
+      "Use the detailed category to interpret its application."
+    ],
+    "distinctions": [
+      {"terms":"Overview vs detail","rule":"The overview summarizes; the detailed category supplies the local context for application."}
+    ],
+    "recall_prompts": [
+      "What obligation does the policy state?",
+      "How does the detailed category change interpretation?",
+      "Why should repeated wording retain page provenance?"
+    ],
+    "in_class_additions": []
+  },
+  "asset_links": []
+}

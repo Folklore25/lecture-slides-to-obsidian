@@ -1,77 +1,82 @@
-# Relationship canvas contract
+# Knowledge-recall Canvas contract
 
-Reference implementation: <https://github.com/heleninsights-dot/phd-deepread-workflow/tree/main>
+The Canvas is a **retrieval map**, not a table of contents and not a second copy of the Markdown. After reading the full material, a learner should be able to look at the Canvas for about one minute and recover:
 
-Adapt its central-document, critical-thinking-node, directed-edge, and verifier pattern. Do not copy its local PDF extraction or fixed paper-only 9-node layout.
+1. the central question and answer;
+2. the major learning modules;
+3. the dependency, causal, contrast, evidence, and application links between ideas;
+4. the shortest logic chain that reconstructs the lesson;
+5. important boundaries or common confusions;
+6. several prompts that test active recall;
+7. confirmed additions from class when running in `post-class` mode.
 
-## Required artifact
+The complete Markdown remains the source of detail. Every concept node links back to a real Markdown heading. Do not copy paragraphs into the Canvas.
 
-Create `<document-slug>.canvas` beside `<document-slug>.md`. Use `scripts/build-canvas.py` for deterministic paths/IDs. Profile-specific layout seeds are:
+Reference inspiration: [phd-deepread-workflow](https://github.com/heleninsights-dot/phd-deepread-workflow/tree/main). Retain its useful critical-thinking pattern—argument, assumptions, evidence, limitations, alternatives, questions—but do not copy its fixed paper-only layout or placeholder nodes.
 
-- [relationship.lecture-notes.canvas](../templates/relationship.lecture-notes.canvas)
-- [relationship.policy-document.canvas](../templates/relationship.policy-document.canvas)
-- [relationship.paper.canvas](../templates/relationship.paper.canvas)
+## Required two-stage generation
 
-Replace every placeholder with evidence from the complete Markdown and structured MinerU blocks.
-
-## Node model
-
-- One central `file` node points to `<document-slug>.md`.
-- Section `file` nodes point to the same Markdown with `subpath` values such as `#Learning objectives` or `#Methods`.
-- Asset `file` nodes point only to files under `assets/`.
-- `text` nodes contain concise concepts, questions, comparisons, rules, or critiques derived from the source.
-- Optional `group` nodes organize dense canvases, with child nodes positioned inside their bounds.
-- Never create file/link nodes for the original PDF/PPT/office file or its absolute path.
-
-Profile-specific relationships:
-
-- `lecture-notes`: objectives → concepts → examples/evidence → questions/connections.
-- `policy-document`: scope → actors → obligations → exceptions → enforcement → cross-references.
-- `paper`: research question → argument → evidence/methods → assumptions/limitations → alternatives/open questions.
-
-Create only relationships supported by the source. Typical edge labels are `defines`, `explains`, `depends on`, `supports`, `contrasts with`, `example of`, `exception to`, and `raises`.
-
-## JSON Canvas rules
-
-- Top-level object contains `nodes` and `edges` arrays.
-- Every node and edge ID is a unique 16-character lowercase hexadecimal string.
-- Every node has `id`, `type`, `x`, `y`, `width`, and `height`.
-- File nodes have `file`; text nodes have `text`; group nodes may have `label`.
-- Every edge references existing node IDs through `fromNode` and `toNode`.
-- Side values are `top`, `right`, `bottom`, or `left`; end values are `none` or `arrow`.
-- Keep 50–100 px spacing, avoid overlaps, and use a readable left-to-right or hub-and-spoke flow.
-- File paths are relative to the vault root, not to the `.canvas` file.
-
-## Vault-relative path example
-
-Given:
+Do not ask `build-canvas.py` to infer meaning from Markdown headings. The Agent must first read the **complete note**, reason about the content, and write a staging `recall-model.json` following [canvas-recall-model.md](canvas-recall-model.md). Then run:
 
 ```text
-vault root:      /path/to/vault
-document folder: /path/to/vault/COURSE101/Lectures/example-document
+scripts/build-canvas.py \
+  --note <document.md> \
+  --vault-root <vault-root> \
+  --profile <profile> \
+  --model <staging/recall-model.json> \
+  --output <document.canvas>
 ```
 
-The central node must use the complete vault-relative path:
+The model is temporary Agent QA state. Delete it together with the conversion report after successful Canvas/output validation. Keep it only while debugging a failed build.
 
-```json
-{
-  "type": "file",
-  "file": "COURSE101/Lectures/example-document/example-document.md",
-  "subpath": "#Section One"
-}
-```
+## Information architecture
 
-An asset node uses:
+The renderer creates four visual zones:
 
-```json
-{
-  "type": "file",
-  "file": "COURSE101/Lectures/example-document/assets/page-004-figure-01.png"
-}
-```
+- **One-minute recall:** central question, one-sentence answer, and three to five takeaways.
+- **Learning modules:** two to seven left-to-right groups. Group by conceptual function, not slide/page order.
+- **Concept network:** four to twenty atomic nodes, normally eight to sixteen. Each node states one idea, gives at most three details, includes a recall cue, and links to its full source section.
+- **Synthesis strip:** logic chain, distinctions/boundaries, and active-recall prompts; post-class additions appear here.
 
-`"file": "example-document.md"` is wrong because Obsidian resolves it from the vault root. The validator computes `(vault_root / node.file).resolve()`, requires the file to exist, and requires it to remain inside the document folder. `--vault-root` is mandatory for final validation; document-relative paths are allowed only under explicit test `--fixture-mode`.
+The Canvas may omit low-value detail from view, but not silently. The model's `coverage` ledger must account for every H2 heading/page occurrence by mapping it to concept nodes or giving a concrete omission reason. This is how repeated headings stay distinct and the Canvas remains concise without pretending to contain the full note.
 
-## Validation
+## Relationship quality
 
-Parse the JSON, verify unique IDs, references, types, required fields, path containment, source-original exclusion, and basic non-overlap. Canvas creation is not complete until `scripts/validate-output.py` passes.
+Relations must say what one concept does to another. Use a small supported vocabulary:
+
+`requires`, `causes`, `enables`, `explains`, `supports`, `contrasts`, `limits`, `example-of`, `part-of`, `leads-to`, `qualifies`, `applies-to`.
+
+Write a short active edge label such as `provides the comparison baseline`, `fails when latency dominates`, or `turns observations into a decision`. Never use `related to`, `contains section`, `followed by`, `next`, or similar labels that only describe document structure.
+
+Every relation records a short `why` in the staging model. It must be supported by the source, by explicit in-class notes, or by a conservative synthesis of both. The final concept graph must be connected, but selective: use between `N-1` and `2N` concept relations and keep each concept at six connections or fewer.
+
+## Visual selection
+
+Do not attach every extracted image to the main note node. Select at most six memory-critical visuals—only diagrams, tables, equations, or charts whose absence would make an important concept harder to reconstruct. Each selected visual is attached to the concept it explains. Paths follow [asset-naming.md](asset-naming.md).
+
+## Pre-class and post-class lifecycle
+
+- `pre-class`: build from the complete converted material. Leave `in_class_additions` empty; never invent what a lecturer might say.
+- `post-class`: re-read the complete Markdown including the learner's `## In-class notes`, rebuild the semantic model, and put only confirmed additions, corrections, exam cues, or lecturer emphasis in `in_class_additions`.
+
+Do not silently overwrite a Canvas that may contain manual edits. `build-canvas.py` refuses an existing output unless `--overwrite` is explicitly supplied after preserving or reconciling those edits.
+
+## Readability acceptance tests
+
+A finished Canvas must pass all of these:
+
+- **Squint test:** at fit-to-screen, the overview, module order, and synthesis strip are visually distinct.
+- **One-minute test:** the overview plus logic chain recovers the lesson's thesis without opening the Markdown.
+- **Why-edge test:** every arrow can be read as a meaningful sentence, `A <label> B`.
+- **Coverage test:** every major Markdown section is mapped or explicitly excluded in staging.
+- **Traceability test:** every concept links to an existing Markdown heading and states its exact 1-based source page; selected assets resolve inside the document folder.
+- **Density test:** no placeholder nodes, paragraph dumps, isolated concepts, node overlaps, or hub with more than six semantic connections.
+
+## JSON Canvas invariants
+
+- Create `<document-slug>.canvas` beside `<document-slug>.md`.
+- Use unique 16-character lowercase hexadecimal IDs.
+- File paths are relative to the vault root, never relative to the Canvas.
+- Never create a file/link node for the original PDF/PPT/Office source or its absolute path.
+- Keep 50–100 px spacing and let groups sit behind their child nodes.
+- Validate with `scripts/validate-output.py --vault-root ...`; fixture-relative paths are test-only.

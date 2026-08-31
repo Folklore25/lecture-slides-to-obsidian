@@ -28,12 +28,13 @@ Create the document folder only after extraction/profile decisions are stable. W
 
 - complete `<document-slug>.md`;
 - derived `assets/` only;
-- `<document-slug>.canvas` using evidence-based relationships;
+- staging `recall-model.json` after reading the complete Markdown;
+- `<document-slug>.canvas` as a knowledge-recall map rendered from that semantic model;
 - a temporary `conversion-report.md` under staging for Agent QA only.
 
 ## 6. Validation and delivery
 
-Run `scripts/validate-output.py` with the staging report, structural alignment checks, and [quality-gates.md](quality-gates.md). Move only validated Markdown/Canvas/assets into the document folder. Extract routing decisions, output paths, zero counts, review items, and not-checked gates for the final response; then delete the temporary report and send that response.
+Run `scripts/validate-output.py` with the staging report, structural alignment checks, and [quality-gates.md](quality-gates.md). Move only validated Markdown/Canvas/assets into the document folder. Extract routing decisions, output paths, zero counts, review items, and not-checked gates for the final response; then delete the temporary report and `recall-model.json` before sending that response.
 
 ## Failure behavior
 

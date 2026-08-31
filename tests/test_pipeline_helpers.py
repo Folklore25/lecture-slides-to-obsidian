@@ -9,6 +9,7 @@ REPO = Path(__file__).resolve().parents[1]
 SKILL = REPO / "skills/lecture-slides-to-obsidian"
 CONTENT_LIST = REPO / "tests/fixtures/synthetic/content-list-v2-policy.json"
 REPORT_CONTEXT = SKILL / "templates/report-context.example.json"
+RECALL_MODEL = REPO / "tests/fixtures/synthetic/recall-model.policy.json"
 
 
 class PipelineHelperTests(unittest.TestCase):
@@ -21,9 +22,11 @@ class PipelineHelperTests(unittest.TestCase):
             note = folder / "example-policy.md"
             canvas = folder / "example-policy.canvas"
             report = staging / "conversion-report.md"
+            recall_model = staging / "recall-model.json"
             context = staging / "normalization.json"
             (folder / "assets").mkdir(parents=True)
             staging.mkdir()
+            recall_model.write_text(RECALL_MODEL.read_text())
 
             commands = [
                 [
@@ -37,7 +40,8 @@ class PipelineHelperTests(unittest.TestCase):
                 [
                     sys.executable, str(SKILL / "scripts/build-canvas.py"),
                     "--note", str(note), "--vault-root", str(vault),
-                    "--profile", "policy-document", "--output", str(canvas),
+                    "--profile", "policy-document", "--model", str(recall_model),
+                    "--output", str(canvas),
                 ],
                 [
                     sys.executable, str(SKILL / "scripts/fill-report.py"),
@@ -46,7 +50,7 @@ class PipelineHelperTests(unittest.TestCase):
                 [
                     sys.executable, str(SKILL / "scripts/validate-output.py"),
                     str(folder), "--vault-root", str(vault), "--report", str(report),
-                    "--delete-report-on-success",
+                    "--recall-model", str(recall_model), "--delete-qa-on-success",
                 ],
             ]
             for command in commands:
@@ -57,6 +61,7 @@ class PipelineHelperTests(unittest.TestCase):
             self.assertTrue((folder / "assets").is_dir())
             self.assertFalse((folder / "conversion-report.md").exists())
             self.assertFalse(report.exists())
+            self.assertFalse(recall_model.exists())
 
 
 if __name__ == "__main__":

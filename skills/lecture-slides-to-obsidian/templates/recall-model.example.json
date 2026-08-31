@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "profile": "lecture-notes",
+  "mode": "pre-class",
+  "title": "Feedback systems",
+  "orientation": {
+    "central_question": "How does a system use feedback to regulate its behavior?",
+    "one_sentence_answer": "A feedback system compares observed behavior with a target and uses the difference to adjust its next action.",
+    "takeaways": [
+      "Feedback closes the loop between an action and its observed effect.",
+      "The sign and timing of the response determine whether behavior stabilizes or amplifies.",
+      "Useful control requires a measurable target, an observation, and an adjustment rule."
+    ]
+  },
+  "groups": [
+    {"id":"foundations","title":"Foundations","summary":"The quantities needed to describe a feedback loop.","order":1},
+    {"id":"mechanism","title":"Mechanism","summary":"How comparison and adjustment change system behavior.","order":2},
+    {"id":"application","title":"Application and limits","summary":"How to apply the loop and recognize failure conditions.","order":3}
+  ],
+  "concepts": [
+    {"id":"target","group":"foundations","kind":"foundation","title":"Target state","statement":"The target states the behavior the system is trying to maintain or reach.","details":["It must be defined in a measurable form."],"recall_cue":"What value is the loop trying to protect?","source_heading":"Core components","source_page":1},
+    {"id":"observation","group":"foundations","kind":"concept","title":"Observation","statement":"The observation measures the system's current behavior so it can be compared with the target.","details":["Measurement delay and noise affect the comparison."],"recall_cue":"What does the controller actually know?","source_heading":"Core components","source_page":1},
+    {"id":"error","group":"mechanism","kind":"mechanism","title":"Error signal","statement":"The difference between target and observation becomes the signal that drives correction.","details":["Its sign determines the direction of adjustment."],"recall_cue":"Which difference causes the next action?","source_heading":"How feedback works","source_page":2},
+    {"id":"adjustment","group":"mechanism","kind":"process","title":"Adjustment","statement":"The controller converts the error signal into an action that changes the system state.","details":["Gain determines how strongly the controller responds."],"recall_cue":"How does comparison become action?","source_heading":"How feedback works","source_page":2},
+    {"id":"stability","group":"application","kind":"application","title":"Stable regulation","statement":"A well-tuned negative-feedback loop reduces deviations and settles near the target.","details":["Small corrections prevent persistent overshoot."],"recall_cue":"What behavior shows that regulation works?","source_heading":"Applications and limits","source_page":2},
+    {"id":"delay","group":"application","kind":"boundary","title":"Delay as a boundary","statement":"Long delay can make a correction arrive after conditions have changed, causing oscillation or instability.","details":["More aggressive adjustment can worsen delayed feedback."],"recall_cue":"When can a corrective loop amplify error?","source_heading":"Applications and limits","source_page":2}
+  ],
+  "relations": [
+    {"from":"target","to":"error","type":"requires","label":"sets the comparison baseline","why":"An error cannot be calculated without a desired value."},
+    {"from":"observation","to":"error","type":"enables","label":"supplies the measured state","why":"The current observation is the second input to the comparison."},
+    {"from":"error","to":"adjustment","type":"causes","label":"drives the corrective action","why":"The controller uses the error signal to determine its response."},
+    {"from":"adjustment","to":"stability","type":"enables","label":"reduces deviation when tuned","why":"Appropriate corrective action moves the system toward the target."},
+    {"from":"delay","to":"stability","type":"limits","label":"can turn correction into oscillation","why":"Delayed responses may act on an outdated system state."}
+  ],
+  "coverage": [
+    {"source_heading":"Core components","source_page":1,"concepts":["target","observation"]},
+    {"source_heading":"How feedback works","source_page":2,"concepts":["error","adjustment"]},
+    {"source_heading":"Applications and limits","source_page":2,"concepts":["stability","delay"]},
+    {"source_heading":"In-class notes","source_page":2,"concepts":[],"omission_reason":"Empty in pre-class mode."}
+  ],
+  "synthesis": {
+    "logic_chain": [
+      "Define the target behavior.",
+      "Observe the current behavior.",
+      "Calculate the difference between target and observation.",
+      "Apply a correction and observe its next effect."
+    ],
+    "distinctions": [
+      {"terms":"Negative vs positive feedback","rule":"Negative feedback opposes deviation; positive feedback reinforces the direction of change."}
+    ],
+    "recall_prompts": [
+      "Name the minimum components of a closed feedback loop.",
+      "Explain why delay can destabilize an otherwise corrective loop.",
+      "Predict what happens when adjustment gain is too high."
+    ],
+    "in_class_additions": []
+  },
+  "asset_links": []
+}

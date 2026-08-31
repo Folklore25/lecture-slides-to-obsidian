@@ -1,39 +1,57 @@
 schema_version: 1
 
 cases:
-  - id: "lecture-relationship-canvas"
+  - id: "lecture-knowledge-recall-map"
     profile: "lecture-notes"
-    required_nodes:
-      - "complete-markdown-file"
-      - "objectives"
-      - "concepts"
-      - "examples-or-evidence"
-      - "questions-or-connections"
-    source_original_nodes: 0
-    expected_action: "create-and-validate"
+    required_zones:
+      - "one-minute-recall"
+      - "learning-modules"
+      - "connected-concept-network"
+      - "logic-chain"
+      - "distinctions-and-boundaries"
+      - "active-recall"
+    expected_action: "render-from-semantic-model"
 
-  - id: "policy-relationship-canvas"
-    profile: "policy-document"
-    required_relationships:
-      - "scope-to-actors"
-      - "actors-to-obligations"
-      - "obligations-to-exceptions"
-      - "exceptions-to-enforcement"
-    expected_action: "create-dynamic-policy-canvas"
+  - id: "section-order-is-not-knowledge"
+    input_strategy: "connect-headings-in-document-order"
+    edge_labels:
+      - "contains section"
+      - "followed by"
+    expected_action: "reject-generic-outline"
 
-  - id: "paper-critical-thinking-canvas"
-    profile: "paper"
-    reference_pattern: "phd-deepread"
-    required_relationships:
-      - "argument-to-evidence"
-      - "methods-to-findings"
-      - "assumptions-to-limitations"
-      - "limitations-to-open-questions"
-    expected_action: "create-dynamic-paper-canvas"
+  - id: "coverage-ledger"
+    markdown_h2_count: 8
+    coverage_rows: 8
+    mapped_or_explained_rows: 8
+    expected_action: "pass-with-traceable-compression"
 
-  - id: "unsupported-inferred-edge"
-    relationship_evidence: "absent"
-    expected_action: "omit-edge"
+  - id: "missing-section-coverage"
+    markdown_h2_count: 8
+    coverage_rows: 7
+    expected_action: "reject-silent-omission"
+
+  - id: "connected-selective-network"
+    concept_nodes: 10
+    semantic_edges: 13
+    max_node_degree: 4
+    expected_action: "pass"
+
+  - id: "spaghetti-hub"
+    concept_nodes: 12
+    max_node_degree: 9
+    expected_action: "reject-and-prioritize-relations"
+
+  - id: "memory-critical-assets-only"
+    extracted_assets: 18
+    selected_asset_nodes: 3
+    selection_basis: "needed-to-reconstruct-a-concept"
+    expected_action: "link-selected-assets-to-concepts"
+
+  - id: "post-class-refresh"
+    mode: "post-class"
+    input: "complete-markdown-with-in-class-notes"
+    required_output: "confirmed-class-additions-in-recall-zone"
+    expected_action: "rebuild-model-without-inventing-lecture-content"
 
   - id: "source-pdf-file-node"
     file: "lecture.pdf"
@@ -41,11 +59,11 @@ cases:
 
   - id: "complete-vault-relative-markdown-path"
     vault_root: "/example/vault"
-    document_folder: "/example/vault/COURSE101/Lectures/example-policy"
-    file_node: "COURSE101/Lectures/example-policy/example-policy.md"
+    document_folder: "/example/vault/COURSE101/Lectures/example-lesson"
+    file_node: "COURSE101/Lectures/example-lesson/example-lesson.md"
     expected_action: "resolve-inside-document-folder"
 
   - id: "bare-markdown-filename"
     vault_root: "/example/vault"
-    file_node: "example-policy.md"
+    file_node: "example-lesson.md"
     expected_action: "reject-as-vault-root-relative-miss"

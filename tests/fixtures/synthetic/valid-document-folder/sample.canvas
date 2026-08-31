@@ -1,33 +1,196 @@
 {
   "nodes": [
     {
-      "id": "0123456789abcdef",
-      "type": "file",
+      "id": "d359d7a1a3e8c195",
+      "type": "group",
       "x": 0,
-      "y": 0,
-      "width": 400,
-      "height": 300,
-      "file": "sample.md"
+      "y": 520,
+      "width": 500,
+      "height": 910,
+      "label": "01 · Foundations — The quantities needed to describe a feedback loop.",
+      "color": "2"
     },
     {
-      "id": "123456789abcdef0",
+      "id": "0be7189c4ba6e8eb",
+      "type": "group",
+      "x": 580,
+      "y": 520,
+      "width": 500,
+      "height": 910,
+      "label": "02 · Mechanism — How comparison and adjustment change system behavior.",
+      "color": "3"
+    },
+    {
+      "id": "91dfbf58fdf6fdef",
+      "type": "group",
+      "x": 1160,
+      "y": 520,
+      "width": 500,
+      "height": 935,
+      "label": "03 · Application and limits — How to apply the loop and recognize failure conditions.",
+      "color": "4"
+    },
+    {
+      "id": "d10509526e7d9966",
       "type": "text",
-      "x": 500,
+      "x": 0,
       "y": 0,
-      "width": 360,
-      "height": 220,
-      "text": "# Concepts\n\nFirst concept depends on the second concept."
+      "width": 1040,
+      "height": 300,
+      "text": "<!-- recall-map: overview -->\n# One-minute recall\n**Central question:** How does a system use feedback to regulate its behavior?\n**Answer:** A feedback system compares observed behavior with a target and uses the difference to adjust its next action.\n\n**Takeaways**\n- Feedback closes the loop between an action and its observed effect.\n- The sign and timing of the response determine whether behavior stabilizes or amplifies.\n- Useful control requires a measurable target, an observation, and an adjustment rule.",
+      "color": "6"
+    },
+    {
+      "id": "32ee698d12711e52",
+      "type": "file",
+      "x": 1120,
+      "y": 0,
+      "width": 420,
+      "height": 300,
+      "file": "sample.md",
+      "color": "1"
+    },
+    {
+      "id": "2ee15308da2a8dbb",
+      "type": "text",
+      "x": 40,
+      "y": 610,
+      "width": 420,
+      "height": 325,
+      "text": "<!-- recall-map: concept -->\n## Target state\nThe target states the behavior the system is trying to maintain or reach.\n\n- It must be defined in a measurable form.\n\n**Recall cue:** What value is the loop trying to protect?\n**Source:** [[sample.md#Core components|Open full section]] · source page 1",
+      "color": "3"
+    },
+    {
+      "id": "37a1be0973adc625",
+      "type": "text",
+      "x": 40,
+      "y": 985,
+      "width": 420,
+      "height": 375,
+      "text": "<!-- recall-map: concept -->\n## Observation\nThe observation measures the system's current behavior so it can be compared with the target.\n\n- Measurement delay and noise affect the comparison.\n\n**Recall cue:** What does the controller actually know?\n**Source:** [[sample.md#Core components|Open full section]] · source page 1",
+      "color": "3"
+    },
+    {
+      "id": "9a9aa19856c550d1",
+      "type": "text",
+      "x": 620,
+      "y": 610,
+      "width": 420,
+      "height": 350,
+      "text": "<!-- recall-map: concept -->\n## Error signal\nThe difference between target and observation becomes the signal that drives correction.\n\n- Its sign determines the direction of adjustment.\n\n**Recall cue:** Which difference causes the next action?\n**Source:** [[sample.md#How feedback works|Open full section]] · source page 2",
+      "color": "5"
+    },
+    {
+      "id": "c212db37ae5e5d7f",
+      "type": "text",
+      "x": 620,
+      "y": 1010,
+      "width": 420,
+      "height": 350,
+      "text": "<!-- recall-map: concept -->\n## Adjustment\nThe controller converts the error signal into an action that changes the system state.\n\n- Gain determines how strongly the controller responds.\n\n**Recall cue:** How does comparison become action?\n**Source:** [[sample.md#How feedback works|Open full section]] · source page 2",
+      "color": "5"
+    },
+    {
+      "id": "9f13a0f94faa20bc",
+      "type": "text",
+      "x": 1200,
+      "y": 610,
+      "width": 420,
+      "height": 350,
+      "text": "<!-- recall-map: concept -->\n## Stable regulation\nA well-tuned negative-feedback loop reduces deviations and settles near the target.\n\n- Small corrections prevent persistent overshoot.\n\n**Recall cue:** What behavior shows that regulation works?\n**Source:** [[sample.md#Applications and limits|Open full section]] · source page 2",
+      "color": "4"
+    },
+    {
+      "id": "e57d06c7042efb54",
+      "type": "text",
+      "x": 1200,
+      "y": 1010,
+      "width": 420,
+      "height": 375,
+      "text": "<!-- recall-map: concept -->\n## Delay as a boundary\nLong delay can make a correction arrive after conditions have changed, causing oscillation or instability.\n\n- More aggressive adjustment can worsen delayed feedback.\n\n**Recall cue:** When can a corrective loop amplify error?\n**Source:** [[sample.md#Applications and limits|Open full section]] · source page 2",
+      "color": "1"
+    },
+    {
+      "id": "4f3455fad0840587",
+      "type": "text",
+      "x": 0,
+      "y": 1635,
+      "width": 513,
+      "height": 260,
+      "text": "<!-- recall-map: synthesis -->\n# Logic chain\n1. Define the target behavior.\n2. Observe the current behavior.\n3. Calculate the difference between target and observation.\n4. Apply a correction and observe its next effect.",
+      "color": "5"
+    },
+    {
+      "id": "57b4533d2dc8f722",
+      "type": "text",
+      "x": 573,
+      "y": 1635,
+      "width": 513,
+      "height": 260,
+      "text": "<!-- recall-map: distinctions -->\n# Distinctions and boundaries\n- **Negative vs positive feedback:** Negative feedback opposes deviation; positive feedback reinforces the direction of change.",
+      "color": "1"
+    },
+    {
+      "id": "a8e8e28bf168775f",
+      "type": "text",
+      "x": 1146,
+      "y": 1635,
+      "width": 513,
+      "height": 260,
+      "text": "<!-- recall-map: prompts -->\n# Active recall\n- Name the minimum components of a closed feedback loop.\n- Explain why delay can destabilize an otherwise corrective loop.\n- Predict what happens when adjustment gain is too high.",
+      "color": "2"
     }
   ],
   "edges": [
     {
-      "id": "23456789abcdef01",
-      "fromNode": "0123456789abcdef",
+      "id": "c6e04c07cd0674fa",
+      "fromNode": "2ee15308da2a8dbb",
       "fromSide": "right",
-      "toNode": "123456789abcdef0",
+      "toNode": "9a9aa19856c550d1",
       "toSide": "left",
       "toEnd": "arrow",
-      "label": "explains"
+      "label": "sets the comparison baseline",
+      "color": "2"
+    },
+    {
+      "id": "98ec26d7ca707199",
+      "fromNode": "37a1be0973adc625",
+      "fromSide": "right",
+      "toNode": "9a9aa19856c550d1",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "supplies the measured state",
+      "color": "5"
+    },
+    {
+      "id": "ada1ec8f365c2895",
+      "fromNode": "9a9aa19856c550d1",
+      "fromSide": "bottom",
+      "toNode": "c212db37ae5e5d7f",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "drives the corrective action",
+      "color": "6"
+    },
+    {
+      "id": "cfa4fda3887799f6",
+      "fromNode": "c212db37ae5e5d7f",
+      "fromSide": "right",
+      "toNode": "9f13a0f94faa20bc",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "reduces deviation when tuned",
+      "color": "5"
+    },
+    {
+      "id": "94e80318c4cf4767",
+      "fromNode": "e57d06c7042efb54",
+      "fromSide": "top",
+      "toNode": "9f13a0f94faa20bc",
+      "toSide": "bottom",
+      "toEnd": "arrow",
+      "label": "can turn correction into oscillation",
+      "color": "1"
     }
   ]
 }

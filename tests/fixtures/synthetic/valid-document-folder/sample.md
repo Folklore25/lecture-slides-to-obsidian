@@ -15,14 +15,18 @@ status: pre-class
 
 <!-- source-page: 1 -->
 
-## 1. First concept
+## Core components
 
-Synthetic content for contract validation.
+The target and observation define the quantities compared by a feedback system.
 
 <!-- source-page: 2 -->
 
-## 2. Second concept
+## How feedback works
 
-Additional synthetic content.
+The difference between target and observation drives an adjustment.
+
+## Applications and limits
+
+Appropriate adjustment can stabilize behavior, while long delay can produce oscillation.
 
 ## In-class notes

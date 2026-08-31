@@ -10,13 +10,13 @@ Future test layers should be separated:
 4. **MinerU CLI adapter tests** — child-env credentials, official command flags, output discovery, legacy page grouping, redaction, and fail-closed behavior.
 5. **Course-routing tests** — first binding, aliases, active semesters, ambiguity, stale roots, containment, and collisions.
 6. **API normalization tests** — page-grouped content lists, legacy `page_idx`, duplicate anchors, heading levels, and auxiliary blocks.
-7. **Canvas tests** — profile-specific relationship nodes/edges and source-original exclusion.
+7. **Canvas tests** — semantic recall-model validation, section coverage, meaningful connected relationships, deterministic layout, and source-original exclusion.
 8. **Output-validator tests** — folder, Markdown, Canvas, assets, report, and NOT-CHECKED semantics.
 9. **Golden tests** — deterministic Markdown/assets from redistributable fixtures.
 10. **Visual review cases** — diagrams, tables, equations, OCR, and mixed-language pages.
 11. **End-to-end tests** — source file outside vault to official API to validated Obsidian folder.
 
-The current offline integration test covers V2 reconstruction → Canvas build → temporary report render → validation → report deletion. Live MinerU network calls remain out of test scope.
+The current offline integration test covers V2 reconstruction → staging recall-model Canvas build → temporary report render → validation → QA-state deletion. Live MinerU network calls remain out of test scope.
 
 Run the current checks from the repository root:
 

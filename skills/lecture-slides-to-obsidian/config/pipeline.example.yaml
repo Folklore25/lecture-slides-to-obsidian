@@ -27,8 +27,10 @@ output:
 
 staging:
   report_name: "conversion-report.md"
+  recall_model_name: "recall-model.json"
   report_inside_vault: false
-  delete_report_on_success: true
+  recall_model_inside_vault: false
+  delete_qa_on_success: true
 
 mineru_cli:
   executable: "mineru-open-api"
@@ -69,3 +71,8 @@ obsidian:
   warning_callouts: true
   relative_asset_links: true
   relationship_canvas: true
+  canvas_purpose: "one-minute-knowledge-recall"
+  canvas_semantic_model_required: true
+  canvas_concept_nodes: "4..20"
+  canvas_learning_modules: "2..7"
+  canvas_memory_critical_assets_max: 6

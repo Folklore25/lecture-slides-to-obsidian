@@ -22,6 +22,7 @@ references/mineru-normalization.md
 references/normalization-examples.md
 references/asset-naming.md
 references/canvas-contract.md
+references/canvas-recall-model.md
 references/output-contract.md
 references/obsidian-style.md
 references/quality-gates.md
@@ -38,9 +39,7 @@ scripts/validate-output.py
 state/README.md
 state/course-registry.example.yaml
 templates/report-context.example.json
-templates/relationship.lecture-notes.canvas
-templates/relationship.policy-document.canvas
-templates/relationship.paper.canvas'
+templates/recall-model.example.json'
 
 printf '%s\n' "$required_files" | while IFS= read -r relative_path; do
   if [ ! -f "$skill_dir/$relative_path" ]; then
@@ -73,6 +72,12 @@ fi
 
 if grep -R -n '/Users/\|/home/' "$skill_dir/config" "$repo_dir/tests/cases" >/dev/null 2>&1; then
   printf 'machine-specific path found in committed examples\n' >&2
+  exit 1
+fi
+
+if grep -R -n -E 'Claude Code|Codex|Cursor|Coding Agent|(^|[^[:alnum:]])Pi([^[:alnum:]]|$)' \
+  --exclude=validate.sh --exclude-dir=.git "$repo_dir" >/dev/null 2>&1; then
+  printf 'runtime-specific Agent declaration found; keep the skill generic and recommend cc-switch\n' >&2
   exit 1
 fi
 
@@ -167,23 +172,5 @@ python3 "$skill_dir/scripts/validate-output.py" \
   --report "$repo_dir/tests/fixtures/staging/conversion-report.md" >/dev/null
 
 python3 -m unittest discover -s "$repo_dir/tests" -p 'test_*.py' >/dev/null
-
-for canvas_template in "$skill_dir"/templates/relationship.*.canvas; do
-python3 - "$canvas_template" <<'PY'
-import json
-import re
-import sys
-from pathlib import Path
-
-data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-nodes = data.get("nodes", [])
-edges = data.get("edges", [])
-ids = [item.get("id", "") for item in nodes + edges]
-assert len(ids) == len(set(ids))
-assert all(re.fullmatch(r"[0-9a-f]{16}", item) for item in ids)
-node_ids = {node["id"] for node in nodes}
-assert all(edge.get("fromNode") in node_ids and edge.get("toNode") in node_ids for edge in edges)
-PY
-done
 
 printf 'repository skeleton: ok\n'

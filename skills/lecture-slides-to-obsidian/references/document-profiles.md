@@ -19,20 +19,20 @@ Do not stop merely because the input is not slides; use the appropriate profile.
 - Preserve complete slide content in page order.
 - Keep learning objectives, examples, diagrams, equations, and tables near their source pages.
 - Add an `## In-class notes` section at the end.
-- The canvas emphasizes learning objectives, concepts, dependencies, examples, and open questions.
+- The Canvas reconstructs the lesson through foundations, mechanisms/processes, applications/evidence, boundaries/misconceptions, and active-recall questions. It follows conceptual dependency, not slide order.
 
 ## `policy-document`
 
 - Preserve complete paragraphs, definitions, obligations, exceptions, and the source's explicit numbering.
 - Do not demote headings with a blanket regex.
 - Do not add `## In-class notes` unless the user asks.
-- The canvas emphasizes scope, actors, rules, exceptions, enforcement, and cross-references.
+- The Canvas reconstructs scope → actors → rules/obligations → exceptions → enforcement, while keeping supported cross-references and decision boundaries explicit.
 
 ## `paper`
 
 - Preserve abstract, sections, methods, findings, limitations, references, and meaningful footnotes.
 - Do not add `## In-class notes` unless the user asks.
-- The canvas may adapt the critical-thinking pattern from `phd-deepread`: research question, argument, evidence, assumptions, methods, limitations, alternatives, and open questions.
+- The Canvas adapts the critical-thinking pattern from `phd-deepread`: research question, argument, evidence, assumptions, methods, limitations, alternatives, and open questions, but its layout and node count remain content-driven.
 
 ## Source numbering
 

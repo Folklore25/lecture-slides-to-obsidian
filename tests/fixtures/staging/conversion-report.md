@@ -10,7 +10,7 @@ MinerU Precision API via official CLI, VLM, lecture-notes profile.
 
 ## Outputs
 
-Complete Markdown, relationship canvas, empty assets, and temporary QA report.
+Complete Markdown, knowledge-recall Canvas, empty assets, and temporary QA report.
 
 ## Content inventory
 

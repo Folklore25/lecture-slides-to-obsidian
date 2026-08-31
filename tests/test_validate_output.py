@@ -18,12 +18,15 @@ def run_validator(
     report: Path = REPORT_FIXTURE,
     delete_report: bool = False,
     vault_root: Path | None = None,
+    recall_model: Path | None = None,
 ) -> tuple[int, dict]:
     command = [sys.executable, str(VALIDATOR), str(folder), "--report", str(report)]
     if vault_root is None:
         command.append("--fixture-mode")
     else:
         command += ["--vault-root", str(vault_root)]
+        if recall_model is not None:
+            command += ["--recall-model", str(recall_model)]
     if delete_report:
         command.append("--delete-report-on-success")
     result = subprocess.run(
@@ -71,6 +74,42 @@ class ValidateOutputTests(unittest.TestCase):
             code, result = run_validator(folder)
             self.assertNotEqual(code, 0)
             self.assertTrue(any("dangling toNode" in item for item in result["errors"]))
+
+    def test_generic_canvas_relation_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / "document"
+            shutil.copytree(FIXTURE, folder)
+            canvas_path = folder / "sample.canvas"
+            canvas = json.loads(canvas_path.read_text())
+            concept_ids = {
+                node["id"] for node in canvas["nodes"]
+                if "<!-- recall-map: concept -->" in node.get("text", "")
+            }
+            semantic_edge = next(
+                edge for edge in canvas["edges"]
+                if edge["fromNode"] in concept_ids and edge["toNode"] in concept_ids
+            )
+            semantic_edge["label"] = "related to"
+            canvas_path.write_text(json.dumps(canvas))
+            code, result = run_validator(folder)
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("structural/generic label" in item for item in result["errors"]))
+
+    def test_missing_one_minute_overview_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / "document"
+            shutil.copytree(FIXTURE, folder)
+            canvas_path = folder / "sample.canvas"
+            canvas = json.loads(canvas_path.read_text())
+            overview = next(
+                node for node in canvas["nodes"]
+                if "<!-- recall-map: overview -->" in node.get("text", "")
+            )
+            overview["text"] = overview["text"].replace("<!-- recall-map: overview -->", "")
+            canvas_path.write_text(json.dumps(canvas))
+            code, result = run_validator(folder)
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("exactly one overview" in item for item in result["errors"]))
 
     def test_temporary_report_is_deleted_on_success(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -128,14 +167,20 @@ class ValidateOutputTests(unittest.TestCase):
             vault = base / "vault"
             folder = vault / "COURSE101/Lectures/sample"
             report = base / "staging/conversion-report.md"
+            recall_model = base / "staging/recall-model.json"
             shutil.copytree(FIXTURE, folder)
             report.parent.mkdir()
             shutil.copy2(REPORT_FIXTURE, report)
+            recall_model.write_text('{"schema_version":1}')
             canvas_path = folder / "sample.canvas"
             canvas = json.loads(canvas_path.read_text())
-            canvas["nodes"][0]["file"] = "COURSE101/Lectures/sample/sample.md"
+            note_node = next(
+                node for node in canvas["nodes"]
+                if node.get("type") == "file" and node.get("file", "").endswith(".md")
+            )
+            note_node["file"] = "COURSE101/Lectures/sample/sample.md"
             canvas_path.write_text(json.dumps(canvas))
-            code, result = run_validator(folder, report, vault_root=vault)
+            code, result = run_validator(folder, report, vault_root=vault, recall_model=recall_model)
             self.assertEqual(code, 0)
             self.assertTrue(result["valid"])
 
@@ -145,10 +190,12 @@ class ValidateOutputTests(unittest.TestCase):
             vault = base / "vault"
             folder = vault / "COURSE101/Lectures/sample"
             report = base / "staging/conversion-report.md"
+            recall_model = base / "staging/recall-model.json"
             shutil.copytree(FIXTURE, folder)
             report.parent.mkdir()
             shutil.copy2(REPORT_FIXTURE, report)
-            code, result = run_validator(folder, report, vault_root=vault)
+            recall_model.write_text('{"schema_version":1}')
+            code, result = run_validator(folder, report, vault_root=vault, recall_model=recall_model)
             self.assertNotEqual(code, 0)
             self.assertTrue(any("file node unresolved" in item for item in result["errors"]))
 

@@ -3,7 +3,7 @@
 Run this before declaring completion:
 
 ```text
-scripts/validate-output.py <document-folder> --vault-root <vault-root> --report <staging>/conversion-report.md --delete-report-on-success
+scripts/validate-output.py <document-folder> --vault-root <vault-root> --report <staging>/conversion-report.md --recall-model <staging>/recall-model.json --delete-qa-on-success
 ```
 
 ## Folder checks
@@ -33,18 +33,24 @@ Structured provenance must also be checked against MinerU content lists: marker 
 - All node and edge IDs are unique 16-character lowercase hex strings.
 - Node types and required fields are valid.
 - Every edge endpoint resolves.
+- Exactly one overview, logic-chain synthesis, distinctions, and active-recall node exists.
+- There are 2–7 learning-module groups and 4–20 concept nodes.
+- Concept nodes have recall cues and exact heading/page provenance that occurs in the Markdown.
+- Semantic concept edges form one connected graph, stay between `N-1` and `2N`, and avoid generic labels.
+- No concept has more than six semantic connections and no text node is a paragraph dump.
 - File-node paths resolve inside the document folder.
 - No file or URL node targets a source-original format.
 - Basic node rectangles do not overlap.
 
-## Temporary report checks
+## Temporary QA checks
 
 - All fixed template sections exist.
 - Content inventory includes figures, tables, equations, fallback pages, headers, footers, and footnotes, including zeros.
 - Structural alignment and pixel-level visual comparison are separate gates.
 - Unperformed visual rendering is marked `NOT-CHECKED`, not `PASS`.
 - No token, Authorization header, signed URL, or absolute source path appears.
-- After the Agent has extracted the facts needed for its final response, `--delete-report-on-success` removes the exact temporary report before that response is sent.
+- `recall-model.json` is outside the vault, valid JSON with schema version 1, and was used to build the Canvas.
+- After the Agent has extracted the facts needed for its final response, `--delete-qa-on-success` removes both the exact report and recall model before that response is sent.
 
 ## Reporting
 

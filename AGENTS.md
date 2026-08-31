@@ -3,10 +3,11 @@
 - Treat `skills/lecture-slides-to-obsidian/` as the distributable skill payload.
 - Keep `SKILL.md` concise; route conditional detail to `references/`.
 - The official `mineru-open-api` precision CLI is the only extraction client. Never add direct MinerU HTTP code, a local parser/runtime, or lightweight fallback.
-- Keep source originals outside the Obsidian vault; only complete Markdown, derived assets, and relationship Canvas belong in document folders.
-- Conversion reports are temporary Agent QA state outside the vault. Extract final-response facts, then delete the report after successful validation.
+- Keep source originals outside the Obsidian vault; only complete Markdown, derived assets, and knowledge-recall Canvas belong in document folders.
+- Conversion reports and recall models are temporary Agent QA state outside the vault. Extract final-response facts, then delete both after successful validation.
 - Use the official CLI JSON output grouped by `page_idx`; never derive page boundaries with global Markdown anchors.
 - Enforce `page-PPP-kind-NN.ext` final asset names and keep `asset-map.json` in staging only.
+- Never build a Canvas from heading order. Require a coverage-complete semantic recall model, meaningful relation labels, a connected selective graph, and memory-critical assets only.
 - Keep structural alignment separate from pixel-level visual comparison; mark unperformed rendering `NOT-CHECKED`.
 - Keep course routing behavior aligned across `course-routing.md`, the registry example, output contract, examples, and routing test cases.
 - Never store a user's real semester root or course paths in the repository.
