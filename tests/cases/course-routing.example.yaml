@@ -1,0 +1,42 @@
+schema_version: 1
+
+cases:
+  - id: "first-course-binding"
+    query: "IS0000"
+    registry_state: "empty"
+    expected_action: "ask-semester-root"
+
+  - id: "active-semester-code-match"
+    query: "is 0000"
+    registry_state: "one-active-exact-code"
+    expected_action: "route-without-question"
+
+  - id: "new-course-valid-active-semester"
+    query: "CS0001"
+    registry_state: "valid-active-semester-course-unregistered"
+    expected_action: "bind-under-active-without-root-question"
+
+  - id: "registered-alias-match"
+    query: "Example Course"
+    registry_state: "one-active-exact-alias"
+    expected_action: "route-without-question"
+
+  - id: "same-course-multiple-semesters"
+    query: "IS0000"
+    registry_state: "multiple-exact-no-active-semester"
+    expected_action: "ask-semester"
+
+  - id: "fuzzy-only-match"
+    query: "Example Cour"
+    registry_state: "one-fuzzy-candidate"
+    expected_action: "ask-for-confirmation"
+
+  - id: "stale-semester-root"
+    query: "IS0000"
+    registry_state: "exact-match-missing-root"
+    expected_action: "ask-updated-root"
+
+  - id: "destination-escapes-course"
+    query: "IS0000"
+    registry_state: "exact-match-parent-traversal"
+    expected_action: "reject-registry-entry"

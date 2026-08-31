@@ -1,0 +1,20 @@
+schema_version: 1
+active_semester: "2026-fall"
+
+semesters:
+  - id: "2026-fall"
+    label: "2026 Fall"
+    root: "<absolute-semester-root>"
+    courses:
+      - key: "is0000"
+        name: "IS0000 Example Course"
+        aliases:
+          - "IS0000"
+          - "IS 0000"
+          - "Example Course"
+        folder: "IS0000"
+        destinations:
+          source_slides: "Slides"
+          lecture_notes: "Lectures"
+          note_assets: "Lectures/assets"
+          conversion_reports: "Lectures/reports"

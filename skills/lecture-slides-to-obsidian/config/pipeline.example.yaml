@@ -1,0 +1,32 @@
+schema_version: 1
+
+input:
+  preserve_source: true
+  copy_source_into_course: true
+
+course_routing:
+  registry: "~/.config/lecture-slides-to-obsidian/course-registry.yaml"
+  unmatched_course: "use-active-semester-or-ask-root"
+  require_unique_match: true
+  create_default_subfolders: true
+
+output:
+  overwrite: false
+  note_name: "{source_stem}.md"
+  assets_directory: "assets/{source_stem}"
+  report_name: "{source_stem}.conversion-report.md"
+
+conversion:
+  mode: "auto"
+  language_hints:
+    - "en"
+    - "zh"
+  page_provenance: "html-comment"
+  visual_fallback: "uncertain-pages"
+  equation_policy: "preserve-and-flag"
+  table_policy: "markdown-or-image"
+
+obsidian:
+  wikilinks: false
+  warning_callouts: true
+  relative_asset_links: true

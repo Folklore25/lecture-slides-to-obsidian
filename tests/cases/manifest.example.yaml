@@ -1,0 +1,14 @@
+schema_version: 1
+
+cases:
+  - id: "synthetic-simple-reading-order"
+    fixture: "fixtures/synthetic/simple-reading-order.pdf"
+    redistribution: "synthetic"
+    capability_class: "fast"
+    languages:
+      - "en"
+    checks:
+      - "page-provenance"
+      - "heading-order"
+      - "relative-asset-links"
+    golden: "golden/synthetic-simple-reading-order"

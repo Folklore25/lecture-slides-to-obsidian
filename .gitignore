@@ -1,0 +1,16 @@
+.DS_Store
+.idea/
+.vscode/
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+dist/
+work/
+output/
+
+# Local or private course material must never be committed.
+tests/fixtures/private/**
+!tests/fixtures/private/README.md
+tests/fixtures/inbox/**
+!tests/fixtures/inbox/README.md
