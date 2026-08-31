@@ -37,7 +37,7 @@ class PreflightTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             source, vault, token = self.make_paths(Path(temp))
             code, result = run_preflight([
-                source, "--vault-root", vault, "--course", "IS6000",
+                source, "--vault-root", vault, "--course", "COURSE101",
                 "--profile", "lecture-notes", "--language", "en",
                 "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
@@ -48,9 +48,9 @@ class PreflightTests(unittest.TestCase):
 
     def test_policy_filename_suggests_profile_before_upload(self):
         with tempfile.TemporaryDirectory() as temp:
-            source, vault, token = self.make_paths(Path(temp), "research-code-of-conduct.pdf")
+            source, vault, token = self.make_paths(Path(temp), "example-policy.pdf")
             _, result = run_preflight([
-                source, "--vault-root", vault, "--course", "IS6000",
+                source, "--vault-root", vault, "--course", "COURSE101",
                 "--language", "en", "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
                 "--loaded-skill", "json-canvas",
@@ -60,9 +60,9 @@ class PreflightTests(unittest.TestCase):
 
     def test_explicit_profile_conflict_requires_confirmation(self):
         with tempfile.TemporaryDirectory() as temp:
-            source, vault, token = self.make_paths(Path(temp), "research-code-of-conduct.pdf")
+            source, vault, token = self.make_paths(Path(temp), "example-policy.pdf")
             _, result = run_preflight([
-                source, "--vault-root", vault, "--course", "IS6000",
+                source, "--vault-root", vault, "--course", "COURSE101",
                 "--profile", "lecture-notes", "--language", "en",
                 "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
@@ -74,7 +74,7 @@ class PreflightTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             source, vault, token = self.make_paths(Path(temp))
             _, result = run_preflight([
-                source, "--vault-root", vault, "--course", "IS6000",
+                source, "--vault-root", vault, "--course", "COURSE101",
                 "--profile", "lecture-notes", "--language", "en",
                 "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
@@ -85,7 +85,7 @@ class PreflightTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             source, vault, token = self.make_paths(Path(temp))
             _, result = run_preflight([
-                source, "--vault-root", vault, "--course", "IS6000",
+                source, "--vault-root", vault, "--course", "COURSE101",
                 "--profile", "lecture-notes", "--language", "auto",
                 "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",

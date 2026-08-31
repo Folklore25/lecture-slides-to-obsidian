@@ -16,10 +16,10 @@ class PipelineHelperTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)
             vault = base / "vault"
-            folder = vault / "IS6000/Lectures/code-of-conduct"
+            folder = vault / "COURSE101/Lectures/example-policy"
             staging = base / "staging"
-            note = folder / "code-of-conduct.md"
-            canvas = folder / "code-of-conduct.canvas"
+            note = folder / "example-policy.md"
+            canvas = folder / "example-policy.canvas"
             report = staging / "conversion-report.md"
             context = staging / "normalization.json"
             (folder / "assets").mkdir(parents=True)
@@ -30,8 +30,8 @@ class PipelineHelperTests(unittest.TestCase):
                     sys.executable, str(SKILL / "scripts/reconstruct-note.py"),
                     "--content-list-v2", str(CONTENT_LIST),
                     "--profile", "policy-document", "--output", str(note),
-                    "--context-output", str(context), "--title", "Code of Conduct",
-                    "--course", "IS6000", "--source-filename", "code-of-conduct.pdf",
+                    "--context-output", str(context), "--title", "Example Policy",
+                    "--course", "COURSE101", "--source-filename", "example-policy.pdf",
                     "--source-sha256", "0" * 64,
                 ],
                 [

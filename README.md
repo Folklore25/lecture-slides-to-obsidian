@@ -56,8 +56,8 @@ lecture-slides-to-obsidian/
 
 1. 用户输入课程名称或课程代码。
 2. 若没有 active semester，Agent 询问 Obsidian 内的目标根目录。
-3. 学期 ID 与路径独立：路径能明确推断学期时提出建议；像 `CityU` 这样的通用路径会再询问一次学期 ID/label。
-4. Agent 精确匹配课程目录；存在 `Information_systems` 之类疑似候选时，先列出让用户选择，不能静默新建。
+3. 学期 ID 与路径独立：路径能明确推断学期时提出建议；像 `Courses` 这样的通用路径会再询问一次学期 ID/label。
+4. Agent 精确匹配课程目录；存在 `<course>-materials` 之类疑似候选时，先列出让用户选择，不能静默新建。
 5. Agent 持久记录学期、课程、别名和派生目录规则；原件路径只保存在 skill-owned registry，且必须位于 vault 外。
 
 默认分类契约为：

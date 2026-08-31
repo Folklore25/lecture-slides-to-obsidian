@@ -20,8 +20,8 @@ When registering a semester:
 
 1. Ask for the destination root inside the Obsidian vault.
 2. If the path contains an unambiguous semester token such as a year plus `fall`, `spring`, `semester-1`, or `semester-2`, propose a normalized ID and let the user correct it.
-3. If the path is generic, such as `CityU`, ask once for the semester label/ID. Store the generic path unchanged and the semester identity separately.
-4. Do not fabricate `2026-fall` from a school or vault name.
+3. If the path is generic, such as `Courses`, ask once for the semester label/ID. Store the generic path unchanged and the semester identity separately.
+4. Do not fabricate a semester ID from a school, vault, or generic folder name.
 
 The normal case needs one root response. A second semester-ID question is required only when the path does not carry reliable semester information.
 
@@ -35,7 +35,7 @@ Automatic routing requires a unique exact match in this order:
 2. registered exact alias or full course name in the active semester;
 3. a unique exact match across all semesters only when no valid active semester exists.
 
-If no exact match exists, inspect immediate course directories and list plausible candidates before creating anything. A directory such as `Information_systems` may be related to `IS6000` even when it is not a course folder. Show the candidates and ask whether to reuse one or create the canonical course folder. Never auto-route or silently dismiss a fuzzy candidate.
+If no exact match exists, inspect immediate course directories and list plausible candidates before creating anything. For example, `<course>-materials` may be related to the requested course without being its canonical folder. Show candidates and ask whether to reuse one or create the canonical folder. Never auto-route or silently dismiss a fuzzy candidate.
 
 Record the candidate list and the user's decision in the temporary QA context. If no plausible candidate exists, create a safe course folder from the course code, otherwise a sanitized course name.
 

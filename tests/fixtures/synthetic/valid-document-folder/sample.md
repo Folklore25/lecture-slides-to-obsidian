@@ -1,6 +1,6 @@
 ---
 type: course-material
-course: IS0000
+course: COURSE101
 title: Synthetic Sample
 source_filename: sample.pdf
 source_format: pdf

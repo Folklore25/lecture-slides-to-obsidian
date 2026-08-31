@@ -9,9 +9,9 @@ Use the required properties from [output-contract.md](output-contract.md). A typ
 ```yaml
 ---
 type: course-material
-course: IS0000
-title: Lecture 03 — Example Topic
-source_filename: IS0000-Lecture03.pdf
+course: COURSE101
+title: Example Lecture
+source_filename: example-lecture.pdf
 source_format: pdf
 source_sha256: <sha256>
 source_pages: 14

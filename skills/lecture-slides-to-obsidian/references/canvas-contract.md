@@ -47,8 +47,8 @@ Create only relationships supported by the source. Typical edge labels are `defi
 Given:
 
 ```text
-vault root:      /vault/CityU/2026-fall
-document folder: /vault/CityU/2026-fall/IS6000/Lectures/l01-code-of-conduct
+vault root:      /path/to/vault
+document folder: /path/to/vault/COURSE101/Lectures/example-document
 ```
 
 The central node must use the complete vault-relative path:
@@ -56,8 +56,8 @@ The central node must use the complete vault-relative path:
 ```json
 {
   "type": "file",
-  "file": "IS6000/Lectures/l01-code-of-conduct/l01-code-of-conduct.md",
-  "subpath": "#Category One"
+  "file": "COURSE101/Lectures/example-document/example-document.md",
+  "subpath": "#Section One"
 }
 ```
 
@@ -66,11 +66,11 @@ An asset node uses:
 ```json
 {
   "type": "file",
-  "file": "IS6000/Lectures/l01-code-of-conduct/assets/page-004-figure-01.png"
+  "file": "COURSE101/Lectures/example-document/assets/page-004-figure-01.png"
 }
 ```
 
-`"file": "l01-code-of-conduct.md"` is wrong because Obsidian resolves it from the vault root. The validator computes `(vault_root / node.file).resolve()`, requires the file to exist, and requires it to remain inside the document folder. `--vault-root` is mandatory for final validation; document-relative paths are allowed only under explicit test `--fixture-mode`.
+`"file": "example-document.md"` is wrong because Obsidian resolves it from the vault root. The validator computes `(vault_root / node.file).resolve()`, requires the file to exist, and requires it to remain inside the document folder. `--vault-root` is mandatory for final validation; document-relative paths are allowed only under explicit test `--fixture-mode`.
 
 ## Validation
 

@@ -1,8 +1,8 @@
 ---
 type: course-material
-course: IS0000
-title: Lecture 03 — Example Topic
-source_filename: IS0000-Lecture03.pdf
+course: COURSE101
+title: Example Lecture
+source_filename: example-lecture.pdf
 source_format: pdf
 source_sha256: 0000000000000000000000000000000000000000000000000000000000000000
 source_pages: 3
@@ -13,7 +13,7 @@ tags:
   - lecture
 ---
 
-# Lecture 03 — Example Topic
+# Example Lecture
 
 > [!info] Conversion scope
 > Complete Markdown derived through MinerU Precision API v4. The source PDF remains outside the vault.

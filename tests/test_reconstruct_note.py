@@ -17,9 +17,9 @@ class ReconstructNoteTests(unittest.TestCase):
     def setUp(self):
         self.pages = json.loads(FIXTURE.read_text())
         self.metadata = {
-            "title": "Research Code of Conduct",
-            "course": "IS6000",
-            "source_filename": "code-of-conduct.pdf",
+            "title": "Example Policy Document",
+            "course": "COURSE101",
+            "source_filename": "example-policy.pdf",
             "source_sha256": "0" * 64,
             "mineru_model": "vlm",
             "status": "pre-class",

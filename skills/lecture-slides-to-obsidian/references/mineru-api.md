@@ -63,7 +63,7 @@ Example request shape with no secret values:
   "files": [
     {
       "name": "lecture-03.pdf",
-      "data_id": "is0000-lecture-03",
+      "data_id": "course101-document-01",
       "is_ocr": false
     }
   ],

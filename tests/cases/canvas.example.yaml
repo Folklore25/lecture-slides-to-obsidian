@@ -41,11 +41,11 @@ cases:
 
   - id: "complete-vault-relative-markdown-path"
     vault_root: "/example/vault"
-    document_folder: "/example/vault/IS6000/Lectures/l01-code-of-conduct"
-    file_node: "IS6000/Lectures/l01-code-of-conduct/l01-code-of-conduct.md"
+    document_folder: "/example/vault/COURSE101/Lectures/example-policy"
+    file_node: "COURSE101/Lectures/example-policy/example-policy.md"
     expected_action: "resolve-inside-document-folder"
 
   - id: "bare-markdown-filename"
     vault_root: "/example/vault"
-    file_node: "l01-code-of-conduct.md"
+    file_node: "example-policy.md"
     expected_action: "reject-as-vault-root-relative-miss"

@@ -1,8 +1,8 @@
 {
   "routing": {
-    "semester_id": "2026-fall",
-    "course_key": "IS6000",
-    "document_folder": "IS6000/Lectures/l01-code-of-conduct",
+    "semester_id": "example-term",
+    "course_key": "COURSE101",
+    "document_folder": "COURSE101/Lectures/example-policy",
     "routing_decision": "confirmed exact course folder"
   },
   "pipeline": {
@@ -23,9 +23,9 @@
     }
   },
   "outputs": {
-    "markdown": "IS6000/Lectures/l01-code-of-conduct/l01-code-of-conduct.md",
-    "canvas": "IS6000/Lectures/l01-code-of-conduct/l01-code-of-conduct.canvas",
-    "assets": "IS6000/Lectures/l01-code-of-conduct/assets"
+    "markdown": "COURSE101/Lectures/example-policy/example-policy.md",
+    "canvas": "COURSE101/Lectures/example-policy/example-policy.canvas",
+    "assets": "COURSE101/Lectures/example-policy/assets"
   },
   "inventory": {
     "pages": 14,

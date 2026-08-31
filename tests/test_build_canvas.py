@@ -17,11 +17,11 @@ class BuildCanvasTests(unittest.TestCase):
     def test_paths_are_complete_vault_relative_and_ids_are_stable(self):
         with tempfile.TemporaryDirectory() as temp:
             vault = Path(temp) / "vault"
-            folder = vault / "IS6000/Lectures/l01-code-of-conduct"
+            folder = vault / "COURSE101/Lectures/example-policy"
             assets = folder / "assets"
             assets.mkdir(parents=True)
-            note = folder / "l01-code-of-conduct.md"
-            note.write_text("# Code of Conduct\n\n## Overview\n\nText.\n\n## Category One\n\nRule.\n")
+            note = folder / "example-policy.md"
+            note.write_text("# Example Policy\n\n## Overview\n\nText.\n\n## Category One\n\nRule.\n")
             (assets / "page-004-figure-01.png").write_bytes(b"synthetic")
             first = BUILD_CANVAS.build_canvas(note, vault, "policy-document", assets)
             second = BUILD_CANVAS.build_canvas(note, vault, "policy-document", assets)
@@ -29,11 +29,11 @@ class BuildCanvasTests(unittest.TestCase):
             file_nodes = [node for node in first["nodes"] if node["type"] == "file"]
             paths = {node["file"] for node in file_nodes}
             self.assertIn(
-                "IS6000/Lectures/l01-code-of-conduct/l01-code-of-conduct.md",
+                "COURSE101/Lectures/example-policy/example-policy.md",
                 paths,
             )
             self.assertIn(
-                "IS6000/Lectures/l01-code-of-conduct/assets/page-004-figure-01.png",
+                "COURSE101/Lectures/example-policy/assets/page-004-figure-01.png",
                 paths,
             )
             all_ids = [item["id"] for item in first["nodes"] + first["edges"]]

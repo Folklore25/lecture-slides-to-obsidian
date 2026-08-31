@@ -1,19 +1,19 @@
 schema_version: 2
-active_semester: "2026-fall"
+active_semester: "example-term"
 
 semesters:
-  - id: "2026-fall"
-    label: "2026 Fall"
+  - id: "example-term"
+    label: "Example Term"
     vault_root: "<absolute-obsidian-destination-root>"
     source_materials_root: "<optional-absolute-path-outside-obsidian>"
     courses:
-      - key: "is0000"
-        name: "IS0000 Example Course"
+      - key: "course101"
+        name: "COURSE101 Example Course"
         aliases:
-          - "IS0000"
-          - "IS 0000"
+          - "COURSE101"
+          - "COURSE 101"
           - "Example Course"
-        folder: "IS0000"
+        folder: "COURSE101"
         destinations:
           documents_root: "Lectures"
           document_folder_pattern: "{document_slug}"

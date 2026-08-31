@@ -22,7 +22,7 @@ This phase-one orchestration skill uses the official MinerU Precision API v4 as 
 - `source_pages`: trust `len(content_list_v2)`; fallback to `max(page_idx)+1`. Other counts are diagnostics.
 - Signed PUT: raw bytes, no Bearer, explicitly empty Content-Type (`--header 'Content-Type:'`).
 - Page marker: `<!-- source-page: N -->` immediately before page N's first included block.
-- Canvas `file`: full path relative to vault root, such as `IS6000/Lectures/l01/l01.md`; never a bare filename.
+- Canvas `file`: full path relative to vault root, such as `<course>/Lectures/<document>/<document>.md`; never a bare filename.
 - Render QA with `fill-report.py` under staging, validate with `--report ... --delete-report-on-success`, and never copy the report into the vault.
 
 ## Prerequisite preflight

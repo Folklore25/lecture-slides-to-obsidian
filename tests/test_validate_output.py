@@ -98,14 +98,14 @@ class ValidateOutputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)
             vault = base / "vault"
-            folder = vault / "IS6000/Lectures/sample"
+            folder = vault / "COURSE101/Lectures/sample"
             report = base / "staging/conversion-report.md"
             shutil.copytree(FIXTURE, folder)
             report.parent.mkdir()
             shutil.copy2(REPORT_FIXTURE, report)
             canvas_path = folder / "sample.canvas"
             canvas = json.loads(canvas_path.read_text())
-            canvas["nodes"][0]["file"] = "IS6000/Lectures/sample/sample.md"
+            canvas["nodes"][0]["file"] = "COURSE101/Lectures/sample/sample.md"
             canvas_path.write_text(json.dumps(canvas))
             code, result = run_validator(folder, report, vault_root=vault)
             self.assertEqual(code, 0)
@@ -115,7 +115,7 @@ class ValidateOutputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)
             vault = base / "vault"
-            folder = vault / "IS6000/Lectures/sample"
+            folder = vault / "COURSE101/Lectures/sample"
             report = base / "staging/conversion-report.md"
             shutil.copytree(FIXTURE, folder)
             report.parent.mkdir()

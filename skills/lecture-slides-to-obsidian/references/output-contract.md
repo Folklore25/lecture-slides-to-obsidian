@@ -32,7 +32,7 @@ Required top-level properties:
 
 ```yaml
 type: course-material
-course: IS0000
+course: COURSE101
 title: Example document
 source_filename: example.pdf
 source_format: pdf

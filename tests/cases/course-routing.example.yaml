@@ -2,17 +2,17 @@ schema_version: 1
 
 cases:
   - id: "first-course-binding"
-    query: "IS0000"
+    query: "COURSE101"
     registry_state: "empty"
     expected_action: "ask-semester-root"
 
-  - id: "generic-cityu-root"
-    vault_root_basename: "CityU"
+  - id: "generic-root-without-term"
+    vault_root_basename: "Courses"
     semester_id: "unknown"
     expected_action: "ask-semester-id-separately"
 
   - id: "root-with-clear-semester-token"
-    vault_root_basename: "2026-fall"
+    vault_root_basename: "example-term"
     semester_id: "inferred-candidate"
     expected_action: "propose-and-allow-correction"
 
@@ -22,7 +22,7 @@ cases:
     expected_action: "route-without-question"
 
   - id: "new-course-valid-active-semester"
-    query: "CS0001"
+    query: "COURSE202"
     registry_state: "valid-active-semester-course-unregistered"
     expected_action: "bind-under-active-without-root-question"
 
@@ -32,7 +32,7 @@ cases:
     expected_action: "route-without-question"
 
   - id: "same-course-multiple-semesters"
-    query: "IS0000"
+    query: "COURSE101"
     registry_state: "multiple-exact-no-active-semester"
     expected_action: "ask-semester"
 
@@ -41,18 +41,18 @@ cases:
     registry_state: "one-fuzzy-candidate"
     expected_action: "ask-for-confirmation"
 
-  - id: "information-systems-near-is6000"
-    query: "IS6000"
-    candidate_folder: "Information_systems"
+  - id: "near-match-course-folder"
+    query: "COURSE101"
+    candidate_folder: "course-101-materials"
     expected_action: "show-candidate-before-reuse-or-create"
 
   - id: "stale-semester-root"
-    query: "IS0000"
+    query: "COURSE101"
     registry_state: "exact-match-missing-root"
     expected_action: "ask-updated-root"
 
   - id: "destination-escapes-course"
-    query: "IS0000"
+    query: "COURSE101"
     registry_state: "exact-match-parent-traversal"
     expected_action: "reject-registry-entry"
 

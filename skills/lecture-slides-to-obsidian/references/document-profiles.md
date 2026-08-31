@@ -6,7 +6,7 @@ The skill accepts course slides and other course documents. Select one profile b
 
 There is no silent `lecture-notes` default. Use `preflight.py` and `auto-confirm`:
 
-1. Before upload, infer from the user's description and filename, show the suggestion, and obtain a profile choice. A filename such as `Code of Conduct` should suggest `policy-document` even if the initial conversational wording said lecture notes.
+1. Before upload, infer from the user's description and filename, show the suggestion, and obtain a profile choice. A filename such as `example-policy.pdf` should suggest `policy-document` even if the initial conversational wording said lecture notes.
 2. After MinerU returns, use page-grouped blocks and layout metadata as a mismatch guard, not as the first profile decision.
 3. Slide-like signals include short page-local blocks, repeated title/body patterns, presentation-sized pages, and frequent page-level headings.
 4. Dense paragraphs, policy numbering, references, abstracts, or continuous prose signal a non-slide document.
