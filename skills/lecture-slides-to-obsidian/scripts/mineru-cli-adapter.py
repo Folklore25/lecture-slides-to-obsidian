@@ -51,7 +51,10 @@ def legacy_block_to_v2(block: dict) -> dict | None:
             result = {"type": "paragraph", "content": {"paragraph_content": text_span(text)}}
     elif block_type == "equation":
         value = str(block.get("text") or block.get("latex") or "").strip()
-        result = {"type": "equation_interline", "content": {"math_content": value}}
+        content = {"math_content": value}
+        if block.get("img_path"):
+            content["img_path"] = block["img_path"]
+        result = {"type": "equation_interline", "content": content}
     elif block_type in {"image", "chart", "table"}:
         content = {key: value for key, value in block.items() if key not in {"type", "page_idx", "bbox"}}
         result = {"type": block_type, "content": content}
@@ -105,6 +108,97 @@ def legacy_content_list_to_pages(content_list: list[dict]) -> list[list[dict]]:
         if converted:
             pages[page_idx].append(converted)
     return pages
+
+
+def asset_kind(block: dict) -> str | None:
+    block_type = block.get("type")
+    if block_type == "table":
+        return "table"
+    if block_type == "equation":
+        return "equation"
+    if block_type == "chart" or block.get("sub_type") == "chart":
+        return "chart"
+    if block_type == "image":
+        return "figure"
+    return None
+
+
+def asset_path(block: dict) -> str | None:
+    for key in ("img_path", "image_path", "table_path", "chart_path"):
+        value = block.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
+def replace_asset_paths(value, mapping: dict[str, str]):
+    if isinstance(value, dict):
+        return {
+            key: mapping.get(item, item) if key in {"img_path", "image_path", "table_path", "chart_path"} and isinstance(item, str)
+            else replace_asset_paths(item, mapping)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [replace_asset_paths(item, mapping) for item in value]
+    return value
+
+
+def normalize_referenced_assets(
+    content_list: list[dict], output_dir: Path, page_groups: list[list[dict]]
+) -> tuple[Path, list[dict], list[str], list[list[dict]]]:
+    output_dir = output_dir.resolve()
+    normalized_dir = output_dir / "normalized-assets"
+    normalized_dir.mkdir(exist_ok=True)
+    counters: dict[tuple[int, str], int] = {}
+    source_to_relative: dict[str, str] = {}
+    asset_map: list[dict] = []
+    normalized_files: list[str] = []
+
+    for block in content_list:
+        if not isinstance(block, dict):
+            continue
+        kind = asset_kind(block)
+        raw_path = asset_path(block)
+        if kind is None or raw_path is None:
+            continue
+        page_idx = block.get("page_idx")
+        if not isinstance(page_idx, int) or page_idx < 0:
+            raise AdapterError("visual block is missing a valid page_idx")
+        source_asset = (output_dir / raw_path).resolve()
+        try:
+            source_asset.relative_to(output_dir)
+        except ValueError as exc:
+            raise AdapterError(f"asset path escapes CLI output directory: {raw_path}") from exc
+        if not source_asset.is_file():
+            raise AdapterError(f"referenced CLI asset does not exist: {raw_path}")
+        key = (page_idx + 1, kind)
+        if raw_path in source_to_relative:
+            continue
+        counters[key] = counters.get(key, 0) + 1
+        extension = source_asset.suffix.lower()
+        if extension not in ASSET_EXTENSIONS:
+            raise AdapterError(f"unsupported visual asset extension: {extension}")
+        filename = f"page-{page_idx + 1:03d}-{kind}-{counters[key]:02d}{extension}"
+        destination = normalized_dir / filename
+        if destination.exists() and not filecmp.cmp(source_asset, destination, shallow=False):
+            raise AdapterError(f"standardized asset collision: {filename}")
+        if not destination.exists():
+            shutil.copy2(source_asset, destination)
+        relative = f"normalized-assets/{filename}"
+        source_to_relative[raw_path] = relative
+        normalized_files.append(str(destination))
+        asset_map.append(
+            {
+                "page": page_idx + 1,
+                "kind": kind,
+                "index": counters[key],
+                "source": raw_path,
+                "normalized": relative,
+                "final_name": filename,
+            }
+        )
+
+    return normalized_dir, asset_map, normalized_files, replace_asset_paths(page_groups, source_to_relative)
 
 
 def write_json_atomic(path: Path, value) -> None:
@@ -195,9 +289,13 @@ def run_extract(
     except json.JSONDecodeError as exc:
         raise AdapterError(f"official CLI JSON output is invalid: {exc}") from exc
     page_groups = legacy_content_list_to_pages(legacy)
+    normalized_assets_dir, asset_map, normalized_assets, page_groups = normalize_referenced_assets(
+        legacy, output_dir, page_groups
+    )
     normalized_path = output_dir / f"{base}.content-list-v2.compat.json"
     write_json_atomic(normalized_path, page_groups)
-    normalized_assets_dir = output_dir / "normalized-assets"
+    asset_map_path = output_dir / f"{base}.asset-map.json"
+    write_json_atomic(asset_map_path, asset_map)
     asset_paths = sorted(
         path
         for path in output_dir.rglob("*")
@@ -205,22 +303,20 @@ def run_extract(
         and path.suffix.lower() in ASSET_EXTENSIONS
         and normalized_assets_dir not in path.parents
     )
-    normalized_assets: list[str] = []
-    if asset_paths:
-        normalized_assets_dir.mkdir(exist_ok=True)
-    for asset in asset_paths:
-        destination = normalized_assets_dir / asset.name
-        if destination.exists() and not filecmp.cmp(asset, destination, shallow=False):
-            raise AdapterError(f"asset basename collision: {asset.name}")
-        if not destination.exists():
-            shutil.copy2(asset, destination)
-        normalized_assets.append(str(destination))
+    referenced_sources = {entry["source"] for entry in asset_map}
+    unreferenced_assets = [
+        str(path.relative_to(output_dir))
+        for path in asset_paths
+        if str(path.relative_to(output_dir)) not in referenced_sources
+    ]
     return {
         "source_filename": source.name,
         "markdown": str(markdown_path),
         "legacy_content_list": str(json_path),
         "normalized_page_groups": str(normalized_path),
+        "asset_map": str(asset_map_path),
         "asset_candidates": [str(path.relative_to(output_dir)) for path in asset_paths],
+        "unreferenced_asset_candidates": unreferenced_assets,
         "normalized_assets_dir": str(normalized_assets_dir),
         "normalized_assets": normalized_assets,
         "page_count": len(page_groups),

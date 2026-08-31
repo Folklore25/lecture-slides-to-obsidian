@@ -23,6 +23,7 @@ This skill is a thin composition layer. The official `mineru-open-api` CLI owns 
 - Extraction: run `scripts/mineru-cli-adapter.py`; never reproduce the CLI's HTTP, upload, or polling logic.
 - Page marker: `<!-- source-page: N -->` immediately before page N's first included block.
 - Canvas `file`: full path relative to vault root, such as `<course>/Lectures/<document>/<document>.md`; never a bare filename.
+- Asset name: `page-<PPP>-<figure|table|equation|chart|fallback>-<NN>.<ext>`, for example `page-004-figure-01.png`.
 - Render QA with `fill-report.py` under staging, validate with `--report ... --delete-report-on-success`, and never copy the report into the vault.
 
 ## Prerequisite preflight
@@ -64,6 +65,7 @@ Before extraction, read [requirements/skills.yaml](requirements/skills.yaml), [r
 - Read [references/course-routing.md](references/course-routing.md) whenever registering, matching, moving, or classifying course files.
 - Read [references/document-profiles.md](references/document-profiles.md) before shaping a non-slide document.
 - Read [references/mineru-normalization.md](references/mineru-normalization.md) before reconstructing pages or headings.
+- Read [references/asset-naming.md](references/asset-naming.md) before copying, generating, linking, or validating visual assets.
 - Read [references/canvas-contract.md](references/canvas-contract.md) before creating a `.canvas` file.
 - Read [references/workflow.md](references/workflow.md) for the staged conversion process and failure handling.
 - Read [references/output-contract.md](references/output-contract.md) before writing final artifacts.

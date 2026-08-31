@@ -94,6 +94,34 @@ class ValidateOutputTests(unittest.TestCase):
             self.assertNotEqual(code, 0)
             self.assertTrue(any("outside the document folder" in item for item in result["errors"]))
 
+    def test_standardized_asset_name_passes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / "document"
+            shutil.copytree(FIXTURE, folder)
+            (folder / "assets/page-001-figure-01.png").write_bytes(b"synthetic")
+            code, result = run_validator(folder)
+            self.assertEqual(code, 0)
+            self.assertTrue(result["valid"])
+
+    def test_unstandardized_asset_name_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / "document"
+            shutil.copytree(FIXTURE, folder)
+            (folder / "assets/figure.png").write_bytes(b"synthetic")
+            code, result = run_validator(folder)
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("page-PPP-kind-NN.ext" in item for item in result["errors"]))
+
+    def test_asset_sequence_gap_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / "document"
+            shutil.copytree(FIXTURE, folder)
+            (folder / "assets/page-001-figure-01.png").write_bytes(b"synthetic")
+            (folder / "assets/page-001-figure-03.png").write_bytes(b"synthetic")
+            code, result = run_validator(folder)
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("contiguous from 01" in item for item in result["errors"]))
+
     def test_vault_relative_canvas_path_passes(self):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)

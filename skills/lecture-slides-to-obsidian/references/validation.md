@@ -21,6 +21,7 @@ scripts/validate-output.py <document-folder> --vault-root <vault-root> --report 
 - `source_pages` is a positive integer.
 - Every `<!-- source-page: N -->` uses `1 <= N <= source_pages` and markers are monotonic.
 - Every Markdown asset link and Obsidian embed resolves.
+- Every visual asset is a flat `assets/page-PPP-kind-NN.ext` file; page numbers are valid and per-page/per-kind sequences are contiguous from `01`.
 - When `--vault-root` is supplied, every non-heading wikilink resolves to a note or file within the vault.
 - The profile is one of `lecture-notes`, `policy-document`, or `paper`.
 

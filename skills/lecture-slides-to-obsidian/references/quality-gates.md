@@ -24,6 +24,7 @@ A conversion is complete only when required gates pass or the report marks an ex
 - Heading levels use structured MinerU signals plus series/context consistency; source numbering is preserved.
 - Auxiliary headers/footers/footnotes are inventoried and omissions documented.
 - Figures, tables, equations, and fallback pages are counted, including zeros.
+- Final visual assets follow the deterministic `page-PPP-kind-NN.ext` contract and match staging `asset-map.json`.
 
 ## Pixel-level visual comparison — optional
 

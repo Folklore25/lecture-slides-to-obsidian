@@ -17,6 +17,13 @@ output:
   note_name: "{document_slug}.md"
   canvas_name: "{document_slug}.canvas"
   assets_directory: "assets"
+  asset_name_pattern: "page-{page:03d}-{kind}-{index:02d}.{ext}"
+  asset_kinds:
+    - "figure"
+    - "table"
+    - "equation"
+    - "chart"
+    - "fallback"
 
 staging:
   report_name: "conversion-report.md"

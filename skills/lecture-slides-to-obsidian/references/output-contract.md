@@ -48,7 +48,7 @@ Do not store the absolute source path in the note by default.
 ## Assets
 
 - Copy only derived MinerU images or explicitly generated visual fallback pages.
-- Use deterministic lowercase filenames containing the 1-based source page number.
+- Follow [asset-naming.md](asset-naming.md): `page-<PPP>-<kind>-<NN>.<ext>` with 1-based page and per-page/per-kind sequence.
 - Keep assets local to the document folder.
 - When there are no figures, tables, equations, or fallback pages, keep `assets/` empty and report all four zero counts explicitly.
 - Never place the original document in `assets/`.

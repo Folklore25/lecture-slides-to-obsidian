@@ -9,6 +9,7 @@
 - 追求 semantic fidelity，而不是宣称 PDF → Markdown “无损”。
 - 文字、层级、列表、公式和表格尽量结构化。
 - 图表、复杂排版、手写标注和低置信度页面保留视觉兜底。
+- 最终视觉资产统一命名为 `page-PPP-kind-NN.ext`，例如 `page-004-figure-01.png`。
 - 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。
 - 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和关系 Canvas。QA report 只存在于 staging，验证完成即删除。
 - 用户在一个新学期首次提供课程名称时，只询问一次学期根目录并持久记录学期与课程映射。
@@ -124,7 +125,8 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 2. Token 只通过子进程 `MINERU_TOKEN` 注入官方 CLI。
 3. 官方 CLI 执行 `extract -f md,json -o <staging>/`，负责上传、轮询、下载和 assets。
 4. Adapter 把 CLI legacy content-list JSON 按 `page_idx` 转成 page-group compatibility JSON。
-5. `reconstruct-note.py`、`obsidian-markdown` 和 `json-canvas` 继续完成派生文档。
+5. Adapter 按页码/类型/序号重命名图片，输出 `asset-map.json` 和 `normalized-assets/`。
+6. `reconstruct-note.py`、`obsidian-markdown` 和 `json-canvas` 继续完成派生文档。
 
 支持三个 conversion profile：`lecture-notes`、`policy-document`、`paper`。不是 slides 的资料不会被拒绝，而会在写入 vault 前要求确认合适的 profile。
 

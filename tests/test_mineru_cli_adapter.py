@@ -71,13 +71,51 @@ class MineruCliAdapterTests(unittest.TestCase):
             self.assertEqual(pages[0][1]["type"], "paragraph")
             self.assertEqual(pages[1][0]["type"], "image")
             self.assertEqual(pages[1][1]["type"], "page_footnote")
+            self.assertEqual(
+                pages[1][0]["content"]["img_path"],
+                "normalized-assets/page-002-figure-01.png",
+            )
             self.assertEqual(result["asset_candidates"], ["images/figure.png"])
             self.assertTrue(Path(result["normalized_assets_dir"]).is_dir())
             self.assertTrue(Path(result["normalized_assets"][0]).is_file())
+            self.assertEqual(Path(result["normalized_assets"][0]).name, "page-002-figure-01.png")
+            asset_map = json.loads(Path(result["asset_map"]).read_text())
+            self.assertEqual(asset_map[0]["final_name"], "page-002-figure-01.png")
 
     def test_missing_page_idx_is_rejected(self):
         with self.assertRaises(ADAPTER.AdapterError):
             ADAPTER.legacy_content_list_to_pages([{"type": "text", "text": "Body"}])
+
+    def test_asset_names_increment_per_page_and_kind(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp)
+            images = output / "images"
+            images.mkdir()
+            for name in ("a.png", "b.JPG", "table.png"):
+                (images / name).write_bytes(name.encode())
+            legacy = [
+                {"type": "image", "img_path": "images/a.png", "page_idx": 0},
+                {"type": "image", "img_path": "images/b.JPG", "page_idx": 0},
+                {"type": "table", "img_path": "images/table.png", "page_idx": 0},
+            ]
+            pages = ADAPTER.legacy_content_list_to_pages(legacy)
+            _, asset_map, files, _ = ADAPTER.normalize_referenced_assets(legacy, output, pages)
+            self.assertEqual(
+                [item["final_name"] for item in asset_map],
+                [
+                    "page-001-figure-01.png",
+                    "page-001-figure-02.jpg",
+                    "page-001-table-01.png",
+                ],
+            )
+            self.assertTrue(all(Path(path).is_file() for path in files))
+
+    def test_visual_type_mapping(self):
+        self.assertEqual(ADAPTER.asset_kind({"type": "image"}), "figure")
+        self.assertEqual(ADAPTER.asset_kind({"type": "image", "sub_type": "chart"}), "chart")
+        self.assertEqual(ADAPTER.asset_kind({"type": "chart"}), "chart")
+        self.assertEqual(ADAPTER.asset_kind({"type": "table"}), "table")
+        self.assertEqual(ADAPTER.asset_kind({"type": "equation"}), "equation")
 
 
 if __name__ == "__main__":

@@ -51,7 +51,7 @@ The official CLI saves:
 - `<source-stem>.md` plus downloaded assets;
 - `<source-stem>.json`, the CLI/SDK content-list representation.
 
-The adapter groups the CLI JSON by `page_idx` and writes `<source-stem>.content-list-v2.compat.json`, a page-grouped compatibility artifact consumed by `reconstruct-note.py`. It also collects downloaded images into `normalized-assets/` for the final document `assets/` directory. These transformations are deterministic and do not infer new content.
+The adapter groups the CLI JSON by `page_idx` and writes `<source-stem>.content-list-v2.compat.json`, a page-grouped compatibility artifact consumed by `reconstruct-note.py`. It renames referenced visuals according to [asset-naming.md](asset-naming.md), copies them into `normalized-assets/`, updates normalized block paths, and writes staging-only `<source-stem>.asset-map.json`. These transformations are deterministic and do not infer new content.
 
 `source_pages` is the normalized page-group count. Preserve the original CLI Markdown and JSON in staging for QA; only normalized Markdown/assets/Canvas enter the vault.
 

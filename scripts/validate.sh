@@ -20,6 +20,7 @@ references/requirements.md
 references/mineru-cli.md
 references/mineru-normalization.md
 references/normalization-examples.md
+references/asset-naming.md
 references/canvas-contract.md
 references/output-contract.md
 references/obsidian-style.md

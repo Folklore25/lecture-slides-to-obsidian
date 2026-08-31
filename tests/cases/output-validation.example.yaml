@@ -39,6 +39,20 @@ cases:
     fallback_pages: 0
     expected_action: "pass-with-explicit-zero-inventory"
 
+  - id: "standardized-asset-name"
+    filename: "page-004-figure-01.png"
+    expected_action: "pass"
+
+  - id: "unstandardized-asset-name"
+    filename: "figure.png"
+    expected_action: "fail-asset-name-contract"
+
+  - id: "asset-sequence-gap"
+    filenames:
+      - "page-004-figure-01.png"
+      - "page-004-figure-03.png"
+    expected_action: "fail-noncontiguous-sequence"
+
   - id: "structural-pass-visual-not-checked"
     structural_alignment: "PASS"
     pixel_visual_diff: "NOT-CHECKED"

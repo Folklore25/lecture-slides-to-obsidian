@@ -14,6 +14,10 @@ SOURCE_EXTENSIONS = {
     ".pdf", ".ppt", ".pptx", ".doc", ".docx", ".xls", ".xlsx",
     ".zip", ".7z", ".rar", ".tar", ".gz",
 }
+VISUAL_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"}
+ASSET_NAME = re.compile(
+    r"^page-(\d{3})-(figure|table|equation|chart|fallback)-(\d{2})\.[a-z0-9]+$"
+)
 REQUIRED_PROPERTIES = {
     "type", "course", "title", "source_filename", "source_format",
     "source_sha256", "source_pages", "conversion_profile",
@@ -238,6 +242,40 @@ def validate_report(path: Path) -> list[str]:
     return errors
 
 
+def validate_assets(assets: Path, markdown_path: Path) -> list[str]:
+    errors: list[str] = []
+    props, _ = parse_frontmatter(markdown_path.read_text(encoding="utf-8"))
+    try:
+        page_count = int(props.get("source_pages", "0"))
+    except ValueError:
+        page_count = 0
+    sequences: dict[tuple[int, str], list[int]] = {}
+    for path in assets.rglob("*"):
+        if not path.is_file() or path.suffix.lower() not in VISUAL_EXTENSIONS:
+            continue
+        if path.parent != assets:
+            errors.append(f"visual asset must be a flat file directly under assets/: {path.relative_to(assets)}")
+            continue
+        match = ASSET_NAME.fullmatch(path.name)
+        if not match:
+            errors.append(f"visual asset filename violates page-PPP-kind-NN.ext: {path.name}")
+            continue
+        page = int(match.group(1))
+        kind = match.group(2)
+        index = int(match.group(3))
+        if page < 1 or page > page_count:
+            errors.append(f"asset page outside 1..{page_count}: {path.name}")
+        sequences.setdefault((page, kind), []).append(index)
+    for (page, kind), values in sequences.items():
+        ordered = sorted(values)
+        expected = list(range(1, len(ordered) + 1))
+        if ordered != expected:
+            errors.append(
+                f"asset sequence for page {page:03d} {kind} must be contiguous from 01: {ordered}"
+            )
+    return errors
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("document_folder", type=Path)
@@ -294,6 +332,8 @@ def main() -> int:
             errors += validate_canvas(canvas_files[0], folder, vault_root)
         if report.is_file():
             errors += validate_report(report)
+        if assets.is_dir() and len(markdown_files) == 1:
+            errors += validate_assets(assets, markdown_files[0])
 
     report_deleted = False
     if not errors and args.delete_report_on_success:
