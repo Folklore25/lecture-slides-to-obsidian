@@ -1,6 +1,16 @@
 schema_version: 1
 
 required_tools:
+  - name: "mineru-open-api"
+    purpose: "Official MinerU client for authenticated extraction, polling, and Markdown/assets/JSON output."
+    source: "https://github.com/opendatalab/MinerU-Ecosystem/tree/main/cli/mineru-open-api"
+    verify_command: "mineru-open-api version"
+    tested_version: "0.5.9"
+    install:
+      npm: "npm install -g mineru-open-api"
+      uv: "uv tool install mineru-open-api"
+    token_transport: "MINERU_TOKEN child-process environment only"
+    direct_http_fallback: "forbidden"
   - name: "openssl"
     purpose: "Encrypt and decrypt the MinerU API token stored inside the installed skill directory."
     verify_command: "openssl version"

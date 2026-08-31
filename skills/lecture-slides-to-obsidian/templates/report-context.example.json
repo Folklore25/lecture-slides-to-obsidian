@@ -6,7 +6,7 @@
     "routing_decision": "confirmed exact course folder"
   },
   "pipeline": {
-    "provider": "MinerU Precision API v4",
+    "provider": "MinerU Precision API via mineru-open-api",
     "model": "vlm",
     "profile": "policy-document",
     "language": "en",
@@ -15,9 +15,9 @@
       "obsidian-markdown",
       "json-canvas"
     ],
-    "page_count_source": "content_list_v2 length",
+    "page_count_source": "normalized page-group length",
     "page_count_observations": {
-      "content_list_v2": 14,
+      "normalized_page_groups": 14,
       "spotlight_metadata": 14,
       "file_command": 8
     }

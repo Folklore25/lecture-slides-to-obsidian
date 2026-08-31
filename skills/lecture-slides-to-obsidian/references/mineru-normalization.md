@@ -8,10 +8,10 @@ For concrete before/after cases, read [normalization-examples.md](normalization-
 
 ## Preferred page source
 
-1. Prefer `*_content_list_v2.json` when present. Its top level is grouped by page, so each outer array is one page in source order.
-2. Otherwise use legacy `*_content_list.json`, group all blocks by integer `page_idx`, and sort groups ascending while preserving block order within each page.
-3. Use `layout.json` or `middle.json` only for structural/bounding-box evidence not present in the content list.
-4. Never locate pages with a global `full.md.find(anchor)` or an unscoped repeated text anchor.
+1. Use the page-group JSON produced by `mineru-cli-adapter.py` from the official CLI content list.
+2. The adapter groups legacy blocks by integer `page_idx` and preserves block order within each page.
+3. If a future CLI emits native V2 page groups, prefer them without changing the reconstruction contract.
+4. Never locate pages with a global Markdown string anchor.
 
 Overview pages and detail pages often repeat text. Page grouping prevents a repeated item from resolving to the earlier summary occurrence.
 
@@ -19,9 +19,9 @@ Overview pages and detail pages often repeat text. Page grouping prevents a repe
 
 Set `source_pages` from the structured MinerU result:
 
-1. `len(content_list_v2)` when V2 exists;
-2. otherwise `max(page_idx) + 1` from legacy `content_list.json`;
-3. otherwise the page collection in `layout.json`/`middle.json`.
+1. `len(normalized_page_groups)` from the CLI adapter;
+2. the adapter derives this as `max(page_idx) + 1` from official CLI JSON;
+3. native V2 length if a compatible future CLI exposes it.
 
 Spotlight metadata, `file` output, PDF metadata, and other local estimates are diagnostic only. When they disagree, keep the structured MinerU count and record every observed count/source in the temporary QA report. Do not ask the Agent to choose ad hoc.
 
@@ -57,4 +57,4 @@ Count image/chart, table, equation, and fallback-page artifacts from structured 
 
 ## Structural vs visual verification
 
-Structural alignment uses page-grouped content lists, layout/middle metadata, block counts, page order, headings, auxiliary blocks, and asset references. Pixel-level visual comparison requires rendering the source pages and is outside this API-only skill unless a separate renderer is explicitly available. Mark it `NOT-CHECKED`, never `PASS`, when it was not performed.
+Structural alignment uses page-grouped content lists, layout/middle metadata, block counts, page order, headings, auxiliary blocks, and asset references. Pixel-level visual comparison requires rendering the source pages and is outside this composition skill unless a separate renderer is explicitly available. Mark it `NOT-CHECKED`, never `PASS`, when it was not performed.

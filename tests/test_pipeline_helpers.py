@@ -28,7 +28,7 @@ class PipelineHelperTests(unittest.TestCase):
             commands = [
                 [
                     sys.executable, str(SKILL / "scripts/reconstruct-note.py"),
-                    "--content-list-v2", str(CONTENT_LIST),
+                    "--page-groups", str(CONTENT_LIST),
                     "--profile", "policy-document", "--output", str(note),
                     "--context-output", str(context), "--title", "Example Policy",
                     "--course", "COURSE101", "--source-filename", "example-policy.pdf",

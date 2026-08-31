@@ -78,7 +78,7 @@ def page_blocks(page) -> list[dict]:
         for key in ("blocks", "content", "items"):
             if isinstance(page.get(key), list):
                 return [item for item in page[key] if isinstance(item, dict)]
-    raise ReconstructionError("each content_list_v2 page must be an array or page object with blocks")
+        raise ReconstructionError("each normalized page must be an array or page object with blocks")
 
 
 def render_block(block: dict, profile: str, state: dict, inventory: dict) -> str | None:
@@ -146,7 +146,7 @@ def render_block(block: dict, profile: str, state: dict, inventory: dict) -> str
 
 def reconstruct(pages: list, metadata: dict, profile: str) -> tuple[str, dict]:
     if not isinstance(pages, list) or not pages:
-        raise ReconstructionError("content_list_v2 must be a non-empty top-level array")
+        raise ReconstructionError("page-group input must be a non-empty top-level array")
     inventory = {
         "pages": len(pages),
         "figures_images": 0,
@@ -193,7 +193,7 @@ def reconstruct(pages: list, metadata: dict, profile: str) -> tuple[str, dict]:
     if profile == "lecture-notes":
         lines += ["", "## In-class notes"]
     context = {
-        "page_count_source": "content_list_v2 length",
+        "page_count_source": "normalized page-group length",
         "inventory": inventory,
         "profile": profile,
     }
@@ -217,7 +217,7 @@ def write_atomic(path: Path, content: str) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--content-list-v2", required=True, type=Path)
+    parser.add_argument("--page-groups", "--content-list-v2", dest="page_groups", required=True, type=Path)
     parser.add_argument("--profile", required=True, choices=PROFILE_CHOICES)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--context-output", required=True, type=Path)
@@ -229,7 +229,7 @@ def main() -> int:
     parser.add_argument("--status", default="pre-class")
     args = parser.parse_args()
     try:
-        pages = json.loads(args.content_list_v2.read_text(encoding="utf-8"))
+        pages = json.loads(args.page_groups.read_text(encoding="utf-8"))
         note, context = reconstruct(
             pages,
             {

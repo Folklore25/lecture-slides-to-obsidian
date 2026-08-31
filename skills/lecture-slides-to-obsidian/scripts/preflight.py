@@ -126,6 +126,23 @@ def main() -> int:
         errors.append("macOS Keychain security CLI is unavailable")
     elif security:
         checks["keychain_cli"] = security
+    mineru_cli = shutil.which("mineru-open-api")
+    if not args.fixture_mode and mineru_cli is None:
+        errors.append("official mineru-open-api CLI is unavailable")
+    elif mineru_cli:
+        checks["mineru_open_api_cli"] = mineru_cli
+        if not args.fixture_mode:
+            version = subprocess.run(
+                [mineru_cli, "version"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+            if version.returncode != 0:
+                errors.append("mineru-open-api version check failed")
+            else:
+                checks["mineru_open_api_version"] = version.stdout.splitlines()[0].strip()
 
     token_file = args.token_file.resolve()
     if not token_file.is_file():

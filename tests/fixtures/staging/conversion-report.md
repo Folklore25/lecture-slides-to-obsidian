@@ -6,7 +6,7 @@ Synthetic routing fixture.
 
 ## Pipeline
 
-MinerU Precision API v4, VLM, lecture-notes profile.
+MinerU Precision API via official CLI, VLM, lecture-notes profile.
 
 ## Outputs
 

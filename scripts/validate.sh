@@ -17,7 +17,7 @@ references/workflow.md
 references/course-routing.md
 references/document-profiles.md
 references/requirements.md
-references/mineru-api.md
+references/mineru-cli.md
 references/mineru-normalization.md
 references/normalization-examples.md
 references/canvas-contract.md
@@ -28,6 +28,7 @@ references/validation.md
 scripts/README.md
 scripts/build-canvas.py
 scripts/fill-report.py
+scripts/mineru-cli-adapter.py
 scripts/preflight.py
 scripts/reconstruct-note.py
 scripts/purge-state.sh
@@ -91,7 +92,7 @@ if grep -R -n 'source_slides\|copy_source_into_course: true\|<course-folder>/Sli
   exit 1
 fi
 
-if ! grep -q 'required-services: "MinerU Precision API v4"' "$skill_dir/SKILL.md"; then
+if ! grep -q 'required-services: "MinerU Precision API via official mineru-open-api CLI"' "$skill_dir/SKILL.md"; then
   printf 'service prerequisite metadata is missing or out of sync\n' >&2
   exit 1
 fi
@@ -101,9 +102,15 @@ if grep -q 'mineru-pdf\|runtime_command' "$skill_dir/requirements/skills.yaml"; 
   exit 1
 fi
 
-if ! grep -q 'POST /api/v4/file-urls/batch' "$skill_dir/requirements/services.yaml" || \
-   ! grep -q 'GET /api/v4/extract-results/batch/{batch_id}' "$skill_dir/requirements/services.yaml"; then
-  printf 'MinerU API endpoint contract is missing or out of sync\n' >&2
+if ! grep -q 'name: "mineru-open-api"' "$skill_dir/requirements/tools.yaml" || \
+   ! grep -q 'direct_http_calls: false' "$skill_dir/requirements/services.yaml"; then
+  printf 'official MinerU CLI composition contract is missing or out of sync\n' >&2
+  exit 1
+fi
+
+if grep -R -n '/api/v4/\|file-urls/batch\|extract-results/batch' \
+  "$skill_dir/SKILL.md" "$skill_dir/references" "$skill_dir/config" >/dev/null 2>&1; then
+  printf 'direct MinerU HTTP ownership is forbidden\n' >&2
   exit 1
 fi
 

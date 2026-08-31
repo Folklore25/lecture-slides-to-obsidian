@@ -1,0 +1,44 @@
+schema_version: 1
+
+cases:
+  - id: "official-cli-precision-command"
+    command: "mineru-open-api extract"
+    formats:
+      - "md"
+      - "json"
+    expected_action: "run-through-thin-adapter"
+
+  - id: "token-child-environment"
+    token_transport: "MINERU_TOKEN"
+    command_argument_contains_token: false
+    expected_action: "continue"
+
+  - id: "cli-token-flag"
+    command_argument: "--token"
+    expected_action: "reject"
+
+  - id: "cli-auth-config"
+    command: "mineru-open-api auth"
+    expected_action: "reject-external-token-config"
+
+  - id: "verbose-http-logging"
+    command_argument: "--verbose"
+    expected_action: "reject"
+
+  - id: "legacy-json-page-groups"
+    cli_output: "<source>.json"
+    page_identity: "page_idx"
+    expected_output: "<source>.content-list-v2.compat.json"
+
+  - id: "legacy-block-missing-page-idx"
+    page_idx: null
+    expected_action: "fail-before-reconstruction"
+
+  - id: "missing-cli-output"
+    markdown_exists: true
+    json_exists: false
+    expected_action: "fail-incomplete-cli-output"
+
+  - id: "cli-nonzero-exit"
+    exit_code: 5
+    expected_action: "report-redacted-cli-error-without-direct-http-fallback"

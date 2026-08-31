@@ -7,7 +7,7 @@ Future test layers should be separated:
 1. **Structure tests** — skill metadata, required references, and portable paths.
 2. **Prerequisite tests** — Obsidian skills, OpenSSL/Keychain capability, encrypted token setup/automatic unlock, and no plaintext/local fallback.
 3. **Token-store tests** — encryption round-trip, mode 0600, Keychain wrapping key, tamper detection, and scoped deletion.
-4. **MinerU API contract tests** — encrypted credentials, signed upload, header isolation, bounded polling, errors, and safe ZIP extraction.
+4. **MinerU CLI adapter tests** — child-env credentials, official command flags, output discovery, legacy page grouping, redaction, and fail-closed behavior.
 5. **Course-routing tests** — first binding, aliases, active semesters, ambiguity, stale roots, containment, and collisions.
 6. **API normalization tests** — page-grouped content lists, legacy `page_idx`, duplicate anchors, heading levels, and auxiliary blocks.
 7. **Canvas tests** — profile-specific relationship nodes/edges and source-original exclusion.

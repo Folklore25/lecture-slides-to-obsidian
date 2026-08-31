@@ -1,6 +1,6 @@
 # Conversion workflow
 
-MinerU Precision API v4 is the only extraction backend. Source originals remain outside the Obsidian vault.
+The official `mineru-open-api` precision CLI is the extraction client. Source originals remain outside the Obsidian vault.
 
 ## 1. Intake and routing
 
@@ -14,9 +14,9 @@ Select or confirm `lecture-notes`, `policy-document`, or `paper` using filename/
 
 Load `obsidian-markdown` and `json-canvas`. Verify the encrypted token file and Keychain wrapping key. On first setup, store the chat-provided token through `token-store.py set --token-stdin`; later runs unlock automatically without another conversational prompt.
 
-## 3. Staging and API extraction
+## 3. Staging and official CLI extraction
 
-Create staging outside the vault. Preserve the source hash. Request signed upload URLs, upload without forwarding Bearer/Content-Type, poll with the nested batch result path and backoff schedule, then safely download/extract the ZIP. Follow [mineru-api.md](mineru-api.md).
+Create staging outside the vault and preserve the source hash. Run `scripts/mineru-cli-adapter.py`; it unlocks the token, sets `MINERU_TOKEN`, and delegates upload/poll/download to `mineru-open-api extract -f md,json`. Follow [mineru-cli.md](mineru-cli.md). Do not call MinerU HTTP endpoints directly.
 
 ## 4. Page reconstruction
 
@@ -38,10 +38,7 @@ Run `scripts/validate-output.py` with the staging report, structural alignment c
 ## Failure behavior
 
 - Missing/invalid encrypted token: configure or replace it through `token-store.py` without echo; otherwise stop.
-- Upload declined or network unavailable: stop without local fallback.
-- Unknown poll schema/state for 30 seconds: stop and show only a redacted key/type diagnostic.
-- Poll timeout: report redacted batch reference and last per-file state; do not poll forever.
-- Unsafe/malformed ZIP or implausibly empty output: stop before normalization.
+- Missing CLI, CLI authentication/network/timeout error, or incomplete md/json output: report the redacted CLI error and stop without direct HTTP/local fallback.
 - Ambiguous page order/heading: preserve structured blocks conservatively and record review.
 - Existing document folder: use an explicit merge/overwrite decision.
 - Validator failure: do not deliver as complete.

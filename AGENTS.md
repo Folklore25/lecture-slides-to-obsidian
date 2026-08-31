@@ -2,14 +2,14 @@
 
 - Treat `skills/lecture-slides-to-obsidian/` as the distributable skill payload.
 - Keep `SKILL.md` concise; route conditional detail to `references/`.
-- The official MinerU Precision API v4 is the only extraction backend. Never add a local parser, local MinerU runtime, or lightweight API fallback.
+- The official `mineru-open-api` precision CLI is the only extraction client. Never add direct MinerU HTTP code, a local parser/runtime, or lightweight fallback.
 - Keep source originals outside the Obsidian vault; only complete Markdown, derived assets, and relationship Canvas belong in document folders.
 - Conversion reports are temporary Agent QA state outside the vault. Extract final-response facts, then delete the report after successful validation.
-- Read batch state from `data.extract_result[]`, prefer `content_list_v2` page groups, and never derive page boundaries with global `full.md` anchors.
+- Use the official CLI JSON output grouped by `page_idx`; never derive page boundaries with global Markdown anchors.
 - Keep structural alignment separate from pixel-level visual comparison; mark unperformed rendering `NOT-CHECKED`.
 - Keep course routing behavior aligned across `course-routing.md`, the registry example, output contract, examples, and routing test cases.
 - Never store a user's real semester root or course paths in the repository.
-- Keep prerequisite declarations aligned across `SKILL.md` metadata, both requirements manifests, `requirements.md`, `mineru-api.md`, and contract test cases.
+- Keep prerequisite declarations aligned across `SKILL.md` metadata, requirements manifests, `requirements.md`, `mineru-cli.md`, and contract tests.
 - Persist the MinerU token only through `scripts/token-store.py`: ciphertext in ignored skill state, wrapping key in macOS Keychain. Never persist plaintext or log signed URLs.
 - Keep runtime state inside the distributable skill's `state/` directory and never reintroduce a user-level registry path.
 - Never commit private or copyrighted lecture PDFs without explicit redistribution rights.

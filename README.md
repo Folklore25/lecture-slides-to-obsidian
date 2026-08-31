@@ -1,8 +1,8 @@
 # Lecture Slides to Obsidian
 
-一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 PDF、PPT/PPTX、政策文档和论文，通过 MinerU 官方 API 整理成适合 Obsidian 阅读、连接和课堂补充的派生资料。
+一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 PDF、PPT/PPTX、政策文档和论文，通过 MinerU 官方 CLI 整理成适合 Obsidian 阅读、连接和课堂补充的派生资料。
 
-当前是 **Phase 1：规范与骨架**。仓库已经定义技能入口、MinerU 官方 API 契约、技能内持久课程路由、输出契约、质量门槛、测试素材规则和跨工具安装方式，但**尚未实现 API client**。
+当前实现采用组合架构：MinerU 官方 CLI 负责提取，Obsidian 标准技能负责 Markdown/Canvas，本仓库只维护课程路由、normalization、目录边界和 QA。
 
 ## 设计目标
 
@@ -14,8 +14,8 @@
 - 用户在一个新学期首次提供课程名称时，只询问一次学期根目录并持久记录学期与课程映射。
 - 后续通过课程代码、正式名称或已登记别名唯一匹配，自动归档到对应学期的课程子目录。
 - 同一份技能内容兼容 Claude Code 和 Pi，并适合作为 cc-switch 自定义技能源。
-- 除明确声明的 MinerU 官方 API 上传外，不把课件发送到其他第三方服务。
-- 课程文件内容解析只使用 MinerU 官方精准解析 API，不下载本地模型、不依赖本地 MinerU CLI。
+- 除官方 CLI 访问 MinerU 服务外，不把课件发送到其他第三方服务。
+- 课程文件内容解析只使用官方 `mineru-open-api extract` 精准模式，不下载本地模型，也不维护自定义 HTTP client。
 
 ## 仓库结构
 
@@ -88,9 +88,19 @@ PDF 会上传到 MinerU 官方服务进行解析。转换前必须：
 
 - 能发现并加载 `obsidian-markdown`，用于 Obsidian properties、wikilinks、embeds、callouts 和 Markdown 语法。
 - 能发现并加载 `json-canvas`，用于关系画布生成与 JSON Canvas 校验。
-- 能访问 MinerU Precision API v4。
+- 已安装官方 `mineru-open-api` CLI，并能访问 MinerU Precision API。
 - 本机具有支持 `aes-256-cbc` 的 OpenSSL。
 - 当前自动 credential backend 为 macOS Keychain（`security` CLI）；其他平台会明确失败，不会退回明文或同目录 key 文件。
+
+当前 adapter 已使用官方 CLI `v0.5.9` 验证命令/参数兼容性。
+
+安装 CLI（二选一）：
+
+```bash
+npm install -g mineru-open-api
+# 或
+uv tool install mineru-open-api
+```
 
 API token 加密保存为：
 
@@ -108,18 +118,17 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 密文采用 AES-256-CBC + PBKDF2-HMAC-SHA256（600,000 iterations），并用独立的 Encrypt-then-HMAC-SHA256 做完整性校验。token 文件权限为 `0600`，state 目录写入时设为 `0700`。`purge-state.sh --confirm` 会同时删除密文与对应 Keychain 项。
 
-本地 PDF 使用官方上传流程：
+提取流程：
 
-1. `POST /api/v4/file-urls/batch` 获取 `batch_id` 与签名上传 URL。
-2. 使用 `PUT` 上传 PDF；上传请求不附带 Bearer token，也不设置 `Content-Type`。
-3. 轮询 `GET /api/v4/extract-results/batch/{batch_id}`。
-4. 从 `data.extract_result[]` 读取每个文件的 state，并采用 3s → 10s → 30s 退避式轮询。
-5. 下载 ZIP，优先使用 `content_list_v2.json` 的页分组；否则按 legacy `page_idx` 分页。
-6. 使用 `obsidian-markdown` 生成完整文档，并用 `json-canvas` 创建关系画布。
+1. `mineru-cli-adapter.py` 从 Keychain 自动解锁 token。
+2. Token 只通过子进程 `MINERU_TOKEN` 注入官方 CLI。
+3. 官方 CLI 执行 `extract -f md,json -o <staging>/`，负责上传、轮询、下载和 assets。
+4. Adapter 把 CLI legacy content-list JSON 按 `page_idx` 转成 page-group compatibility JSON。
+5. `reconstruct-note.py`、`obsidian-markdown` 和 `json-canvas` 继续完成派生文档。
 
 支持三个 conversion profile：`lecture-notes`、`policy-document`、`paper`。不是 slides 的资料不会被拒绝，而会在写入 vault 前要求确认合适的 profile。
 
-机器可读声明位于 `requirements/skills.yaml` 和 `requirements/services.yaml`，完整安全契约位于 `references/mineru-api.md`。
+机器可读声明位于 `requirements/skills.yaml`、`requirements/tools.yaml` 和 `requirements/services.yaml`，组合契约位于 `references/mineru-cli.md`。
 
 ## 安装与加载
 
@@ -198,13 +207,13 @@ python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py \
 
 1. 用代表性课件建立合成/公开基准集。
 2. 实现技能内课程注册表的原子读写、唯一匹配和目录路由测试。
-3. 实现 MinerU Precision API v4 client 与自动 Keychain 解锁集成、安全 ZIP 解压和结构化分页。
-4. 加入完整 Canvas 生成、输出 validator、API 契约和回归测试。
+3. 使用私有测试课件在官方 CLI v0.5.9 上完成一次不进入公共 fixture 的端到端试运行。
+4. 扩充 CLI 输出、Canvas 和 profile normalization 回归样例。
 5. 在真实课前工作流中小范围试用，再依据失败样例修订技能。
 
 ## 暂未决定
 
-- API client 使用 Python、Node 或其他实现语言。
+- 官方 CLI 的长期最低兼容版本与升级策略。
 - 许可证和发布策略。
 
 这些内容应在有实现和测试证据后再确定。

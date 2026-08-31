@@ -1,10 +1,10 @@
 # Normalization examples
 
-Use these with `scripts/reconstruct-note.py`; they illustrate decisions that raw MinerU levels alone cannot make.
+Use these page-group examples with `scripts/reconstruct-note.py`; they illustrate decisions that raw MinerU levels alone cannot make.
 
 ## Lecture notes
 
-V2 input:
+Normalized page-group input:
 
 ```json
 [
@@ -28,7 +28,7 @@ Add `## In-class notes` only after all source pages.
 
 ## Policy document
 
-V2 input where MinerU labels every title as level 2 and misses one short item:
+Normalized page-group input where MinerU labels every title as level 2 and misses one short item:
 
 ```json
 [
@@ -68,4 +68,4 @@ Do not apply policy short-item promotion to a paper.
 
 ## Duplicate anchors
 
-If the same sentence appears in an overview and a detail page, use its V2 page group. Do not search `full.md` globally. Page markers are inserted from the outer-array index, so identical text can appear on separate pages without collision.
+If the same sentence appears in an overview and a detail page, use the adapter's page group. Do not search Markdown globally. Page markers are inserted from the outer-array index, so identical text can appear on separate pages without collision.

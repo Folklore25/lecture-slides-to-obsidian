@@ -16,7 +16,7 @@ tags:
 # Example Lecture
 
 > [!info] Conversion scope
-> Complete Markdown derived through MinerU Precision API v4. The source PDF remains outside the vault.
+> Complete Markdown derived through the official MinerU Open API CLI. The source PDF remains outside the vault.
 
 <!-- source-page: 1 -->
 

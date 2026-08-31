@@ -39,7 +39,7 @@ class ReconstructNoteTests(unittest.TestCase):
         self.assertIn("source_pages: 2", note)
         self.assertIn("<!-- source-page: 1 -->", note)
         self.assertIn("<!-- source-page: 2 -->", note)
-        self.assertEqual(context["page_count_source"], "content_list_v2 length")
+        self.assertEqual(context["page_count_source"], "normalized page-group length")
 
     def test_lecture_profile_adds_in_class_notes(self):
         note, _ = RECONSTRUCT.reconstruct(self.pages, self.metadata, "lecture-notes")

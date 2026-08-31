@@ -23,12 +23,16 @@ staging:
   report_inside_vault: false
   delete_report_on_success: true
 
-mineru_api:
-  base_url: "https://mineru.net"
-  api_version: "v4"
-  submission: "signed-batch-upload"
+mineru_cli:
+  executable: "mineru-open-api"
+  command: "extract"
+  direct_http_calls: false
+  output_formats:
+    - "md"
+    - "json"
   model_version: "vlm"
   token_source: "state/mineru-api-token.enc.json"
+  token_transport: "MINERU_TOKEN child environment"
   token_encryption: "aes-256-cbc-pbkdf2-etm-hmac-sha256"
   wrapping_key_backend: "macos-keychain"
   persist_plaintext_token: false
@@ -39,12 +43,7 @@ mineru_api:
   is_ocr: null
   require_explicit_language: true
   require_explicit_is_ocr: true
-  poll_schedule_seconds:
-    first_30_seconds: 3
-    seconds_31_to_120: 10
-    after_120_seconds: 30
-  poll_timeout_seconds: 300
-  unknown_state_timeout_seconds: 30
+  timeout_seconds: 300
 
 conversion:
   profile: "auto-confirm"

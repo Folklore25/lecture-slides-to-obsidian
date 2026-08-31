@@ -9,11 +9,10 @@ A conversion is complete only when required gates pass or the report marks an ex
 - The source resolves outside the Obsidian vault and remains unchanged.
 - The document folder contains only derived Markdown, Canvas, and assets; the temporary report is outside the vault.
 
-## API and secret safety
+## CLI and secret safety
 
-- MinerU Precision API v4 signed-upload flow was used; no local/lightweight fallback.
-- Per-file state came from `data.extract_result[]`, matched by `data_id` or `file_name`.
-- Bearer token was sent only to `https://mineru.net`; upload/result URLs received no Bearer header.
+- Official `mineru-open-api extract` produced Markdown/assets and JSON; no direct HTTP/local/lightweight fallback was used.
+- Token reached only the CLI child environment as `MINERU_TOKEN`; CLI `--token`, `auth`, verbose HTTP logs, and `~/.mineru/config.yaml` were not used.
 - Plaintext token, Authorization header, signed URLs, and secret-bearing responses are absent from registry, reports, logs, staging, output, and Git.
 - Encrypted token state exists only at `state/mineru-api-token.enc.json`, has mode `0600`, passes HMAC verification, has no plaintext token substring, and uses the matching macOS Keychain wrapping key.
 - ZIP path/type/count/size safety checks passed.
@@ -28,7 +27,7 @@ A conversion is complete only when required gates pass or the report marks an ex
 
 ## Pixel-level visual comparison — optional
 
-Pixel-level visual diff against rendered source pages is not provided by this API-only skill. Mark `NOT-CHECKED` unless a separate renderer was explicitly used and evidence is recorded. Never treat structural alignment as pixel-level PASS.
+Pixel-level visual diff against rendered source pages is not provided by this composition skill. Mark `NOT-CHECKED` unless a separate renderer was explicitly used and evidence is recorded. Never treat structural alignment as pixel-level PASS.
 
 ## Obsidian and Canvas
 

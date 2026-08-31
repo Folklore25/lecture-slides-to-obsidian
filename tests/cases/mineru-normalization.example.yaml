@@ -1,25 +1,23 @@
 schema_version: 1
 
 cases:
-  - id: "prefer-page-grouped-v2"
+  - id: "official-cli-json-to-page-groups"
+    files:
+      - "document.json"
+      - "document.content-list-v2.compat.json"
+    expected_page_source: "adapter-page-groups"
+
+  - id: "future-native-v2-output"
     files:
       - "document_content_list_v2.json"
-      - "document_content_list.json"
-      - "full.md"
-    expected_page_source: "content-list-v2"
-
-  - id: "legacy-page-idx-fallback"
-    files:
-      - "document_content_list.json"
-      - "full.md"
-    expected_page_source: "group-by-page-idx"
+    expected_page_source: "native-page-groups"
 
   - id: "conflicting-page-counts"
     spotlight_pages: 14
     file_command_pages: 8
-    content_list_v2_pages: 14
+    normalized_page_group_count: 14
     expected_source_pages: 14
-    expected_action: "trust-v2-length-and-record-discrepancy-in-temp-report"
+    expected_action: "trust-adapter-page-group-length-and-record-discrepancy"
 
   - id: "duplicate-overview-anchor"
     repeated_text_pages:

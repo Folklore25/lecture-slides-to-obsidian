@@ -7,6 +7,13 @@ required_services:
     base_url: "https://mineru.net"
     docs: "https://mineru.net/apiManage/docs"
     network_upload_required: true
+    client:
+      name: "mineru-open-api"
+      command: "extract"
+      direct_http_calls: false
+      formats:
+        - "md"
+        - "json"
     authentication:
       type: "bearer"
       token_source: "encrypted-skill-state-file"
@@ -15,26 +22,8 @@ required_services:
       wrapping_key_backend: "macos-keychain"
       repeated_user_confirmation: false
       allowed_origin: "https://mineru.net"
-    endpoints:
-      request_upload_urls: "POST /api/v4/file-urls/batch"
-      poll_batch_result: "GET /api/v4/extract-results/batch/{batch_id}"
-    batch_result:
-      items_path: "data.extract_result"
-      state_path: "data.extract_result[].state"
-      match_by:
-        - "data_id"
-        - "file_name"
-      unknown_state_timeout_seconds: 30
-      poll_schedule_seconds:
-        elapsed_0_to_30: 3
-        elapsed_31_to_120: 10
-        elapsed_after_120: 30
-      overall_timeout_seconds: 300
-    upload:
-      method: "PUT"
-      authorization_header: false
-      content_type_header: false
-      signed_url_persistence: "forbidden"
+      cli_environment: "MINERU_TOKEN"
+      cli_config_file_write: false
     defaults:
       model_version: "vlm"
       enable_formula: true
@@ -50,10 +39,7 @@ required_services:
     limits:
       max_file_bytes: 209715200
       max_pages: 200
-      max_files_per_request: 50
-      upload_url_valid_hours: 24
     result:
-      type: "zip"
-      primary_markdown: "full.md"
-      preferred_page_structure: "*_content_list_v2.json"
-      fallback_page_structure: "*_content_list.json grouped by page_idx"
+      markdown: "<source-stem>.md with downloaded assets"
+      content_list: "<source-stem>.json"
+      normalized_page_groups: "<source-stem>.content-list-v2.compat.json"
