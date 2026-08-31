@@ -9,6 +9,10 @@ dist/
 work/
 output/
 
+# Runtime state belongs to the installed skill but not to the public repository.
+skills/lecture-slides-to-obsidian/state/course-registry.yaml
+skills/lecture-slides-to-obsidian/state/course-registry.yaml.bak-*
+
 # Local or private course material must never be committed.
 tests/fixtures/private/**
 !tests/fixtures/private/README.md

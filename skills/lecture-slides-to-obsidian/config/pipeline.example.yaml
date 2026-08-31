@@ -5,7 +5,7 @@ input:
   copy_source_into_course: true
 
 course_routing:
-  registry: "~/.config/lecture-slides-to-obsidian/course-registry.yaml"
+  registry: "state/course-registry.yaml"
   unmatched_course: "use-active-semester-or-ask-root"
   require_unique_match: true
   create_default_subfolders: true

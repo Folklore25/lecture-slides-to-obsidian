@@ -2,7 +2,7 @@
 
 一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 lecture-slide PDF，整理成适合课前预习、课上补充的 Obsidian Markdown。
 
-当前是 **Phase 1：规范与骨架**。仓库已经定义技能入口、持久课程路由、输出契约、质量门槛、测试素材规则和跨工具安装方式，但**尚未实现或绑定任何 PDF 提取引擎**。
+当前是 **Phase 1：规范与骨架**。仓库已经定义技能入口、前置技能要求、技能内持久课程路由、输出契约、质量门槛、测试素材规则和跨工具安装方式，但**尚未实现自己的 PDF 提取引擎**。
 
 ## 设计目标
 
@@ -29,8 +29,10 @@ lecture-slides-to-obsidian/
 │       ├── agents/openai.yaml
 │       ├── config/
 │       ├── examples/
+│       ├── requirements/
 │       ├── references/
-│       └── scripts/
+│       ├── scripts/
+│       └── state/
 └── tests/
     ├── cases/
     ├── fixtures/
@@ -41,10 +43,10 @@ lecture-slides-to-obsidian/
 
 ## 课程路由模型
 
-技能使用本机注册表：
+技能把真实注册表保存在自己的安装目录内：
 
 ```text
-~/.config/lecture-slides-to-obsidian/course-registry.yaml
+<installed-skill-directory>/state/course-registry.yaml
 ```
 
 首次处理一门尚未登记的课程时：
@@ -69,7 +71,22 @@ lecture-slides-to-obsidian/
 
 如果学期根目录已有明确的课程/课件/笔记子目录，Agent 应优先复用并记录它们。模糊匹配、多个同名学期课程、失效根目录或多个候选课程文件夹不会自动选择。
 
-注册表是本机状态，不能放在技能安装目录内，也不应提交 GitHub。完整匹配与安全规则见 `references/course-routing.md`。
+注册表是 skill-owned 本机状态，不应提交 GitHub。正常删除整个技能目录时，注册表会一起删除，不会另行残留在 `~/.config`。完整匹配与安全规则见 `references/course-routing.md`。
+
+cc-switch 卸载时可能创建自己的 skill backup。若要求卸载备份中也不保留课程路径，应先运行技能内的 `scripts/purge-state.sh --confirm`，再从 cc-switch 卸载技能。
+
+目录整体替换式更新必须保留并原位恢复 `state/`。在自动迁移实现前，更新器不应把 package 内容覆盖到一个已有运行态目录而忽略其中的 registry。
+
+## 前置技能要求
+
+转换前必须能发现并加载：
+
+- `mineru-pdf`：负责复杂 PDF、公式、表格、图片和 OCR 提取。
+- `obsidian-markdown`：负责 Obsidian properties、wikilinks、embeds、callouts 和最终 Markdown 语法校验。
+
+`mineru-pdf` 还要求本机 MinerU runtime 可用。机器可读声明位于 `requirements/skills.yaml`，详细预检与职责边界位于 `references/requirements.md`。
+
+当前 Agent Skills 和 cc-switch 没有通用的 skill-to-skill 自动依赖安装字段，因此本技能会显式验证并报告缺失项，但不会静默安装前置技能。
 
 ## 安装与加载
 
@@ -128,7 +145,7 @@ ln -s /absolute/path/to/lecture-slides-to-obsidian/skills/lecture-slides-to-obsi
 ## 后续阶段
 
 1. 用代表性课件建立合成/公开基准集。
-2. 实现课程注册表的原子读写、唯一匹配和目录路由测试。
+2. 实现技能内课程注册表的原子读写、唯一匹配和目录路由测试。
 3. 定义 fast path 与 layout-aware path 的适配接口。
 4. 选择并实现第一个本地提取后端。
 5. 加入输出契约验证、回归测试和转换报告。

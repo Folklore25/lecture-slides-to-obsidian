@@ -1,6 +1,8 @@
 # Bundled scripts
 
-This directory is intentionally empty of conversion code in phase one.
+This directory contains only state cleanup in phase one; it remains empty of conversion code.
+
+- `purge-state.sh --confirm` removes the registry and its in-skill backups before uninstall. It does not touch course files or any path outside `state/`.
 
 Future scripts belong here only when they provide deterministic, reusable behavior such as:
 

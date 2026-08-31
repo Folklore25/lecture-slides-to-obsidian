@@ -4,15 +4,15 @@ Use a local registry so the user supplies a semester root once per semester and 
 
 ## Registry location and ownership
 
-Default to:
+Resolve the directory containing this skill's `SKILL.md`, then use:
 
 ```text
-~/.config/lecture-slides-to-obsidian/course-registry.yaml
+<skill-directory>/state/course-registry.yaml
 ```
 
-Allow an explicit user-selected registry path. The real registry is local state: do not store it inside the installed skill, an Obsidian note, or this Git repository. It may contain private absolute paths, but never credentials or Canvas session data.
+The real registry is skill-owned local state. Do not redirect it to a user-level config directory, an Obsidian note, or this Git repository. It may contain private absolute paths, but never credentials or Canvas session data. Removing the installed skill directory removes this state with it.
 
-Use [../config/course-registry.example.yaml](../config/course-registry.example.yaml) as the schema example. Preserve unknown fields when updating a compatible schema. Write changes atomically and keep a recoverable previous copy before a schema migration.
+Use [../state/course-registry.example.yaml](../state/course-registry.example.yaml) as the schema example. Preserve unknown fields when updating a compatible schema. Write changes atomically inside `state/` and keep a recoverable previous copy there before a schema migration. Do not place registry backups outside the skill directory.
 
 ## First encounter
 
@@ -81,3 +81,5 @@ If the target `Slides/` already contains the same filename:
 ## Registry maintenance
 
 Add an alias only after a unique course has been resolved. Keep at most one active semester unless the user explicitly needs concurrent semesters. When a course folder or semester root changes, update the existing record and validate all derived destinations.
+
+Before uninstalling through a manager that creates skill backups, run `scripts/purge-state.sh --confirm` if the backup must not retain local course paths.

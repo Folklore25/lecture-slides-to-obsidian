@@ -1,0 +1,35 @@
+schema_version: 1
+
+cases:
+  - id: "all-required-skills-and-runtime-present"
+    available_skills:
+      - "mineru-pdf"
+      - "obsidian-markdown"
+    mineru_runtime: "available"
+    expected_action: "continue"
+
+  - id: "mineru-skill-missing"
+    available_skills:
+      - "obsidian-markdown"
+    mineru_runtime: "available"
+    expected_action: "stop-and-report-mineru-pdf"
+
+  - id: "obsidian-skill-missing"
+    available_skills:
+      - "mineru-pdf"
+    mineru_runtime: "available"
+    expected_action: "stop-and-report-obsidian-markdown"
+
+  - id: "mineru-runtime-missing"
+    available_skills:
+      - "mineru-pdf"
+      - "obsidian-markdown"
+    mineru_runtime: "missing"
+    expected_action: "stop-and-report-mineru-runtime"
+
+  - id: "similarly-named-skills-only"
+    available_skills:
+      - "mineru-ai"
+      - "obsidian"
+    mineru_runtime: "available"
+    expected_action: "stop-and-report-both-required-skills"
