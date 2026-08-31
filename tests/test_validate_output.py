@@ -1,3 +1,4 @@
+import hashlib
 import json
 import shutil
 import subprocess
@@ -19,14 +20,20 @@ def run_validator(
     delete_report: bool = False,
     vault_root: Path | None = None,
     recall_model: Path | None = None,
+    render_metrics: Path | None = None,
+    render_check: Path | None = None,
 ) -> tuple[int, dict]:
     command = [sys.executable, str(VALIDATOR), str(folder), "--report", str(report)]
     if vault_root is None:
         command.append("--fixture-mode")
     else:
         command += ["--vault-root", str(vault_root)]
-        if recall_model is not None:
-            command += ["--recall-model", str(recall_model)]
+    if recall_model is not None:
+        command += ["--recall-model", str(recall_model)]
+    if render_metrics is not None:
+        command += ["--render-metrics", str(render_metrics)]
+    if render_check is not None:
+        command += ["--render-check", str(render_check)]
     if delete_report:
         command.append("--delete-report-on-success")
     result = subprocess.run(
@@ -36,6 +43,25 @@ def run_validator(
         text=True,
     )
     return result.returncode, json.loads(result.stdout)
+
+
+def write_render_qa(staging: Path, canvas: Path) -> tuple[Path, Path]:
+    metrics = staging / "canvas-render-metrics.json"
+    check = staging / "canvas-render-check.json"
+    metrics.write_text(json.dumps({
+        "schema_version": 1,
+        "mode": "measure",
+        "measurement_complete": True,
+        "nodes": [{"id": "synthetic", "required_height": 300}],
+    }))
+    check.write_text(json.dumps({
+        "schema_version": 1,
+        "mode": "check",
+        "measurement_complete": True,
+        "valid": True,
+        "canvas_sha256": hashlib.sha256(canvas.read_bytes()).hexdigest(),
+    }))
+    return metrics, check
 
 
 class ValidateOutputTests(unittest.TestCase):
@@ -111,6 +137,25 @@ class ValidateOutputTests(unittest.TestCase):
             self.assertNotEqual(code, 0)
             self.assertTrue(any("exactly one overview" in item for item in result["errors"]))
 
+    def test_stale_render_check_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            folder = base / "document"
+            staging = base / "staging"
+            report = staging / "conversion-report.md"
+            shutil.copytree(FIXTURE, folder)
+            staging.mkdir()
+            shutil.copy2(REPORT_FIXTURE, report)
+            render_metrics, render_check = write_render_qa(staging, folder / "sample.canvas")
+            check = json.loads(render_check.read_text())
+            check["canvas_sha256"] = "0" * 64
+            render_check.write_text(json.dumps(check))
+            code, result = run_validator(
+                folder, report, render_metrics=render_metrics, render_check=render_check
+            )
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("does not match the delivered Canvas" in item for item in result["errors"]))
+
     def test_temporary_report_is_deleted_on_success(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp) / "document"
@@ -180,7 +225,11 @@ class ValidateOutputTests(unittest.TestCase):
             )
             note_node["file"] = "COURSE101/Lectures/sample/sample.md"
             canvas_path.write_text(json.dumps(canvas))
-            code, result = run_validator(folder, report, vault_root=vault, recall_model=recall_model)
+            render_metrics, render_check = write_render_qa(report.parent, canvas_path)
+            code, result = run_validator(
+                folder, report, vault_root=vault, recall_model=recall_model,
+                render_metrics=render_metrics, render_check=render_check,
+            )
             self.assertEqual(code, 0)
             self.assertTrue(result["valid"])
 
@@ -195,7 +244,11 @@ class ValidateOutputTests(unittest.TestCase):
             report.parent.mkdir()
             shutil.copy2(REPORT_FIXTURE, report)
             recall_model.write_text('{"schema_version":1}')
-            code, result = run_validator(folder, report, vault_root=vault, recall_model=recall_model)
+            render_metrics, render_check = write_render_qa(report.parent, folder / "sample.canvas")
+            code, result = run_validator(
+                folder, report, vault_root=vault, recall_model=recall_model,
+                render_metrics=render_metrics, render_check=render_check,
+            )
             self.assertNotEqual(code, 0)
             self.assertTrue(any("file node unresolved" in item for item in result["errors"]))
 

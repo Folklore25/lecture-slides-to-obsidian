@@ -12,7 +12,7 @@ Reject a source that resolves inside the destination vault. Do not copy or move 
 
 Select or confirm `lecture-notes`, `policy-document`, or `paper` using filename/user context before upload. A name such as `example-policy.pdf` should trigger a `policy-document` suggestion immediately. Validate extension and size without parsing the source locally. Infer then confirm the MinerU language enum and confirm an OCR boolean; neither field has a request default.
 
-Load `obsidian-markdown` and `json-canvas`. Verify the encrypted token file and Keychain wrapping key. On first setup, store the chat-provided token through `token-store.py set --token-stdin`; later runs unlock automatically without another conversational prompt.
+Load `obsidian-markdown`, `json-canvas`, and `obsidian-cli`. Verify the local render profile, encrypted token file, and Keychain wrapping key. On first setup, store the chat-provided token through `token-store.py set --token-stdin`; later runs unlock automatically without another conversational prompt.
 
 ## 3. Staging and official CLI extraction
 
@@ -30,11 +30,12 @@ Create the document folder only after extraction/profile decisions are stable. W
 - derived `assets/` only;
 - staging `recall-model.json` after reading the complete Markdown;
 - `<document-slug>.canvas` as a knowledge-recall map rendered from that semantic model;
+- staging `canvas-render-metrics.json` and `canvas-render-check.json` from local Obsidian DOM QA;
 - a temporary `conversion-report.md` under staging for Agent QA only.
 
 ## 6. Validation and delivery
 
-Run `scripts/validate-output.py` with the staging report, structural alignment checks, and [quality-gates.md](quality-gates.md). Move only validated Markdown/Canvas/assets into the document folder. Extract routing decisions, output paths, zero counts, review items, and not-checked gates for the final response; then delete the temporary report and `recall-model.json` before sending that response.
+Measure the first Canvas with `canvas-render-qa.py`, rebuild with its measurements, and run the final DOM check. Then run `scripts/validate-output.py` with all staging QA files, structural alignment checks, and [quality-gates.md](quality-gates.md). Move only validated Markdown/Canvas/assets into the document folder. Extract routing decisions, output paths, zero counts, review items, and not-checked gates for the final response; then delete the temporary report, recall model, render metrics, and render check before sending that response.
 
 ## Failure behavior
 

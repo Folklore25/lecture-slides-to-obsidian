@@ -65,12 +65,14 @@ Do not silently overwrite a Canvas that may contain manual edits. `build-canvas.
 
 A finished Canvas must pass all of these:
 
-- **Squint test:** at fit-to-screen, the overview, module order, and synthesis strip are visually distinct.
-- **One-minute test:** the overview plus logic chain recovers the lesson's thesis without opening the Markdown.
+- **Orientation test:** at fit-to-screen, only the overview, module order, and synthesis strip need to be distinguishable; body text is not judged at this zoom.
+- **Reading-scale test:** at the supported `zoom = 0`, the effective Canvas font is `16px`, at least as large as the local `13px` sidebar text.
+- **One-minute test:** at reading scale, the overview plus logic chain recovers the lesson's thesis without opening the Markdown.
 - **Why-edge test:** every arrow can be read as a meaningful sentence, `A <label> B`.
 - **Coverage test:** every major Markdown section is mapped or explicitly excluded in staging.
 - **Traceability test:** every concept links to an existing Markdown heading and states its exact 1-based source page; selected assets resolve inside the document folder.
 - **Density test:** no placeholder nodes, paragraph dumps, isolated concepts, node overlaps, or hub with more than six semantic connections.
+- **Renderer test:** [canvas-render-qa.md](canvas-render-qa.md) reports every text node above its measured height plus safety margin; screenshots do not count as this evidence.
 
 ## JSON Canvas invariants
 
@@ -79,4 +81,5 @@ A finished Canvas must pass all of these:
 - File paths are relative to the vault root, never relative to the Canvas.
 - Never create a file/link node for the original PDF/PPT/Office source or its absolute path.
 - Keep 50–100 px spacing and let groups sit behind their child nodes.
+- Treat offline `text_height()` as an initial estimate only. Rebuild from Obsidian DOM measurements before final validation.
 - Validate with `scripts/validate-output.py --vault-root ...`; fixture-relative paths are test-only.

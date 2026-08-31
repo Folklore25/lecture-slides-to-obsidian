@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -61,6 +62,14 @@ def inside(path: Path, parent: Path) -> bool:
         return True
     except ValueError:
         return False
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def local_target(raw: str) -> str | None:
@@ -396,6 +405,8 @@ def main() -> int:
     parser.add_argument("--fixture-mode", action="store_true", help="Allow document-relative Canvas paths in tests only")
     parser.add_argument("--report", required=True, type=Path, help="Temporary QA report outside the vault")
     parser.add_argument("--recall-model", type=Path, help="Temporary Agent-authored recall model outside the vault")
+    parser.add_argument("--render-metrics", type=Path, help="First-pass Obsidian DOM measurements outside the vault")
+    parser.add_argument("--render-check", type=Path, help="Final Obsidian DOM readability check outside the vault")
     parser.add_argument(
         "--delete-qa-on-success", "--delete-report-on-success",
         dest="delete_qa_on_success", action="store_true",
@@ -409,6 +420,12 @@ def main() -> int:
     report = report_input.resolve()
     recall_model_input = args.recall_model
     recall_model = recall_model_input.resolve() if recall_model_input else None
+    render_metrics_input = args.render_metrics
+    render_metrics = render_metrics_input.resolve() if render_metrics_input else None
+    render_check_input = args.render_check
+    render_check = render_check_input.resolve() if render_check_input else None
+    render_metrics_data: dict | None = None
+    render_check_data: dict | None = None
     errors: list[str] = []
 
     if vault_root is None and not args.fixture_mode:
@@ -421,10 +438,22 @@ def main() -> int:
         errors.append("temporary report filename must be conversion-report.md")
     if vault_root is not None and recall_model is None:
         errors.append("--recall-model is required outside explicit --fixture-mode")
+    if vault_root is not None and render_metrics is None:
+        errors.append("--render-metrics is required outside explicit --fixture-mode")
+    if vault_root is not None and render_check is None:
+        errors.append("--render-check is required outside explicit --fixture-mode")
     if recall_model_input is not None and recall_model_input.is_symlink():
         errors.append("temporary recall model must not be a symlink")
     if recall_model is not None and recall_model.name != "recall-model.json":
         errors.append("temporary recall model filename must be recall-model.json")
+    for input_path, resolved, expected_name, label in (
+        (render_metrics_input, render_metrics, "canvas-render-metrics.json", "render metrics"),
+        (render_check_input, render_check, "canvas-render-check.json", "render check"),
+    ):
+        if input_path is not None and input_path.is_symlink():
+            errors.append(f"temporary {label} must not be a symlink")
+        if resolved is not None and resolved.name != expected_name:
+            errors.append(f"temporary {label} filename must be {expected_name}")
 
     if not folder.is_dir():
         errors.append(f"document folder not found: {folder}")
@@ -434,6 +463,9 @@ def main() -> int:
         errors.append("temporary conversion report must be outside the document folder and vault")
     if recall_model is not None and (inside(recall_model, folder) or (vault_root and inside(recall_model, vault_root))):
         errors.append("temporary recall model must be outside the document folder and vault")
+    for resolved, label in ((render_metrics, "render metrics"), (render_check, "render check")):
+        if resolved is not None and (inside(resolved, folder) or (vault_root and inside(resolved, vault_root))):
+            errors.append(f"temporary {label} must be outside the document folder and vault")
     if recall_model is not None:
         if not recall_model.is_file():
             errors.append("temporary recall model is missing")
@@ -444,6 +476,29 @@ def main() -> int:
                     errors.append("temporary recall model must use schema_version 1")
             except (json.JSONDecodeError, UnicodeDecodeError) as exc:
                 errors.append(f"invalid temporary recall model JSON: {exc}")
+    for resolved, label, expected_mode in (
+        (render_metrics, "render metrics", "measure"),
+        (render_check, "render check", "check"),
+    ):
+        if resolved is None:
+            continue
+        if not resolved.is_file():
+            errors.append(f"temporary {label} is missing")
+            continue
+        try:
+            data = json.loads(resolved.read_text(encoding="utf-8"))
+            if not isinstance(data, dict) or data.get("schema_version") != 1:
+                errors.append(f"temporary {label} must use schema_version 1")
+            elif data.get("mode") != expected_mode or not data.get("measurement_complete"):
+                errors.append(f"temporary {label} is incomplete or has the wrong mode")
+            elif expected_mode == "check" and not data.get("valid"):
+                errors.append("final Obsidian DOM render check did not pass")
+            if expected_mode == "measure":
+                render_metrics_data = data
+            else:
+                render_check_data = data
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            errors.append(f"invalid temporary {label} JSON: {exc}")
 
     if not errors:
         forbidden = [path for path in folder.rglob("*") if path.is_file() and path.suffix.lower() in SOURCE_EXTENSIONS]
@@ -468,6 +523,11 @@ def main() -> int:
             errors += validate_markdown(markdown_files[0], folder, vault_root)
         if len(canvas_files) == 1:
             errors += validate_canvas(canvas_files[0], folder, vault_root)
+            canvas_hash = sha256_file(canvas_files[0])
+            if render_check_data is not None and render_check_data.get("canvas_sha256") != canvas_hash:
+                errors.append("final render check does not match the delivered Canvas")
+            if render_metrics_data is not None and not render_metrics_data.get("nodes"):
+                errors.append("first-pass render metrics contain no text-node measurements")
         if report.is_file():
             errors += validate_report(report)
         if assets.is_dir() and len(markdown_files) == 1:
@@ -475,12 +535,20 @@ def main() -> int:
 
     report_deleted = False
     recall_model_deleted = False
+    render_metrics_deleted = False
+    render_check_deleted = False
     if not errors and args.delete_qa_on_success:
         report.unlink()
         report_deleted = True
         if recall_model is not None:
             recall_model.unlink()
             recall_model_deleted = True
+        if render_metrics is not None:
+            render_metrics.unlink()
+            render_metrics_deleted = True
+        if render_check is not None:
+            render_check.unlink()
+            render_check_deleted = True
     result = {
         "valid": not errors,
         "document_folder": str(folder),
@@ -488,6 +556,8 @@ def main() -> int:
         "report_deleted": report_deleted,
         "temporary_recall_model": str(recall_model) if recall_model else None,
         "recall_model_deleted": recall_model_deleted,
+        "render_metrics_deleted": render_metrics_deleted,
+        "render_check_deleted": render_check_deleted,
         "errors": errors,
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))

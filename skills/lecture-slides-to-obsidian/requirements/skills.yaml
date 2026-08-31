@@ -13,3 +13,9 @@ required_skills:
     source: "https://github.com/kepano/obsidian-skills/tree/main/skills/json-canvas"
     verify:
       skill_name: "json-canvas"
+
+  - name: "obsidian-cli"
+    purpose: "Open the generated Canvas in the local Obsidian renderer and verify card height and effective font size through DOM measurements."
+    source: "https://github.com/kepano/obsidian-skills/tree/main/skills/obsidian-cli"
+    verify:
+      skill_name: "obsidian-cli"

@@ -1,8 +1,9 @@
 # Configuration contract
 
-The files in this directory are phase-one contract drafts. No bundled script reads them yet.
+Configuration is split between contract examples and one active local-render profile.
 
 - `pipeline.example.yaml` documents shared conversion and classification behavior.
+- `render-profile.mbp14-composer.json` is read by `canvas-render-qa.py` and intentionally pins the one supported workstation renderer.
 - `../state/course-registry.example.yaml` documents the persistent, local-only mapping from course names to semester/course destinations.
 
 Rules for future changes:

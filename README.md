@@ -13,6 +13,7 @@
 - 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。
 - 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和知识回忆 Canvas。QA report 与 recall model 只存在于 staging，验证完成即删除。
 - Canvas 不是目录图：它提炼中心问题、学习模块、概念依赖/因果/对比链、边界条件和主动回忆问题，并让每个概念回链到完整课件。
+- Canvas 卡片高度通过本机 Obsidian DOM 两遍测量，不使用截图判断；最终阅读视图固定为 1:1、16px 字体，高于当前侧栏的 13px。
 - 用户在一个新学期首次提供课程名称时，只询问一次学期根目录并持久记录学期与课程映射。
 - 后续通过课程代码、正式名称或已登记别名唯一匹配，自动归档到对应学期的课程子目录。
 - 这是通用、运行环境无关的 Agent Skill；推荐通过 cc-switch 统一安装、更新和切换。
@@ -90,6 +91,8 @@ PDF 会上传到 MinerU 官方服务进行解析。转换前必须：
 
 - 能发现并加载 `obsidian-markdown`，用于 Obsidian properties、wikilinks、embeds、callouts 和 Markdown 语法。
 - 能发现并加载 `json-canvas`，用于知识回忆画布生成与 JSON Canvas 校验。
+- 能发现并加载 `obsidian-cli`，并使用运行中的本机 Obsidian 做真实 DOM 渲染检查。
+- 当前只支持已测量的 MacBook Pro 14 / Composer 主题 / Obsidian 1.13.7 环境，不宣称其他机器兼容。
 - 已安装官方 `mineru-open-api` CLI，并能访问 MinerU Precision API。
 - 本机具有支持 `aes-256-cbc` 的 OpenSSL。
 - 当前自动 credential backend 为 macOS Keychain（`security` CLI）；其他平台会明确失败，不会退回明文或同目录 key 文件。
@@ -128,7 +131,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 4. Adapter 把 CLI legacy content-list JSON 按 `page_idx` 转成 page-group compatibility JSON。
 5. Adapter 按页码/类型/序号重命名图片，输出 `asset-map.json` 和 `normalized-assets/`。
 6. Agent 通读完整 Markdown，建立覆盖所有 H2 的临时 recall model，再由 `build-canvas.py` 生成可回忆的语义关系图。
-7. `obsidian-markdown` 和 `json-canvas` 完成语法与 Canvas 合规检查。
+7. `obsidian-markdown` 和 `json-canvas` 完成语法/结构检查，`obsidian-cli` 完成真实渲染检查。
 
 支持三个 conversion profile：`lecture-notes`、`policy-document`、`paper`。不是 slides 的资料不会被拒绝，而会在写入 vault 前要求确认合适的 profile。
 
@@ -142,14 +145,35 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 ## 本地验证
 
-技能提供四个 Agent-facing automation entry：
+技能提供五个 Agent-facing automation entry：
 
 ```text
 preflight.py          分段收集/验证 vault、course、profile、language、OCR、helper skills、token state
 reconstruct-note.py  content_list_v2.json → 完整 profile-aware Markdown + normalization context
 build-canvas.py       staging recall model → 可回忆、可追溯的 vault-relative JSON Canvas
+canvas-render-qa.py   本机 Obsidian DOM → 实测卡片高度、字体与最终 PASS/FAIL
 fill-report.py        QA context JSON → staging 临时 report
 ```
+
+Canvas 必须执行本机两遍渲染：
+
+```bash
+python3 skills/lecture-slides-to-obsidian/scripts/canvas-render-qa.py measure \
+  --canvas <document.canvas> --vault-root <vault-root> \
+  --output <staging>/canvas-render-metrics.json
+
+python3 skills/lecture-slides-to-obsidian/scripts/build-canvas.py \
+  --note <document.md> --vault-root <vault-root> --profile <profile> \
+  --model <staging>/recall-model.json \
+  --render-metrics <staging>/canvas-render-metrics.json \
+  --output <document.canvas> --overwrite
+
+python3 skills/lecture-slides-to-obsidian/scripts/canvas-render-qa.py check \
+  --canvas <document.canvas> --vault-root <vault-root> \
+  --output <staging>/canvas-render-check.json
+```
+
+这一流程读取 Obsidian 实际 DOM 高度并把阅读视图留在 1:1；不会生成或分析截图。
 
 完整处理完成后：
 
@@ -163,10 +187,12 @@ fill-report.py        QA context JSON → staging 临时 report
 python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py \
   <document-folder> --vault-root <vault-root> \
   --report <staging>/conversion-report.md \
-  --recall-model <staging>/recall-model.json --delete-qa-on-success
+  --recall-model <staging>/recall-model.json \
+  --render-metrics <staging>/canvas-render-metrics.json \
+  --render-check <staging>/canvas-render-check.json --delete-qa-on-success
 ```
 
-它验证 source-original exclusion、frontmatter、H1/page markers、wikilinks/assets，以及 Canvas 的一分钟回忆区、概念节点、语义边、密度、路径和非重叠布局；成功后删除 staging report 与 recall model。
+它验证 source-original exclusion、frontmatter、H1/page markers、wikilinks/assets，以及 Canvas 的语义结构、真实 DOM 高度、安全余量、有效字体、路径和非重叠布局；成功后删除全部 staging QA 文件。
 
 ## 测试素材政策
 

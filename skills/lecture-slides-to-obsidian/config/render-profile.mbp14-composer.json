@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "profile_id": "mbp14-1512x982-composer-obsidian-1.13.7",
+  "scope": "single-maintainer-workstation",
+  "obsidian_version": "1.13.7",
+  "installer_version": "1.12.4",
+  "screen_css_width": 1512,
+  "screen_css_height": 982,
+  "device_pixel_ratio": 2,
+  "theme": "Composer",
+  "base_font_size": 16,
+  "canvas_font_size_px": 16,
+  "canvas_line_height_px": 27.2,
+  "sidebar_font_size_px": 13,
+  "minimum_effective_font_px": 13,
+  "reading_zoom": 0,
+  "vertical_chrome_px": 34,
+  "safety_margin_px": 16,
+  "round_to_px": 10,
+  "render_wait_ms": 800
+}

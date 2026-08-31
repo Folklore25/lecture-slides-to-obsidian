@@ -7,7 +7,7 @@ A conversion is complete only when required gates pass or the report marks an ex
 - Semester ID/label and vault root are independently validated.
 - Course matching is exact, or near-match candidates and the user's choice are recorded.
 - The source resolves outside the Obsidian vault and remains unchanged.
-- The document folder contains only derived Markdown, Canvas, and assets; the temporary report and recall model are outside the vault.
+- The document folder contains only derived Markdown, Canvas, and assets; the temporary report, recall model, and DOM render-QA files are outside the vault.
 
 ## CLI and secret safety
 
@@ -37,6 +37,9 @@ Pixel-level visual diff against rendered source pages is not provided by this co
 - The staging recall model accounts for every H2 section and contains no unsupported/generic relationship.
 - Canvas has one-minute recall, 2–7 learning modules, 4–20 traceable concept nodes, a connected selective semantic graph, synthesis, distinctions, and active-recall prompts.
 - Canvas JSON, IDs, meaningful edge labels, paths, density, and non-overlap checks pass.
+- Local Obsidian DOM measurement was used to rebuild card heights; every text card retains the workstation profile's 16px safety margin.
+- Reading viewport is `zoom = 0`, giving a 16px effective Canvas font against the local 13px sidebar reference. Fit-all zoom is not a body-text readability gate.
+- Screenshot review was not used as the default renderer gate.
 - Only memory-critical visuals are linked; decorative or exhaustive asset galleries are absent.
 - Existing user-authored content was not overwritten without approval.
 

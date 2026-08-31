@@ -2,7 +2,7 @@
 name: lecture-slides-to-obsidian
 description: Compose the official MinerU Open API CLI with Obsidian Markdown and JSON Canvas skills to turn course documents into self-contained folders containing full Markdown, derived assets, and a knowledge-recall Canvas. Use for reusable course materials; source originals and temporary QA state remain outside the vault.
 metadata:
-  required-skills: "obsidian-markdown, json-canvas"
+  required-skills: "obsidian-markdown, json-canvas, obsidian-cli"
   required-services: "MinerU Precision API via official mineru-open-api CLI"
 ---
 
@@ -12,11 +12,11 @@ Prepare a complete, editable course document while keeping the source original o
 
 ## Current implementation status
 
-This skill is a thin composition layer. The official `mineru-open-api` CLI owns extraction/network behavior; `obsidian-markdown` and `json-canvas` own output syntax. This skill owns routing, profile normalization, semantic recall modeling, vault boundaries, and temporary QA.
+This skill is a thin composition layer. The official `mineru-open-api` CLI owns extraction/network behavior; `obsidian-markdown`, `json-canvas`, and `obsidian-cli` own output syntax and local renderer access. This skill owns routing, profile normalization, semantic recall modeling, vault boundaries, and temporary QA.
 
 ## Quick reference
 
-- Explicitly invoke the Skill tool for `obsidian-markdown` and `json-canvas`; availability alone is not loading. Pass both names to `preflight.py --loaded-skill` and record them in temporary QA context.
+- Explicitly invoke the Skill tool for `obsidian-markdown`, `json-canvas`, and `obsidian-cli`; availability alone is not loading. Pass all three names to `preflight.py --loaded-skill` and record them in temporary QA context.
 - Skill-owned state is always under `<installed-skill-directory>/state/`. Prefer cc-switch for installation and lifecycle management; do not assume a runtime-specific home path.
 - Run `scripts/preflight.py` first; ask its `questions[]` in stages rather than assuming all inputs.
 - `source_pages`: trust the adapter's normalized page-group length (`max(page_idx)+1` from official CLI JSON). Other counts are diagnostics.
@@ -29,7 +29,7 @@ This skill is a thin composition layer. The official `mineru-open-api` CLI owns 
 
 ## Prerequisite preflight
 
-Before extraction, read [requirements/skills.yaml](requirements/skills.yaml), [requirements/services.yaml](requirements/services.yaml), [requirements/tools.yaml](requirements/tools.yaml), and [references/requirements.md](references/requirements.md). Verify both Obsidian skills, `mineru-open-api`, OpenSSL, macOS Keychain, and encrypted token state. If token state is absent, pass the chat-provided token to `scripts/token-store.py set --token-stdin` through stdin. Later runs unlock automatically.
+Before extraction, read [requirements/skills.yaml](requirements/skills.yaml), [requirements/services.yaml](requirements/services.yaml), [requirements/tools.yaml](requirements/tools.yaml), and [references/requirements.md](references/requirements.md). Verify all three Obsidian skills, the local Obsidian CLI/render profile, `mineru-open-api`, OpenSSL, macOS Keychain, and encrypted token state. If token state is absent, pass the chat-provided token to `scripts/token-store.py set --token-stdin` through stdin. Later runs unlock automatically.
 
 ## Core workflow
 
@@ -42,7 +42,8 @@ Before extraction, read [requirements/skills.yaml](requirements/skills.yaml), [r
 7. Reconstruct pages with `scripts/reconstruct-note.py` from the adapter's normalized page groups. Never locate page boundaries with unscoped Markdown string anchors. Read [references/mineru-normalization.md](references/mineru-normalization.md).
 8. Write the complete Markdown and assets using [references/output-contract.md](references/output-contract.md) and [references/obsidian-style.md](references/obsidian-style.md).
 9. Read the complete note, write a staging `recall-model.json` using [references/canvas-recall-model.md](references/canvas-recall-model.md), then render the knowledge-recall Canvas with `scripts/build-canvas.py` and [references/canvas-contract.md](references/canvas-contract.md).
-10. Render temporary QA with `scripts/fill-report.py`, run [references/validation.md](references/validation.md), extract the facts needed for the final response, delete the report on success, then send the concise summary. Never place the report in the Obsidian vault.
+10. Run `canvas-render-qa.py measure`, rebuild with `build-canvas.py --render-metrics`, then run `canvas-render-qa.py check`. Use DOM numbers only; do not use screenshots as the default readability gate. Read [references/canvas-render-qa.md](references/canvas-render-qa.md).
+11. Render temporary QA with `scripts/fill-report.py`, run [references/validation.md](references/validation.md), extract the facts needed for the final response, delete all QA state on success, then send the concise summary. Never place QA files in the Obsidian vault.
 
 ## Non-negotiable boundaries
 
@@ -68,6 +69,7 @@ Before extraction, read [requirements/skills.yaml](requirements/skills.yaml), [r
 - Read [references/mineru-normalization.md](references/mineru-normalization.md) before reconstructing pages or headings.
 - Read [references/asset-naming.md](references/asset-naming.md) before copying, generating, linking, or validating visual assets.
 - Read [references/canvas-contract.md](references/canvas-contract.md) and [references/canvas-recall-model.md](references/canvas-recall-model.md) before creating or refreshing a `.canvas` file.
+- Read [references/canvas-render-qa.md](references/canvas-render-qa.md) before accepting Canvas readability.
 - Read [references/workflow.md](references/workflow.md) for the staged conversion process and failure handling.
 - Read [references/output-contract.md](references/output-contract.md) before writing final artifacts.
 - Read [references/obsidian-style.md](references/obsidian-style.md) when shaping the lecture note.

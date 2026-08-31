@@ -42,6 +42,7 @@ class PreflightTests(unittest.TestCase):
                 "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
                 "--loaded-skill", "json-canvas",
+                "--loaded-skill", "obsidian-cli",
             ])
             self.assertEqual(code, 0)
             self.assertTrue(result["ok"])
@@ -54,6 +55,7 @@ class PreflightTests(unittest.TestCase):
                 "--language", "en", "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
                 "--loaded-skill", "json-canvas",
+                "--loaded-skill", "obsidian-cli",
             ])
             profile_question = next(item for item in result["questions"] if item["id"] == "profile")
             self.assertIn("policy-document", profile_question["prompt"])
@@ -67,6 +69,7 @@ class PreflightTests(unittest.TestCase):
                 "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
                 "--loaded-skill", "json-canvas",
+                "--loaded-skill", "obsidian-cli",
             ])
             self.assertTrue(any(item["id"] == "profile_mismatch" for item in result["questions"]))
 
@@ -78,6 +81,7 @@ class PreflightTests(unittest.TestCase):
                 "--profile", "lecture-notes", "--language", "en",
                 "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
+                "--loaded-skill", "obsidian-cli",
             ])
             self.assertTrue(any("json-canvas" in item for item in result["errors"]))
 
@@ -90,6 +94,7 @@ class PreflightTests(unittest.TestCase):
                 "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
                 "--loaded-skill", "json-canvas",
+                "--loaded-skill", "obsidian-cli",
             ])
             self.assertTrue(any(item["id"] == "language" for item in result["questions"]))
 

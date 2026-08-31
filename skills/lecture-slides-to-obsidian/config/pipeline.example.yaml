@@ -28,6 +28,8 @@ output:
 staging:
   report_name: "conversion-report.md"
   recall_model_name: "recall-model.json"
+  canvas_render_metrics_name: "canvas-render-metrics.json"
+  canvas_render_check_name: "canvas-render-check.json"
   report_inside_vault: false
   recall_model_inside_vault: false
   delete_qa_on_success: true
@@ -76,3 +78,8 @@ obsidian:
   canvas_concept_nodes: "4..20"
   canvas_learning_modules: "2..7"
   canvas_memory_critical_assets_max: 6
+  canvas_render_profile: "config/render-profile.mbp14-composer.json"
+  canvas_reading_zoom: 0
+  canvas_effective_font_px: 16
+  canvas_sidebar_reference_px: 13
+  canvas_screenshot_qa: false

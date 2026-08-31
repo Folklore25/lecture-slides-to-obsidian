@@ -53,6 +53,30 @@ cases:
     required_output: "confirmed-class-additions-in-recall-zone"
     expected_action: "rebuild-model-without-inventing-lecture-content"
 
+  - id: "dom-height-reflow"
+    workstation_profile: "mbp14-1512x982-composer-obsidian-1.13.7"
+    first_pass_height: 440
+    measured_exact_height: 559
+    profile_height: 580
+    expected_action: "rebuild-and-reflow-from-dom-metrics"
+
+  - id: "reading-font-at-one-to-one"
+    canvas_font_px: 16
+    canvas_zoom: 0
+    effective_font_px: 16
+    sidebar_reference_px: 13
+    expected_action: "pass"
+
+  - id: "fit-all-is-not-reading-proof"
+    canvas_font_px: 16
+    canvas_zoom: -2.48
+    effective_font_px: 2.87
+    expected_action: "orientation-only-not-readable"
+
+  - id: "stale-render-check"
+    delivered_canvas_sha256_matches_check: false
+    expected_action: "reject"
+
   - id: "source-pdf-file-node"
     file: "lecture.pdf"
     expected_action: "reject-source-original-node"

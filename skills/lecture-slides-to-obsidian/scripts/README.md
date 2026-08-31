@@ -9,7 +9,8 @@ This directory contains deterministic Agent-facing orchestration helpers. MinerU
 - `fill-report.py --context <ctx.json> --output <staging>/conversion-report.md` renders deterministic temporary QA Markdown and rejects secret/path fields.
 - `reconstruct-note.py` converts page-grouped MinerU V2 blocks into complete profile-aware Markdown plus normalization context.
 - `build-canvas.py` validates an Agent-authored staging recall model and renders a deterministic, vault-relative knowledge-recall Canvas. It does not infer meaning from heading order.
-- `validate-output.py <document-folder> --vault-root <vault-root> --report <staging-report> --recall-model <staging-model>` validates final artifacts; `--delete-qa-on-success` removes both temporary QA files.
+- `canvas-render-qa.py measure|check` uses the running local Obsidian DOM to measure card height and effective font size without screenshots.
+- `validate-output.py <document-folder> --vault-root <vault-root> --report <staging-report> --recall-model <staging-model> --render-metrics <metrics> --render-check <check>` validates final artifacts; `--delete-qa-on-success` removes all temporary QA files.
 
 Do not add custom MinerU HTTP/upload/polling scripts. Improve the thin CLI adapter or upstream official CLI instead.
 

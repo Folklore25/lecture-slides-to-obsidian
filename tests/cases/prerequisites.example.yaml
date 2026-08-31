@@ -5,6 +5,8 @@ cases:
     available_skills:
       - "obsidian-markdown"
       - "json-canvas"
+      - "obsidian-cli"
+    obsidian_render_profile: "matching"
     openssl: "available-with-aes-256-cbc"
     mineru_network: "available"
     encrypted_token_file: "valid"
@@ -21,6 +23,7 @@ cases:
     available_skills:
       - "obsidian-markdown"
       - "json-canvas"
+      - "obsidian-cli"
     openssl: "available-with-aes-256-cbc"
     mineru_network: "available"
     encrypted_token_file: "missing"
@@ -30,6 +33,7 @@ cases:
     available_skills:
       - "obsidian-markdown"
       - "json-canvas"
+      - "obsidian-cli"
     openssl: "missing"
     encrypted_token_file: "missing"
     expected_action: "stop-without-plaintext-storage-fallback"
@@ -38,6 +42,7 @@ cases:
     available_skills:
       - "obsidian-markdown"
       - "json-canvas"
+      - "obsidian-cli"
     mineru_network: "available"
     api_error: "A0202-or-A0211"
     expected_action: "replace-encrypted-token-without-echo"
@@ -46,7 +51,16 @@ cases:
     available_skills:
       - "obsidian-markdown"
       - "json-canvas"
+      - "obsidian-cli"
       - "mineru-pdf"
     local_mineru_runtime: "available"
     mineru_network: "unavailable"
     expected_action: "stop-without-local-fallback"
+
+  - id: "local-render-profile-mismatch"
+    available_skills:
+      - "obsidian-markdown"
+      - "json-canvas"
+      - "obsidian-cli"
+    obsidian_render_profile: "theme-or-version-mismatch"
+    expected_action: "stop-and-recalibrate-without-screenshot-fallback"

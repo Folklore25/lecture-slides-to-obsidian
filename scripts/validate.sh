@@ -8,6 +8,7 @@ required_files='SKILL.md
 agents/openai.yaml
 config/README.md
 config/pipeline.example.yaml
+config/render-profile.mbp14-composer.json
 examples/invocations.md
 examples/expected-note.md
 requirements/skills.yaml
@@ -23,12 +24,14 @@ references/normalization-examples.md
 references/asset-naming.md
 references/canvas-contract.md
 references/canvas-recall-model.md
+references/canvas-render-qa.md
 references/output-contract.md
 references/obsidian-style.md
 references/quality-gates.md
 references/validation.md
 scripts/README.md
 scripts/build-canvas.py
+scripts/canvas-render-qa.py
 scripts/fill-report.py
 scripts/mineru-cli-adapter.py
 scripts/preflight.py
@@ -87,8 +90,14 @@ if grep -R -n '~/.config/lecture-slides-to-obsidian\|XDG_CONFIG_HOME' "$skill_di
   exit 1
 fi
 
-if ! grep -q 'required-skills: "obsidian-markdown, json-canvas"' "$skill_dir/SKILL.md"; then
+if ! grep -q 'required-skills: "obsidian-markdown, json-canvas, obsidian-cli"' "$skill_dir/SKILL.md"; then
   printf 'skill prerequisite metadata is missing or out of sync\n' >&2
+  exit 1
+fi
+
+if ! grep -q 'name: "obsidian-cli"' "$skill_dir/requirements/skills.yaml" || \
+   ! grep -q 'name: "obsidian"' "$skill_dir/requirements/tools.yaml"; then
+  printf 'local Obsidian renderer QA prerequisites are missing\n' >&2
   exit 1
 fi
 
@@ -145,6 +154,12 @@ fi
 if ! command -v openssl >/dev/null 2>&1 || \
    ! openssl enc -list | grep -q 'aes-256-cbc'; then
   printf 'OpenSSL with aes-256-cbc is required\n' >&2
+  exit 1
+fi
+
+if ! command -v obsidian >/dev/null 2>&1 || \
+   [ ! -x "$skill_dir/scripts/canvas-render-qa.py" ]; then
+  printf 'Obsidian CLI and executable canvas-render-qa.py are required for local renderer QA\n' >&2
   exit 1
 fi
 

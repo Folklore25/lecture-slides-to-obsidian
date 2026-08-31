@@ -18,7 +18,7 @@ SUPPORTED = {
     ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx",
 }
 PROFILES = {"lecture-notes", "policy-document", "paper"}
-REQUIRED_SKILLS = {"obsidian-markdown", "json-canvas"}
+REQUIRED_SKILLS = {"obsidian-markdown", "json-canvas", "obsidian-cli"}
 MINERU_LANGUAGES = {
     "ch", "ch_server", "en", "japan", "korean", "chinese_cht", "ta",
     "te", "ka", "el", "th", "latin", "arabic", "cyrillic",
@@ -115,6 +115,24 @@ def main() -> int:
     if missing_skills:
         errors.append("helper skills not loaded through the Skill tool: " + ", ".join(missing_skills))
     checks["loaded_helper_skills"] = sorted(loaded & REQUIRED_SKILLS)
+
+    obsidian_cli = shutil.which("obsidian")
+    if not args.fixture_mode and obsidian_cli is None:
+        errors.append("Obsidian CLI is unavailable for renderer QA")
+    elif obsidian_cli:
+        checks["obsidian_cli"] = obsidian_cli
+        if not args.fixture_mode:
+            version = subprocess.run(
+                [obsidian_cli, "version"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+            if version.returncode != 0:
+                errors.append("Obsidian CLI version check failed")
+            else:
+                checks["obsidian_cli_version"] = version.stdout.splitlines()[0].strip()
 
     openssl = shutil.which("openssl")
     if openssl is None:

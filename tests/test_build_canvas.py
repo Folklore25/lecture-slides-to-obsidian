@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 import re
 import tempfile
 import unittest
@@ -103,6 +104,50 @@ class BuildCanvasTests(unittest.TestCase):
         markdown = "\n".join(f"## {value}" for value in ["Foundations", "Mechanism", "Application", "Limits", "In-class notes"])
         with self.assertRaisesRegex(BUILD_CANVAS.CanvasBuildError, "structurally generic"):
             BUILD_CANVAS.validate_model(model, markdown, "lecture-notes")
+
+    def test_render_metrics_replace_estimates_and_preserve_reflow(self):
+        with tempfile.TemporaryDirectory() as temp:
+            vault = Path(temp) / "vault"
+            folder = vault / "COURSE101/Lectures/example-lesson"
+            (folder / "assets").mkdir(parents=True)
+            note = folder / "example-lesson.md"
+            note.write_text(
+                "# Example lesson\n\n## Foundations\n\nText.\n\n## Mechanism\n\nText.\n\n"
+                "## Application\n\nText.\n\n## Limits\n\nText.\n\n## In-class notes\n"
+            )
+            first = BUILD_CANVAS.build_canvas(note, vault, "lecture-notes", recall_model())
+            text_nodes = [node for node in first["nodes"] if node["type"] == "text"]
+            metrics = {
+                "schema_version": 1,
+                "mode": "measure",
+                "measurement_complete": True,
+                "nodes": [
+                    {
+                        "id": node["id"],
+                        "width": node["width"],
+                        "required_height": node["height"] + 40,
+                        "text_sha256": hashlib.sha256(node["text"].encode()).hexdigest(),
+                    }
+                    for node in text_nodes
+                ],
+            }
+            second = BUILD_CANVAS.build_canvas(
+                note, vault, "lecture-notes", recall_model(), render_metrics=metrics
+            )
+            first_by_id = {node["id"]: node for node in first["nodes"]}
+            second_by_id = {node["id"]: node for node in second["nodes"]}
+            for node in text_nodes:
+                self.assertEqual(second_by_id[node["id"]]["height"], node["height"] + 40)
+            first_synthesis_y = next(
+                node["y"] for node in first["nodes"]
+                if "<!-- recall-map: synthesis -->" in node.get("text", "")
+            )
+            second_synthesis_y = next(
+                node["y"] for node in second["nodes"]
+                if "<!-- recall-map: synthesis -->" in node.get("text", "")
+            )
+            self.assertGreater(second_synthesis_y, first_synthesis_y)
+            self.assertEqual(set(first_by_id), set(second_by_id))
 
     def test_missing_section_coverage_is_rejected(self):
         model = recall_model()

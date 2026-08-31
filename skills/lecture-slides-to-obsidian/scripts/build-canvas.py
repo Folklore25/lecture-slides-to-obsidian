@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import re
 import sys
@@ -301,12 +302,34 @@ def validate_model(model: dict, markdown: str, profile: str) -> dict:
     return model
 
 
-def text_height(text: str, width: int, minimum: int = 160, maximum: int = 520) -> int:
+def text_height(text: str, width: int, minimum: int = 160, maximum: int = 900) -> int:
     approximate_chars_per_line = max(24, width // 9)
     lines = 0
+    list_items = 0
     for raw_line in text.splitlines():
         lines += max(1, (len(raw_line) + approximate_chars_per_line - 1) // approximate_chars_per_line)
-    return max(minimum, min(maximum, 50 + lines * 25))
+        if raw_line.lstrip().startswith(("- ", "1. ", "2. ", "3. ", "4. ", "5. ", "6. ", "7. ")):
+            list_items += 1
+    estimated = 70 + lines * 30 + list_items * 6
+    return max(minimum, min(maximum, int(math.ceil(estimated / 10) * 10)))
+
+
+def render_height(metrics: dict | None, node_id: str, text: str, width: int, estimated: int) -> int:
+    if metrics is None:
+        return estimated
+    records = {item.get("id"): item for item in metrics.get("nodes", []) if isinstance(item, dict)}
+    record = records.get(node_id)
+    if record is None:
+        raise CanvasBuildError(f"render metrics are missing text node {node_id}")
+    if record.get("width") != width:
+        raise CanvasBuildError(f"render metric width mismatch for text node {node_id}")
+    text_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    if record.get("text_sha256") != text_hash:
+        raise CanvasBuildError(f"render metric text mismatch for text node {node_id}")
+    required = record.get("required_height")
+    if not isinstance(required, int) or required <= 0:
+        raise CanvasBuildError(f"render metrics contain an invalid height for text node {node_id}")
+    return required
 
 
 def concept_color(kind: str) -> str:
@@ -341,6 +364,7 @@ def build_canvas(
     profile: str,
     model: dict,
     assets_dir: Path | None = None,
+    render_metrics: dict | None = None,
 ) -> dict:
     note = note.resolve()
     vault_root = vault_root.resolve()
@@ -348,6 +372,11 @@ def build_canvas(
         raise CanvasBuildError("note must be an existing file inside vault_root")
     markdown = note.read_text(encoding="utf-8")
     model = validate_model(model, markdown, profile)
+    if render_metrics is not None:
+        if render_metrics.get("schema_version") != 1 or not render_metrics.get("measurement_complete"):
+            raise CanvasBuildError("render metrics are incomplete or use an unsupported schema")
+        if render_metrics.get("mode") != "measure":
+            raise CanvasBuildError("build-canvas requires first-pass measure metrics")
     note_relative = note.relative_to(vault_root).as_posix()
     document_folder = note.parent
     assets_dir = assets_dir.resolve() if assets_dir else document_folder / "assets"
@@ -393,8 +422,14 @@ def build_canvas(
                 f"**Source:** {source_link} · source page {concept['source_page']}",
             ]
             text = "\n".join(parts)
-            height = text_height(text, 420, minimum=210, maximum=440)
             node_id = stable_id("concept", f"{note_relative}:{concept['id']}")
+            height = render_height(
+                render_metrics,
+                node_id,
+                text,
+                420,
+                text_height(text, 420, minimum=210, maximum=900),
+            )
             node = {
                 "id": node_id,
                 "type": "text",
@@ -474,7 +509,13 @@ def build_canvas(
         "x": 0,
         "y": 0,
         "width": overview_width,
-        "height": text_height(overview_text, overview_width, 300, 440),
+        "height": render_height(
+            render_metrics,
+            stable_id("overview", note_relative),
+            overview_text,
+            overview_width,
+            text_height(overview_text, overview_width, 300, 700),
+        ),
         "text": overview_text,
         "color": "6",
     }
@@ -522,14 +563,21 @@ def build_canvas(
     ]
     summary_nodes = []
     for key, x, text, color in summary_specs:
+        node_id = stable_id(key, note_relative)
         summary_nodes.append(
             {
-                "id": stable_id(key, note_relative),
+                "id": node_id,
                 "type": "text",
                 "x": x,
                 "y": synthesis_y,
                 "width": summary_width,
-                "height": text_height(text, summary_width, 260, 480),
+                "height": render_height(
+                    render_metrics,
+                    node_id,
+                    text,
+                    summary_width,
+                    text_height(text, summary_width, 260, 700),
+                ),
                 "text": text,
                 "color": color,
             }
@@ -587,6 +635,7 @@ def main() -> int:
     parser.add_argument("--vault-root", required=True, type=Path)
     parser.add_argument("--profile", required=True, choices=PROFILES)
     parser.add_argument("--model", required=True, type=Path, help="Agent-authored staging recall-model JSON")
+    parser.add_argument("--render-metrics", type=Path, help="First-pass Obsidian DOM measurements")
     parser.add_argument("--assets-dir", type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--overwrite", action="store_true")
@@ -595,7 +644,19 @@ def main() -> int:
         if not args.model.is_file():
             raise CanvasBuildError(f"recall model not found: {args.model}")
         model = json.loads(args.model.read_text(encoding="utf-8"))
-        canvas = build_canvas(args.note, args.vault_root, args.profile, model, args.assets_dir)
+        render_metrics = None
+        if args.render_metrics is not None:
+            if not args.render_metrics.is_file():
+                raise CanvasBuildError(f"render metrics not found: {args.render_metrics}")
+            render_metrics = json.loads(args.render_metrics.read_text(encoding="utf-8"))
+        canvas = build_canvas(
+            args.note,
+            args.vault_root,
+            args.profile,
+            model,
+            args.assets_dir,
+            render_metrics,
+        )
         if args.output.resolve().parent != args.note.resolve().parent:
             raise CanvasBuildError("Canvas output must be beside the complete Markdown note")
         if args.output.exists() and not args.overwrite:
