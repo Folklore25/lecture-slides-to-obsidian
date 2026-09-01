@@ -15,6 +15,7 @@ requirements/skills.yaml
 requirements/services.yaml
 requirements/tools.yaml
 references/workflow.md
+references/canvas-batch-delegation.md
 references/course-routing.md
 references/document-profiles.md
 references/requirements.md
@@ -27,6 +28,7 @@ references/obsidian-style.md
 references/quality-gates.md
 references/validation.md
 scripts/README.md
+scripts/plan-canvas-batch.py
 scripts/fill-report.py
 scripts/mineru-cli-adapter.py
 scripts/preflight.py
@@ -36,7 +38,8 @@ scripts/token-store.py
 scripts/validate-output.py
 state/README.md
 state/course-registry.example.yaml
-templates/report-context.example.json'
+templates/report-context.example.json
+templates/canvas-batch-manifest.example.json'
 
 canvas_required_files='SKILL.md
 agents/openai.yaml
@@ -185,6 +188,7 @@ if ! command -v openssl >/dev/null 2>&1 || \
 fi
 
 if ! command -v obsidian >/dev/null 2>&1 || \
+   [ ! -x "$skill_dir/scripts/plan-canvas-batch.py" ] || \
    [ ! -x "$canvas_skill_dir/scripts/canvas-render-qa.py" ] || \
    [ ! -x "$canvas_skill_dir/scripts/canvas-aesthetic-qa.py" ] || \
    [ ! -x "$canvas_skill_dir/scripts/recall-skeleton.py" ]; then

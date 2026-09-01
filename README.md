@@ -142,6 +142,8 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 如果完整 Markdown 已存在而只缺 Canvas，直接调用 `obsidian-canvas-designer`。这一入口不加载 MinerU、token、提取、课程路由或 conversion report。
 
+如果一次需要为两个或更多文件生成 Canvas，主 Agent 必须创建“一文件一任务”的 Canvas subagents。semantic authoring、初版布局和 aesthetic QA 可按可用容量并行；共享的本机 Obsidian DOM measure/reflow/check 必须单通道串行，避免不同 Canvas 互相抢 active renderer。批计划由 `plan-canvas-batch.py` 生成，单文件失败按文件报告，不得把整批笼统标成 PASS/FAIL。
+
 ## 本地验证
 
 主技能提供三个流程入口，Canvas 子技能提供四个独立入口：

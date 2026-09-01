@@ -9,10 +9,13 @@ Inputs:
 - staging directory: `<absolute-staging-path-outside-vault>`
 - assets directory: `<absolute-document-assets-path>`
 - overwrite authorized: `<true|false>`
+- phase: `<FULL|AUTHORING|RENDER>`
 
 Do not invoke extraction, MinerU, credentials, course routing, Markdown reconstruction, or conversion reports. Do not edit the complete note.
 
-Run the note inspection/recall-skeleton step first. If exact H2 anchors are missing, return their H3 candidates and stop without modifying the note. Complete the semantic model, apply the required Axton-informed design rules, build the first Canvas, pass aesthetic QA, measure/reflow using the real Obsidian DOM, rerun aesthetic QA, and pass the final renderer check.
+For `FULL`, run the entire workflow. For `AUTHORING`, run note inspection/recall-skeleton, semantic authoring, first build, and aesthetic QA, then return `READY_FOR_RENDER` without opening the real renderer. For `RENDER`, continue the existing task after the orchestrator grants the exclusive renderer slot; measure/reflow, rerun aesthetic QA, and pass the final renderer check.
+
+If exact H2 anchors are missing, return their H3 candidates and stop without modifying the note.
 
 Return exactly:
 

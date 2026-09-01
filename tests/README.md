@@ -11,11 +11,12 @@ Future test layers should be separated:
 5. **Course-routing tests** — first binding, aliases, active semesters, ambiguity, stale roots, containment, and collisions.
 6. **API normalization tests** — page-grouped content lists, legacy `page_idx`, duplicate anchors, heading levels, and auxiliary blocks.
 7. **Canvas subskill tests** — Canvas-only routing, H2/page skeleton inventory, semantic model validation, Axton-informed density/color/edge gates, deterministic layout, delegation boundaries, and source-original exclusion.
-8. **Canvas renderer tests** — foreground DOM enforcement, measured height formula, safety rounding, local profile mismatch, effective font size, and stale-check rejection.
-9. **Output-validator tests** — folder, Markdown, Canvas, assets, all temporary QA files, and NOT-CHECKED semantics.
-10. **Golden tests** — deterministic Markdown/assets from redistributable fixtures.
-11. **Visual review cases** — diagrams, tables, equations, OCR, and mixed-language pages.
-12. **End-to-end tests** — source file outside vault to official API to validated Obsidian folder.
+8. **Canvas batch tests** — mandatory one-subagent-per-document planning for two or more files, capacity waves, isolated paths, and a single shared renderer lane.
+9. **Canvas renderer tests** — foreground DOM enforcement, measured height formula, safety rounding, local profile mismatch, effective font size, and stale-check rejection.
+10. **Output-validator tests** — folder, Markdown, Canvas, assets, all temporary QA files, and NOT-CHECKED semantics.
+11. **Golden tests** — deterministic Markdown/assets from redistributable fixtures.
+12. **Visual review cases** — diagrams, tables, equations, OCR, and mixed-language pages.
+13. **End-to-end tests** — source file outside vault to official API to validated Obsidian folder.
 
 The automated integration test covers V2 reconstruction → Canvas subskill build/aesthetic check → temporary report render → validation → QA-state deletion. Local workstation experiments additionally verify foreground Obsidian DOM measure → rebuild/reflow → aesthetic recheck → DOM check without screenshots. Live MinerU network calls remain out of test scope.
 

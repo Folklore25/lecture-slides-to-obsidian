@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "items": [
+    {
+      "id": "lesson-a",
+      "note": "/path/to/vault/COURSE101/Lectures/lesson-a/lesson-a.md",
+      "recall_model": "/path/to/staging/lesson-a/recall-model.json",
+      "canvas": "/path/to/vault/COURSE101/Lectures/lesson-a/lesson-a.canvas",
+      "staging": "/path/to/staging/lesson-a",
+      "assets": "/path/to/vault/COURSE101/Lectures/lesson-a/assets",
+      "profile": "lecture-notes",
+      "overwrite": false
+    },
+    {
+      "id": "lesson-b",
+      "note": "/path/to/vault/COURSE101/Lectures/lesson-b/lesson-b.md",
+      "recall_model": "/path/to/staging/lesson-b/recall-model.json",
+      "canvas": "/path/to/vault/COURSE101/Lectures/lesson-b/lesson-b.canvas",
+      "staging": "/path/to/staging/lesson-b",
+      "assets": "/path/to/vault/COURSE101/Lectures/lesson-b/assets",
+      "profile": "lecture-notes",
+      "overwrite": false
+    }
+  ]
+}

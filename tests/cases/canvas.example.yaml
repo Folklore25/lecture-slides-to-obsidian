@@ -1,6 +1,25 @@
 schema_version: 1
 
 cases:
+  - id: "two-file-batch-requires-subagents"
+    canvas_work_items: 2
+    required_subagent_tasks: 2
+    task_granularity: "one-document-each"
+    authoring_parallel: true
+    renderer_parallelism: 1
+    expected_action: "spawn-two-and-serialize-dom"
+
+  - id: "batch-over-capacity-uses-waves"
+    canvas_work_items: 5
+    available_subagent_slots: 2
+    authoring_waves:
+      - 2
+      - 2
+      - 1
+    merged_document_tasks: 0
+    renderer_parallelism: 1
+    expected_action: "queue-without-merging"
+
   - id: "delegated-canvas-subskill"
     orchestrator_owns:
       - "complete-note"
