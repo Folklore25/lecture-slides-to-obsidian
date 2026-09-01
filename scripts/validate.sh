@@ -52,7 +52,9 @@ requirements/tools.yaml
 scripts/build-canvas.py
 scripts/canvas-aesthetic-qa.py
 scripts/canvas-render-qa.py
-templates/recall-model.example.json'
+scripts/recall-skeleton.py
+templates/delegated-task.md
+templates/recall-model.lecture-notes.example.json'
 
 printf '%s\n' "$main_required_files" | while IFS= read -r relative_path; do
   if [ ! -f "$skill_dir/$relative_path" ]; then
@@ -184,7 +186,8 @@ fi
 
 if ! command -v obsidian >/dev/null 2>&1 || \
    [ ! -x "$canvas_skill_dir/scripts/canvas-render-qa.py" ] || \
-   [ ! -x "$canvas_skill_dir/scripts/canvas-aesthetic-qa.py" ]; then
+   [ ! -x "$canvas_skill_dir/scripts/canvas-aesthetic-qa.py" ] || \
+   [ ! -x "$canvas_skill_dir/scripts/recall-skeleton.py" ]; then
   printf 'Obsidian CLI and executable canvas-render-qa.py are required for local renderer QA\n' >&2
   exit 1
 fi

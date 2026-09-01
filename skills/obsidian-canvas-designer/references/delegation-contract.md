@@ -14,6 +14,7 @@ The Canvas subagent must not:
 
 - ask the user to repeat course, semester, MinerU, language, OCR, or credential decisions;
 - edit the complete Markdown, course registry, source original, token state, or unrelated vault files;
+- promote H3 headings to H2, even when the note lacks usable anchors; report exact candidates instead;
 - invent missing relationships to make the graph look fuller;
 - overwrite an existing user-edited Canvas without an explicit overwrite instruction from the delegating Agent;
 - delete shared staging QA files.

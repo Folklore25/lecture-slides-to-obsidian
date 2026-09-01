@@ -61,6 +61,8 @@ Do not attach every extracted image to the main note node. Select at most six me
 
 Do not silently overwrite a Canvas that may contain manual edits. `build-canvas.py` refuses an existing output unless `--overwrite` is explicitly supplied after preserving or reconciling those edits.
 
+For first creation, the Canvas path does not exist and `--overwrite` must be omitted. The DOM-driven second pass overwrites the first-pass Canvas created in the same run, so it uses `--render-metrics ... --overwrite`. A later refresh of a possibly user-edited Canvas requires an explicit reconciliation/overwrite decision.
+
 ## Readability acceptance tests
 
 A finished Canvas must pass all of these:
@@ -70,7 +72,7 @@ A finished Canvas must pass all of these:
 - **One-minute test:** at reading scale, the overview plus logic chain recovers the lesson's thesis without opening the Markdown.
 - **Why-edge test:** every arrow can be read as a meaningful sentence, `A <label> B`.
 - **Coverage test:** every major Markdown section is mapped or explicitly excluded in staging.
-- **Traceability test:** every concept links to an existing Markdown heading and states its exact 1-based source page; selected assets resolve inside the document folder.
+- **Traceability test:** every concept links to an exact existing `## H2` and states its 1-based source page; H3 is not accepted and selected assets resolve inside the document folder.
 - **Density test:** no placeholder nodes, paragraph dumps, isolated concepts, node overlaps, or hub with more than six semantic connections.
 - **Aesthetic test:** [axton-aesthetics.md](axton-aesthetics.md) and `canvas-aesthetic-qa.py` pass before DOM measurement.
 - **Renderer test:** [render-qa.md](render-qa.md) reports every text node above its measured height plus safety margin; screenshots do not count as this evidence.
@@ -83,4 +85,5 @@ A finished Canvas must pass all of these:
 - Never create a file/link node for the original PDF/PPT/Office source or its absolute path.
 - Keep 50–100 px spacing and let groups sit behind their child nodes.
 - Treat offline `text_height()` as an initial estimate only. Rebuild from Obsidian DOM measurements before final validation.
-- Validate with `scripts/validate-output.py --vault-root ...`; fixture-relative paths are test-only.
+- Production delivery never skips renderer QA. Offline estimates are allowed only in synthetic/unit fixtures and must not be reported as a completed Canvas.
+- Standalone Canvas-only work finishes with `canvas-aesthetic-qa.py` and `canvas-render-qa.py check`. When delegated by the course skill, return those SHA-bound artifacts to its sibling `scripts/validate-output.py`; fixture-relative paths are test-only.

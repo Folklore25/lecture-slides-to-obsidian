@@ -28,6 +28,8 @@ The Markdown file is the complete course material, not a summary. It contains:
 6. Explicit uncertainty markers only where review is required.
 7. Profile-specific additions such as `## In-class notes` only when appropriate.
 
+When a knowledge Canvas is requested, every concept source section must expose a real `## H2` anchor with page provenance. H3 headings are not valid Canvas source anchors. Do not promote user-authored headings merely to satisfy Canvas generation; report the exact structural candidates and require an authorized note repair.
+
 Required top-level properties:
 
 ```yaml

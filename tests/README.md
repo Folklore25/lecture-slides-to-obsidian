@@ -10,7 +10,7 @@ Future test layers should be separated:
 4. **MinerU CLI adapter tests** — child-env credentials, official command flags, output discovery, legacy page grouping, redaction, and fail-closed behavior.
 5. **Course-routing tests** — first binding, aliases, active semesters, ambiguity, stale roots, containment, and collisions.
 6. **API normalization tests** — page-grouped content lists, legacy `page_idx`, duplicate anchors, heading levels, and auxiliary blocks.
-7. **Canvas subskill tests** — semantic model validation, Axton-informed density/color/edge gates, deterministic layout, delegation boundaries, and source-original exclusion.
+7. **Canvas subskill tests** — Canvas-only routing, H2/page skeleton inventory, semantic model validation, Axton-informed density/color/edge gates, deterministic layout, delegation boundaries, and source-original exclusion.
 8. **Canvas renderer tests** — foreground DOM enforcement, measured height formula, safety rounding, local profile mismatch, effective font size, and stale-check rejection.
 9. **Output-validator tests** — folder, Markdown, Canvas, assets, all temporary QA files, and NOT-CHECKED semantics.
 10. **Golden tests** — deterministic Markdown/assets from redistributable fixtures.

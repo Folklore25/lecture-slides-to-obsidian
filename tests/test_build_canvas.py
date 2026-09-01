@@ -1,6 +1,9 @@
 import importlib.util
 import hashlib
+import json
 import re
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -104,6 +107,50 @@ class BuildCanvasTests(unittest.TestCase):
         markdown = "\n".join(f"## {value}" for value in ["Foundations", "Mechanism", "Application", "Limits", "In-class notes"])
         with self.assertRaisesRegex(BUILD_CANVAS.CanvasBuildError, "structurally generic"):
             BUILD_CANVAS.validate_model(model, markdown, "lecture-notes")
+
+    def test_authoring_draft_is_rejected_with_fix_hint(self):
+        model = recall_model()
+        model["draft_status"] = "authoring-required"
+        markdown = "\n".join(
+            f"## {value}" for value in ["Foundations", "Mechanism", "Application", "Limits", "In-class notes"]
+        )
+        with self.assertRaisesRegex(BUILD_CANVAS.CanvasBuildError, "fill semantic fields"):
+            BUILD_CANVAS.validate_model(model, markdown, "lecture-notes")
+
+    def test_hash_named_asset_is_rejected_by_builder_contract(self):
+        model = recall_model()
+        model["asset_links"] = [
+            {"concept": "mechanism", "path": "assets/abcdef123456.jpg", "caption": "Diagram"}
+        ]
+        markdown = "\n".join(
+            f"## {value}" for value in ["Foundations", "Mechanism", "Application", "Limits", "In-class notes"]
+        )
+        with self.assertRaisesRegex(BUILD_CANVAS.CanvasBuildError, "violates the asset contract"):
+            BUILD_CANVAS.validate_model(model, markdown, "lecture-notes")
+
+    def test_first_creation_rejects_unnecessary_overwrite_flag(self):
+        with tempfile.TemporaryDirectory() as temp:
+            vault = Path(temp) / "vault"
+            folder = vault / "COURSE101/Lectures/example-lesson"
+            (folder / "assets").mkdir(parents=True)
+            note = folder / "example-lesson.md"
+            note.write_text(
+                "# Example lesson\n\n## Foundations\n\nText.\n\n## Mechanism\n\nText.\n\n"
+                "## Application\n\nText.\n\n## Limits\n\nText.\n\n## In-class notes\n"
+            )
+            model_path = Path(temp) / "recall-model.json"
+            model_path.write_text(json.dumps(recall_model()))
+            result = subprocess.run(
+                [
+                    sys.executable, str(SCRIPT), "--note", str(note),
+                    "--vault-root", str(vault), "--profile", "lecture-notes",
+                    "--model", str(model_path), "--output", str(folder / "example-lesson.canvas"),
+                    "--overwrite",
+                ],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("invalid for first creation", result.stderr)
 
     def test_render_metrics_replace_estimates_and_preserve_reflow(self):
         with tempfile.TemporaryDirectory() as temp:

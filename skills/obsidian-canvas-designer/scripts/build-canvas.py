@@ -31,6 +31,9 @@ BANNED_RELATION_LABELS = {
 }
 KEY_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,47}$")
 HEADING_RE = re.compile(r"(?m)^##\s+(.+?)\s*$")
+ASSET_NAME = re.compile(
+    r"^assets/page-\d{3}-(figure|table|equation|chart|fallback)-\d{2}\.(png|jpg|jpeg|webp|gif|bmp|svg)$"
+)
 
 
 class CanvasBuildError(RuntimeError):
@@ -57,15 +60,21 @@ def validate_visual_title(value: str, label: str) -> None:
     has_cjk = bool(re.search(r"[\u3400-\u9fff]", value))
     maximum = 30 if has_cjk else 60
     if len(value) > maximum:
-        raise CanvasBuildError(f"{label} is too long for a readable concept card; maximum {maximum} characters")
+        raise CanvasBuildError(
+            f"{label} is too long for a readable concept card; current={len(value)}, max={maximum}; "
+            "fix: shorten the title and move explanation into statement"
+        )
 
 
 def require_text(value, label: str, minimum: int = 1, maximum: int = 500) -> str:
     if not isinstance(value, str):
-        raise CanvasBuildError(f"{label} must be text")
+        raise CanvasBuildError(f"{label} must be text; found={type(value).__name__}; fix: supply one JSON string")
     result = value.strip()
     if len(result) < minimum or len(result) > maximum:
-        raise CanvasBuildError(f"{label} must contain {minimum}..{maximum} characters")
+        action = "add a concrete source-supported phrase" if len(result) < minimum else "trim or split the field"
+        raise CanvasBuildError(
+            f"{label} length out of range; current={len(result)}, min={minimum}, max={maximum}; fix: {action}"
+        )
     if "[Populate" in result or "[Replace" in result or "TODO" in result:
         raise CanvasBuildError(f"{label} contains a placeholder")
     return result
@@ -73,7 +82,11 @@ def require_text(value, label: str, minimum: int = 1, maximum: int = 500) -> str
 
 def require_text_list(value, label: str, minimum: int, maximum: int, item_maximum: int = 220) -> list[str]:
     if not isinstance(value, list) or not minimum <= len(value) <= maximum:
-        raise CanvasBuildError(f"{label} must contain {minimum}..{maximum} items")
+        current = len(value) if isinstance(value, list) else f"type={type(value).__name__}"
+        raise CanvasBuildError(
+            f"{label} item count out of range; current={current}, min={minimum}, max={maximum}; "
+            "fix: add, merge, or remove items before rebuilding"
+        )
     return [require_text(item, f"{label}[{index}]", maximum=item_maximum) for index, item in enumerate(value)]
 
 
@@ -106,6 +119,10 @@ def note_page_count(markdown: str) -> int | None:
 def validate_model(model: dict, markdown: str, profile: str) -> dict:
     if not isinstance(model, dict) or model.get("schema_version") != 1:
         raise CanvasBuildError("recall model must be an object with schema_version 1")
+    if model.get("draft_status") == "authoring-required":
+        raise CanvasBuildError(
+            "recall model is still an authoring draft; fix: fill semantic fields, remove _authoring, and set draft_status=ready"
+        )
     if model.get("profile") != profile:
         raise CanvasBuildError("recall model profile does not match --profile")
     if model.get("mode") not in MODES:
@@ -171,7 +188,11 @@ def validate_model(model: dict, markdown: str, profile: str) -> dict:
         require_text(concept.get("recall_cue"), f"concepts[{index}].recall_cue", 4, 160)
         heading = require_text(concept.get("source_heading"), f"concepts[{index}].source_heading", maximum=180)
         if clean_heading(heading) not in source_headings:
-            raise CanvasBuildError(f"concepts[{index}].source_heading does not exist in the note: {heading!r}")
+            available = ", ".join(sorted(source_headings)[:8])
+            raise CanvasBuildError(
+                f"concepts[{index}].source_heading is not an exact H2: {heading!r}; "
+                f"available_h2=[{available}]; fix: select an existing ## heading or stop for authorized note repair"
+            )
         source_page = concept.get("source_page")
         if not isinstance(source_page, int) or source_page < 1:
             raise CanvasBuildError(f"concepts[{index}].source_page must be a positive integer")
@@ -302,6 +323,11 @@ def validate_model(model: dict, markdown: str, profile: str) -> dict:
         path = require_text(item.get("path"), f"asset_links[{index}].path", maximum=240)
         if Path(path).is_absolute() or ".." in Path(path).parts or Path(path).parts[:1] != ("assets",):
             raise CanvasBuildError(f"asset_links[{index}].path must be document-relative under assets/")
+        if not ASSET_NAME.fullmatch(Path(path).as_posix()):
+            raise CanvasBuildError(
+                f"asset_links[{index}].path violates the asset contract: {path!r}; "
+                "fix: use assets/page-PPP-kind-NN.ext or leave asset_links empty"
+            )
         if path in asset_paths:
             raise CanvasBuildError(f"asset_links[{index}].path is duplicated: {path}")
         asset_paths.add(path)
@@ -654,6 +680,19 @@ def main() -> int:
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     try:
+        output_exists = args.output.exists()
+        if args.overwrite and not output_exists:
+            raise CanvasBuildError(
+                "--overwrite is invalid for first creation; fix: omit --overwrite when the Canvas does not exist"
+            )
+        if output_exists and not args.overwrite:
+            raise CanvasBuildError(
+                "Canvas output already exists; fix: preserve/reconcile user edits, then pass --overwrite explicitly"
+            )
+        if args.render_metrics is not None and not output_exists:
+            raise CanvasBuildError(
+                "--render-metrics requires the measured first-pass Canvas to exist; fix: build once without metrics"
+            )
         if not args.model.is_file():
             raise CanvasBuildError(f"recall model not found: {args.model}")
         model = json.loads(args.model.read_text(encoding="utf-8"))
@@ -672,8 +711,6 @@ def main() -> int:
         )
         if args.output.resolve().parent != args.note.resolve().parent:
             raise CanvasBuildError("Canvas output must be beside the complete Markdown note")
-        if args.output.exists() and not args.overwrite:
-            raise CanvasBuildError("Canvas output already exists; use --overwrite only after preserving user edits")
         write_atomic(args.output, canvas)
     except (OSError, json.JSONDecodeError, CanvasBuildError) as exc:
         print(f"build-canvas error: {exc}", file=sys.stderr)

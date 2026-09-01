@@ -44,6 +44,8 @@ lecture-slides-to-obsidian/
 
 ## 课程路由模型
 
+请求在任何 preflight 之前分流：外部源文件需要提取时运行完整流程；已有 normalized page groups 只缺 Markdown 时只运行 reconstruction；完整 Markdown 只缺 Canvas 时直接调用 `obsidian-canvas-designer`，不加载 MinerU、token 或课程路由。
+
 技能把真实注册表保存在自己的安装目录内：
 
 ```text
@@ -138,9 +140,11 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 若不使用 cc-switch，把 `skills/lecture-slides-to-obsidian/` 和 `skills/obsidian-canvas-designer/` 一起复制或链接到当前运行环境支持的技能目录。具体目录位置和调用语法由运行环境决定。
 
+如果完整 Markdown 已存在而只缺 Canvas，直接调用 `obsidian-canvas-designer`。这一入口不加载 MinerU、token、提取、课程路由或 conversion report。
+
 ## 本地验证
 
-主技能提供三个流程入口，Canvas 子技能提供三个独立入口：
+主技能提供三个流程入口，Canvas 子技能提供四个独立入口：
 
 ```text
 preflight.py          分段收集/验证 vault、course、profile、language、OCR、helper skills、token state
@@ -148,6 +152,7 @@ reconstruct-note.py  content_list_v2.json → 完整 profile-aware Markdown + no
 fill-report.py        QA context JSON → staging 临时 report
 
 obsidian-canvas-designer/build-canvas.py          recall model → Canvas
+obsidian-canvas-designer/recall-skeleton.py       H2/page inventory → authoring draft
 obsidian-canvas-designer/canvas-aesthetic-qa.py   Axton-informed static visual score
 obsidian-canvas-designer/canvas-render-qa.py      本机 DOM → 实测高度、字体与 PASS/FAIL
 ```
@@ -155,6 +160,15 @@ obsidian-canvas-designer/canvas-render-qa.py      本机 DOM → 实测高度、
 Canvas 必须执行本机两遍渲染：
 
 ```bash
+python3 skills/obsidian-canvas-designer/scripts/recall-skeleton.py \
+  --note <document.md> --profile <profile> \
+  --output <staging>/recall-model.json
+
+# Agent completes the authoring draft before this step.
+python3 skills/obsidian-canvas-designer/scripts/build-canvas.py \
+  --note <document.md> --vault-root <vault-root> --profile <profile> \
+  --model <staging>/recall-model.json --output <document.canvas>
+
 python3 skills/obsidian-canvas-designer/scripts/canvas-aesthetic-qa.py \
   --canvas <document.canvas>
 

@@ -1,6 +1,6 @@
 ---
 name: lecture-slides-to-obsidian
-description: Compose the official MinerU Open API CLI with Obsidian Markdown and JSON Canvas skills to turn course documents into self-contained folders containing full Markdown, derived assets, and a knowledge-recall Canvas. Use for reusable course materials; source originals and temporary QA state remain outside the vault.
+description: Compose the official MinerU Open API CLI with Obsidian skills to convert external course documents into complete Markdown, derived assets, and a delegated knowledge-recall Canvas. Use for extraction or Markdown reconstruction; when complete Markdown already exists and only Canvas is requested, invoke obsidian-canvas-designer directly instead.
 metadata:
   required-skills: "obsidian-markdown, obsidian-cli, obsidian-canvas-designer"
   required-services: "MinerU Precision API via official mineru-open-api CLI"
@@ -16,6 +16,7 @@ This skill is a thin composition layer. The official `mineru-open-api` CLI owns 
 
 ## Quick reference
 
+- Route by requested artifact before preflight: external source requiring extraction → full workflow; existing normalized page groups requiring Markdown → reconstruction only; complete Markdown requiring only Canvas → stop this skill and invoke `obsidian-canvas-designer` directly.
 - Explicitly invoke `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`; availability alone is not loading. Pass all three names to `preflight.py --loaded-skill` and record them in temporary QA context.
 - Skill-owned state is always under `<installed-skill-directory>/state/`. Prefer cc-switch for installation and lifecycle management; do not assume a runtime-specific home path.
 - Run `scripts/preflight.py` first; ask its `questions[]` in stages rather than assuming all inputs.

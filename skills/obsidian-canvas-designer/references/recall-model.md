@@ -1,6 +1,10 @@
 # Recall-model schema
 
-Write this JSON under staging after reading the complete Markdown. It is the semantic input to `build-canvas.py`, not a vault artifact.
+Start with `scripts/recall-skeleton.py --note <note> --profile <profile> --output <staging>/recall-model.json`. It inventories exact H2/page anchors and H3 review candidates without changing the note. The output is an intentionally invalid authoring draft; fill its semantic fields before `build-canvas.py`.
+
+When `--output` is supplied, the command prints only a compact diagnostic summary instead of dumping the full draft into Agent context. Read/edit the saved JSON file for semantic authoring.
+
+`concept.source_heading` is a hard contract: it must equal a real `## H2` heading in the Markdown. H1, H3, generated labels, and approximate text do not count. If the note has only H3 structure, stop and return candidates for authorized repair; this skill never promotes headings itself.
 
 ## Top-level fields
 
@@ -21,6 +25,8 @@ Write this JSON under staging after reading the complete Markdown. It is the sem
 ```
 
 `profile` is `lecture-notes`, `policy-document`, or `paper`. `mode` is `pre-class` or `post-class`.
+
+For lecture authoring, use [../templates/recall-model.lecture-notes.example.json](../templates/recall-model.lecture-notes.example.json) only as a structure example. Its groups follow foundations → mechanism → applications/limits; replace every topic-specific value with evidence from the current note.
 
 ## Orientation
 
@@ -125,4 +131,4 @@ Select zero to six visuals whose structure materially aids recall:
 }
 ```
 
-Do not include decorative images, logos, repeated headers, or every extracted figure.
+Do not include decorative images, logos, repeated headers, or every extracted figure. `asset_links: []` is fully valid and preferred when no visual materially improves recall. When present, paths must match `assets/page-PPP-kind-NN.ext`; hash-named or source-original files are rejected even if they exist.

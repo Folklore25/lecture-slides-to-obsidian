@@ -97,7 +97,7 @@ scripts/canvas-render-qa.py check \
   --output <staging>/canvas-render-check.json
 ```
 
-5. Pass both QA files to `validate-output.py`. Delete them with the other staging QA state after success.
+5. For standalone Canvas-only work, retain or clean the QA files according to the user's request after reporting PASS. For delegated work, return both files plus the final aesthetic check to the parent skill; its package validator owns final cleanup.
 
 ## Acceptance rules
 
