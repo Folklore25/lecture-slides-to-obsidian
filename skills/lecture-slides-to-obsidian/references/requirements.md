@@ -16,6 +16,12 @@ Use it for vault-native note operations and final artifact verification. The del
 
 Delegate all Canvas layout, styling, static aesthetic scoring, local DOM measurement, and reflow to this sibling skill. The main Agent owns the semantic recall model and final package validation; it must not redraw the Canvas after the subagent returns PASS.
 
+## Optional skill
+
+### `slide-layout-refiner`
+
+Load only when the user enables multimodal slide-layout refinement. It reads the original PDF visually and produces a staging candidate; it may modify syntax and same-page asset placement only. Preferred model is `MiniMax-M3`. If multimodal access or validation is unavailable, keep the base MinerU Markdown rather than guessing.
+
 ## Required service
 
 Use only authenticated precision extraction through the official `mineru-open-api` CLI. Do not use the unauthenticated flash mode, direct HTTP, a local MinerU runtime, or a third-party wrapper.

@@ -98,6 +98,37 @@ class PreflightTests(unittest.TestCase):
             ])
             self.assertTrue(any(item["id"] == "language" for item in result["questions"]))
 
+    def test_optional_layout_refinement_requires_loaded_skill_and_model(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source, vault, token = self.make_paths(Path(temp))
+            _, result = run_preflight([
+                source, "--vault-root", vault, "--course", "COURSE101",
+                "--profile", "lecture-notes", "--language", "en",
+                "--is-ocr", "false", "--token-file", token,
+                "--loaded-skill", "obsidian-markdown",
+                "--loaded-skill", "obsidian-cli",
+                "--loaded-skill", "obsidian-canvas-designer",
+                "--visual-layout-refinement",
+            ])
+            self.assertTrue(any("slide-layout-refiner" in item for item in result["errors"]))
+            self.assertTrue(any(item["id"] == "layout_model" for item in result["questions"]))
+
+    def test_optional_layout_refinement_accepts_minimax_model(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source, vault, token = self.make_paths(Path(temp))
+            code, result = run_preflight([
+                source, "--vault-root", vault, "--course", "COURSE101",
+                "--profile", "lecture-notes", "--language", "en",
+                "--is-ocr", "false", "--token-file", token,
+                "--loaded-skill", "obsidian-markdown",
+                "--loaded-skill", "obsidian-cli",
+                "--loaded-skill", "obsidian-canvas-designer",
+                "--loaded-skill", "slide-layout-refiner",
+                "--visual-layout-refinement", "--layout-model", "MiniMax-M3",
+            ])
+            self.assertEqual(code, 0)
+            self.assertEqual(result["checks"]["layout_model"], "MiniMax-M3")
+
 
 if __name__ == "__main__":
     unittest.main()

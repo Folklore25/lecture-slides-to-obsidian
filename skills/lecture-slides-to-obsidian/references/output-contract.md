@@ -30,6 +30,8 @@ The Markdown file is the complete course material, not a summary. It contains:
 
 When a knowledge Canvas is requested, every concept source section must expose a real `## H2` anchor with page provenance. H3 headings are not valid Canvas source anchors. Do not promote user-authored headings merely to satisfy Canvas generation; report the exact structural candidates and require an authorized note repair.
 
+When optional multimodal layout refinement is enabled, `source-page` marker lines remain byte-identical and content may be reformatted only inside its original page segment. Final visible text tokens and their order must equal the base MinerU Markdown; assets may move only within their original page.
+
 Required top-level properties:
 
 ```yaml

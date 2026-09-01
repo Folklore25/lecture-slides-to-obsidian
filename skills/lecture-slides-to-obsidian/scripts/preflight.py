@@ -54,6 +54,8 @@ def main() -> int:
     parser.add_argument("--language")
     parser.add_argument("--is-ocr", choices=("true", "false"))
     parser.add_argument("--loaded-skill", action="append", default=[])
+    parser.add_argument("--visual-layout-refinement", action="store_true")
+    parser.add_argument("--layout-model")
     parser.add_argument("--fixture-mode", action="store_true")
     parser.add_argument(
         "--token-file",
@@ -115,6 +117,18 @@ def main() -> int:
     if missing_skills:
         errors.append("helper skills not loaded through the Skill tool: " + ", ".join(missing_skills))
     checks["loaded_helper_skills"] = sorted(loaded & REQUIRED_SKILLS)
+    checks["loaded_optional_skills"] = sorted(loaded & {"slide-layout-refiner"})
+    checks["visual_layout_refinement"] = args.visual_layout_refinement
+    if args.visual_layout_refinement:
+        if "slide-layout-refiner" not in loaded:
+            errors.append("optional slide-layout-refiner skill was enabled but not loaded")
+        if not args.layout_model:
+            questions.append({
+                "id": "layout_model",
+                "prompt": "请选择支持直接读取原PDF的多模态模型；推荐 MiniMax-M3。",
+            })
+        else:
+            checks["layout_model"] = args.layout_model
 
     obsidian_cli = shutil.which("obsidian")
     if not args.fixture_mode and obsidian_cli is None:

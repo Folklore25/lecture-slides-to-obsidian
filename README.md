@@ -2,13 +2,14 @@
 
 一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 PDF、PPT/PPTX、政策文档和论文，通过 MinerU 官方 CLI 整理成适合 Obsidian 阅读、连接和课堂补充的派生资料。
 
-当前实现采用四技能组合：MinerU官方CLI与主技能负责课前转换，Canvas子技能负责视觉产物，live-notes技能负责课堂即时思考，ASR enricher负责课后教师上下文增量。
+当前实现采用五技能组合：MinerU官方CLI与主技能负责课前转换，可选layout refiner整理每张slide内部版式，Canvas子技能负责视觉产物，live-notes技能负责课堂即时思考，ASR enricher负责课后教师上下文增量。
 
 ## 设计目标
 
 - 追求 semantic fidelity，而不是宣称 PDF → Markdown “无损”。
 - 文字、层级、列表、公式和表格尽量结构化。
 - 图表、复杂排版、手写标注和低置信度页面保留视觉兜底。
+- 可选使用MiniMax-M3等多模态模型逐页对照原PDF，只整理每个`source-page`边界内部的版式；默认关闭，内容与顺序守恒验证失败时保留MinerU原稿。
 - 最终视觉资产统一命名为 `page-PPP-kind-NN.ext`，例如 `page-004-figure-01.png`。
 - 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。
 - 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和知识回忆 Canvas。report、recall model、aesthetic/render checks 只存在于 staging，验证完成即删除。
@@ -38,6 +39,8 @@ lecture-slides-to-obsidian/
 │   │   └── ...Canvas 设计、Axton 美术规则、静态评分与 DOM QA
 │   ├── obsidian-live-lecture-notes/
 │   │   └── ...课堂即时想法路由与非破坏式插入
+│   ├── slide-layout-refiner/
+│   │   └── ...可选多模态逐页版式整理与内容守恒验证
 │   └── lecture-asr-enricher/
 │       └── ...课后ASR增量提取、证据计划与老师补充
 └── tests/
@@ -46,7 +49,7 @@ lecture-slides-to-obsidian/
     └── golden/
 ```
 
-`skills/` 是可由 cc-switch 一起管理的技能包；其中四个目录均可独立发现和调用。仓库级 `tests/` 与 `scripts/` 只用于开发维护。
+`skills/` 是可由 cc-switch 一起管理的技能包；其中五个目录均可独立发现和调用。仓库级 `tests/` 与 `scripts/` 只用于开发维护。
 
 ## 课程路由模型
 
@@ -139,8 +142,10 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 3. 官方 CLI 执行 `extract -f md,json -o <staging>/`，负责上传、轮询、下载和 assets。
 4. Adapter 把 CLI legacy content-list JSON 按 `page_idx` 转成 page-group compatibility JSON。
 5. Adapter 按页码/类型/序号重命名图片，输出 `asset-map.json` 和 `normalized-assets/`。
-6. 主 Agent 通读完整 Markdown 并建立覆盖所有 H2 的临时 recall model。
-7. 独立 `obsidian-canvas-designer` 子技能由 subagent 执行布局、美术评分、DOM 实测和重排；主 Agent 只消费 Canvas 与 PASS/FAIL 证据。
+6. `reconstruct-note.py`生成基础MinerU Markdown与不可变source-page markers。
+7. 可选的`slide-layout-refiner`让MiniMax-M3直接查看原PDF，但只能修改相邻markers之间的Markdown结构。marker行逐字节锁定，文本token顺序和每页asset集合必须完全守恒；candidate验证失败时保留基础Markdown。
+8. 主 Agent 通读最终采用的Markdown并建立覆盖所有H2的临时recall model。
+9. 独立`obsidian-canvas-designer`子技能由subagent执行布局、美术评分、DOM实测和重排；主Agent只消费Canvas与PASS/FAIL证据。
 
 支持三个 conversion profile：`lecture-notes`、`policy-document`、`paper`。不是 slides 的资料不会被拒绝，而会在写入 vault 前要求确认合适的 profile。
 
@@ -150,7 +155,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 推荐使用 **cc-switch** 管理。在自定义仓库中填写仓库 Owner、Name、Branch，并把 **Subdirectory** 设为 `skills`。让 cc-switch 负责安装、更新、切换和恢复运行态 `state/`；不要直接在它管理的安装目录中开发。
 
-若不使用 cc-switch，把 `skills/` 下四个技能目录一起复制或链接到当前运行环境支持的技能目录。具体目录位置和调用语法由运行环境决定。
+若不使用 cc-switch，把 `skills/` 下五个技能目录一起复制或链接到当前运行环境支持的技能目录。具体目录位置和调用语法由运行环境决定。
 
 如果完整 Markdown 已存在而只缺 Canvas，直接调用 `obsidian-canvas-designer`。这一入口不加载 MinerU、token、提取、课程路由或 conversion report。
 
@@ -158,7 +163,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 ## 本地验证
 
-主技能提供三个流程入口，Canvas子技能提供四个入口，课堂补充技能各提供一个确定性入口：
+主技能提供三个流程入口，Canvas子技能提供四个入口，课堂补充技能各提供一个确定性入口，可选layout refiner提供一个守恒validator：
 
 ```text
 preflight.py          分段收集/验证 vault、course、profile、language、OCR、helper skills、token state
@@ -172,6 +177,7 @@ obsidian-canvas-designer/canvas-render-qa.py      本机 DOM → 实测高度、
 
 obsidian-live-lecture-notes/apply-note-patches.py  学生/老师callout → Obsidian原生幂等插入
 lecture-asr-enricher/validate-enrichment-plan.py   ASR增量计划 → 可应用teacher patch
+slide-layout-refiner/validate-layout-refinement.py  候选版式 → 逐页内容/asset守恒PASS或拒绝
 ```
 
 Canvas 必须执行本机两遍渲染：
@@ -227,6 +233,8 @@ python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py \
   --render-metrics <staging>/canvas-render-metrics.json \
   --render-check <staging>/canvas-render-check.json --delete-qa-on-success
 ```
+
+启用可选版式整理时，最终验证额外传入 `--layout-refinement-report <staging>/layout-refinement-report.json`；未启用时不需要该文件。
 
 它验证 source-original exclusion、frontmatter、H1/page markers、wikilinks/assets，以及 Canvas 的语义结构、真实 DOM 高度、安全余量、有效字体、路径和非重叠布局；成功后删除全部 staging QA 文件。
 

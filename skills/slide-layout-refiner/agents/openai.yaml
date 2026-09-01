@@ -1,0 +1,4 @@
+interface:
+  display_name: "Slide Layout Refiner"
+  short_description: "Restore readable slide layout without changing content"
+  default_prompt: "Use $slide-layout-refiner to compare this MinerU Markdown with its original PDF and produce a content-preserving layout refinement."

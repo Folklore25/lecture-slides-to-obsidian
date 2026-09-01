@@ -42,6 +42,7 @@
     "source_original_excluded": "PASS",
     "structural_alignment": "PASS",
     "markdown_validation": "PASS",
+    "visual_layout_refinement": "DISABLED",
     "canvas_validation": "PASS",
     "canvas_aesthetic_score": 100,
     "canvas_subagent": "PASS",

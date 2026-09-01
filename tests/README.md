@@ -10,15 +10,16 @@ Future test layers should be separated:
 4. **MinerU CLI adapter tests** — child-env credentials, official command flags, output discovery, legacy page grouping, redaction, and fail-closed behavior.
 5. **Course-routing tests** — first binding, aliases, active semesters, ambiguity, stale roots, containment, and collisions.
 6. **API normalization tests** — page-grouped content lists, legacy `page_idx`, duplicate anchors, heading levels, and auxiliary blocks.
-7. **Canvas subskill tests** — Canvas-only routing, H2/page skeleton inventory, semantic model validation, Axton-informed density/color/edge gates, deterministic layout, delegation boundaries, and source-original exclusion.
-8. **Canvas batch tests** — mandatory one-subagent-per-document planning for two or more files, capacity waves, isolated paths, and a single shared renderer lane.
-9. **Canvas renderer tests** — foreground DOM enforcement, measured height formula, safety rounding, local profile mismatch, effective font size, and stale-check rejection.
-10. **Output-validator tests** — folder, Markdown, Canvas, assets, all temporary QA files, and NOT-CHECKED semantics.
-11. **Live lecture-note tests** — exact heading placement, layered callouts, source preservation, unresolved routing, and idempotent retry.
-12. **ASR enrichment tests** — novelty evidence schema, confidence gating, deduplication, empty-plan handling, and teacher patch generation.
-13. **Golden tests** — deterministic Markdown/assets from redistributable fixtures.
-14. **Visual review cases** — diagrams, tables, equations, OCR, and mixed-language pages.
-15. **End-to-end tests** — source file outside vault to official API to validated Obsidian folder.
+7. **Slide-layout refinement tests** — immutable marker lines, page-local text order, frontmatter, links, asset conservation, and bullet normalization.
+8. **Canvas subskill tests** — Canvas-only routing, H2/page skeleton inventory, semantic model validation, Axton-informed density/color/edge gates, deterministic layout, delegation boundaries, and source-original exclusion.
+9. **Canvas batch tests** — mandatory one-subagent-per-document planning for two or more files, capacity waves, isolated paths, and a single shared renderer lane.
+10. **Canvas renderer tests** — foreground DOM enforcement, measured height formula, safety rounding, local profile mismatch, effective font size, and stale-check rejection.
+11. **Output-validator tests** — folder, Markdown, Canvas, assets, all temporary QA files, and NOT-CHECKED semantics.
+12. **Live lecture-note tests** — exact heading placement, layered callouts, source preservation, unresolved routing, and idempotent retry.
+13. **ASR enrichment tests** — novelty evidence schema, confidence gating, deduplication, empty-plan handling, and teacher patch generation.
+14. **Golden tests** — deterministic Markdown/assets from redistributable fixtures.
+15. **Visual review cases** — diagrams, tables, equations, OCR, and mixed-language pages.
+16. **End-to-end tests** — source file outside vault to official API to validated Obsidian folder.
 
 The automated integration test covers V2 reconstruction → Canvas subskill build/aesthetic check → temporary report render → validation → QA-state deletion. Local workstation experiments additionally verify foreground Obsidian DOM measure → rebuild/reflow → aesthetic recheck → DOM check without screenshots. Live MinerU network calls remain out of test scope.
 

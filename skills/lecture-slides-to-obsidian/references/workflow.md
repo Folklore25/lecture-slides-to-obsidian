@@ -22,6 +22,10 @@ Create staging outside the vault and preserve the source hash. Run `scripts/mine
 
 Prefer page-grouped `content_list_v2.json`. Otherwise group legacy blocks by `page_idx`. Apply [mineru-normalization.md](mineru-normalization.md): no global repeated anchor search, no blanket heading regex, explicit auxiliary-block inventory, and precise marker semantics.
 
+### Optional multimodal layout refinement
+
+Disabled by default. When enabled, delegate the original PDF and staging base Markdown to `slide-layout-refiner` using a multimodal model, preferably `MiniMax-M3`. The refiner may change structure only inside each immutable `<!-- source-page: N -->` segment. Accept its candidate only when deterministic validation proves frontmatter, marker lines, visible text order, links, and per-page assets are conserved. On any failure, keep the base MinerU Markdown.
+
 ## 5. Derived artifact generation
 
 Create the document folder only after extraction/profile decisions are stable. Write:

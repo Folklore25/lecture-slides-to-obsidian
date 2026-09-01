@@ -25,6 +25,7 @@ A conversion is complete only when required gates pass or the report marks an ex
 - Auxiliary headers/footers/footnotes are inventoried and omissions documented.
 - Figures, tables, equations, and fallback pages are counted, including zeros.
 - Final visual assets follow the deterministic `page-PPP-kind-NN.ext` contract and match staging `asset-map.json`.
+- When multimodal layout refinement is enabled, its report passes frontmatter, immutable marker-line, page-local token order, link, and per-page asset conservation. When disabled, record `DISABLED`; when rejected, preserve the base Markdown and record `REJECTED`.
 
 ## Pixel-level visual comparison — optional
 

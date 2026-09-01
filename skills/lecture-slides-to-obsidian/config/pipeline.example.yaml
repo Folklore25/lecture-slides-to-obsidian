@@ -27,6 +27,7 @@ output:
 
 staging:
   report_name: "conversion-report.md"
+  layout_refinement_report_name: "layout-refinement-report.json"
   recall_model_name: "recall-model.json"
   canvas_aesthetic_check_name: "canvas-aesthetic-check.json"
   canvas_render_metrics_name: "canvas-render-metrics.json"
@@ -68,6 +69,14 @@ conversion:
   visual_fallback: "uncertain-pages"
   equation_policy: "preserve-and-flag"
   table_policy: "markdown-or-image"
+  visual_layout_refinement:
+    enabled: false
+    skill: "slide-layout-refiner"
+    preferred_model: "MiniMax-M3"
+    requires_multimodal: true
+    source_format: "pdf"
+    scope: "inside-source-page-markers-only"
+    on_failure: "keep-base-mineru-markdown"
 
 obsidian:
   wikilinks: true

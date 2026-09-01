@@ -20,6 +20,7 @@ def run_validator(
     delete_report: bool = False,
     vault_root: Path | None = None,
     recall_model: Path | None = None,
+    layout_refinement_report: Path | None = None,
     aesthetic_check: Path | None = None,
     render_metrics: Path | None = None,
     render_check: Path | None = None,
@@ -31,6 +32,8 @@ def run_validator(
         command += ["--vault-root", str(vault_root)]
     if recall_model is not None:
         command += ["--recall-model", str(recall_model)]
+    if layout_refinement_report is not None:
+        command += ["--layout-refinement-report", str(layout_refinement_report)]
     if aesthetic_check is not None:
         command += ["--aesthetic-check", str(aesthetic_check)]
     if render_metrics is not None:
@@ -190,6 +193,36 @@ class ValidateOutputTests(unittest.TestCase):
             )
             self.assertNotEqual(code, 0)
             self.assertTrue(any("aesthetic check does not match" in item for item in result["errors"]))
+
+    def test_optional_layout_report_must_match_delivered_markdown(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            folder = base / "document"
+            staging = base / "staging"
+            report = staging / "conversion-report.md"
+            layout_report = staging / "layout-refinement-report.json"
+            shutil.copytree(FIXTURE, folder)
+            staging.mkdir()
+            shutil.copy2(REPORT_FIXTURE, report)
+            note_hash = hashlib.sha256((folder / "sample.md").read_bytes()).hexdigest()
+            layout_report.write_text(json.dumps({
+                "schema_version": 1,
+                "valid": True,
+                "candidate_sha256": note_hash,
+            }))
+            code, result = run_validator(
+                folder, report, layout_refinement_report=layout_report
+            )
+            self.assertEqual(code, 0, result["errors"])
+
+            stale = json.loads(layout_report.read_text())
+            stale["candidate_sha256"] = "0" * 64
+            layout_report.write_text(json.dumps(stale))
+            code, result = run_validator(
+                folder, report, layout_refinement_report=layout_report
+            )
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("does not match the delivered Markdown" in item for item in result["errors"]))
 
     def test_temporary_report_is_deleted_on_success(self):
         with tempfile.TemporaryDirectory() as temp:

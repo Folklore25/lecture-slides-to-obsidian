@@ -401,6 +401,7 @@ def main() -> int:
     parser.add_argument("--fixture-mode", action="store_true", help="Allow document-relative Canvas paths in tests only")
     parser.add_argument("--report", required=True, type=Path, help="Temporary QA report outside the vault")
     parser.add_argument("--recall-model", type=Path, help="Temporary Agent-authored recall model outside the vault")
+    parser.add_argument("--layout-refinement-report", type=Path, help="Optional validated multimodal layout report")
     parser.add_argument("--aesthetic-check", type=Path, help="Static Canvas aesthetic check outside the vault")
     parser.add_argument("--render-metrics", type=Path, help="First-pass Obsidian DOM measurements outside the vault")
     parser.add_argument("--render-check", type=Path, help="Final Obsidian DOM readability check outside the vault")
@@ -417,6 +418,8 @@ def main() -> int:
     report = report_input.resolve()
     recall_model_input = args.recall_model
     recall_model = recall_model_input.resolve() if recall_model_input else None
+    layout_report_input = args.layout_refinement_report
+    layout_report = layout_report_input.resolve() if layout_report_input else None
     aesthetic_check_input = args.aesthetic_check
     aesthetic_check = aesthetic_check_input.resolve() if aesthetic_check_input else None
     render_metrics_input = args.render_metrics
@@ -426,6 +429,7 @@ def main() -> int:
     render_metrics_data: dict | None = None
     render_check_data: dict | None = None
     aesthetic_check_data: dict | None = None
+    layout_report_data: dict | None = None
     errors: list[str] = []
 
     if vault_root is None and not args.fixture_mode:
@@ -448,6 +452,10 @@ def main() -> int:
         errors.append("temporary recall model must not be a symlink")
     if recall_model is not None and recall_model.name != "recall-model.json":
         errors.append("temporary recall model filename must be recall-model.json")
+    if layout_report_input is not None and layout_report_input.is_symlink():
+        errors.append("temporary layout refinement report must not be a symlink")
+    if layout_report is not None and layout_report.name != "layout-refinement-report.json":
+        errors.append("temporary layout refinement report filename must be layout-refinement-report.json")
     if aesthetic_check_input is not None and aesthetic_check_input.is_symlink():
         errors.append("temporary aesthetic check must not be a symlink")
     if aesthetic_check is not None and aesthetic_check.name != "canvas-aesthetic-check.json":
@@ -469,6 +477,8 @@ def main() -> int:
         errors.append("temporary conversion report must be outside the document folder and vault")
     if recall_model is not None and (inside(recall_model, folder) or (vault_root and inside(recall_model, vault_root))):
         errors.append("temporary recall model must be outside the document folder and vault")
+    if layout_report is not None and (inside(layout_report, folder) or (vault_root and inside(layout_report, vault_root))):
+        errors.append("temporary layout refinement report must be outside the document folder and vault")
     if aesthetic_check is not None and (inside(aesthetic_check, folder) or (vault_root and inside(aesthetic_check, vault_root))):
         errors.append("temporary aesthetic check must be outside the document folder and vault")
     for resolved, label in ((render_metrics, "render metrics"), (render_check, "render check")):
@@ -484,6 +494,19 @@ def main() -> int:
                     errors.append("temporary recall model must use schema_version 1")
             except (json.JSONDecodeError, UnicodeDecodeError) as exc:
                 errors.append(f"invalid temporary recall model JSON: {exc}")
+    if layout_report is not None:
+        if not layout_report.is_file():
+            errors.append("temporary layout refinement report is missing")
+        else:
+            try:
+                data = json.loads(layout_report.read_text(encoding="utf-8"))
+                if not isinstance(data, dict) or data.get("schema_version") != 1:
+                    errors.append("temporary layout refinement report must use schema_version 1")
+                elif not data.get("valid"):
+                    errors.append("optional multimodal layout refinement did not pass")
+                layout_report_data = data
+            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                errors.append(f"invalid temporary layout refinement report JSON: {exc}")
     if aesthetic_check is not None:
         if not aesthetic_check.is_file():
             errors.append("temporary aesthetic check is missing")
@@ -542,6 +565,8 @@ def main() -> int:
 
         if len(markdown_files) == 1:
             errors += validate_markdown(markdown_files[0], folder, vault_root)
+            if layout_report_data is not None and layout_report_data.get("candidate_sha256") != sha256_file(markdown_files[0]):
+                errors.append("layout refinement report does not match the delivered Markdown")
         if len(canvas_files) == 1:
             errors += validate_canvas(canvas_files[0], folder, vault_root)
             canvas_hash = sha256_file(canvas_files[0])
@@ -558,6 +583,7 @@ def main() -> int:
 
     report_deleted = False
     recall_model_deleted = False
+    layout_report_deleted = False
     aesthetic_check_deleted = False
     render_metrics_deleted = False
     render_check_deleted = False
@@ -567,6 +593,9 @@ def main() -> int:
         if recall_model is not None:
             recall_model.unlink()
             recall_model_deleted = True
+        if layout_report is not None:
+            layout_report.unlink()
+            layout_report_deleted = True
         if aesthetic_check is not None:
             aesthetic_check.unlink()
             aesthetic_check_deleted = True
@@ -583,6 +612,7 @@ def main() -> int:
         "report_deleted": report_deleted,
         "temporary_recall_model": str(recall_model) if recall_model else None,
         "recall_model_deleted": recall_model_deleted,
+        "layout_refinement_report_deleted": layout_report_deleted,
         "aesthetic_check_deleted": aesthetic_check_deleted,
         "render_metrics_deleted": render_metrics_deleted,
         "render_check_deleted": render_check_deleted,

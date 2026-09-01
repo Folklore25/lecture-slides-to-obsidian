@@ -6,6 +6,7 @@ skill_dir="$repo_dir/skills/lecture-slides-to-obsidian"
 canvas_skill_dir="$repo_dir/skills/obsidian-canvas-designer"
 live_notes_skill_dir="$repo_dir/skills/obsidian-live-lecture-notes"
 asr_skill_dir="$repo_dir/skills/lecture-asr-enricher"
+layout_skill_dir="$repo_dir/skills/slide-layout-refiner"
 
 main_required_files='SKILL.md
 agents/openai.yaml
@@ -79,6 +80,15 @@ requirements/tools.yaml
 scripts/validate-enrichment-plan.py
 templates/enrichment-plan.example.json'
 
+layout_required_files='SKILL.md
+agents/openai.yaml
+references/refinement-contract.md
+references/native-markdown-layout.md
+requirements/skills.yaml
+requirements/tools.yaml
+scripts/validate-layout-refinement.py
+templates/multimodal-layout-task.md'
+
 printf '%s\n' "$main_required_files" | while IFS= read -r relative_path; do
   if [ ! -f "$skill_dir/$relative_path" ]; then
     printf 'main skill missing: %s\n' "$relative_path" >&2
@@ -107,6 +117,13 @@ printf '%s\n' "$asr_required_files" | while IFS= read -r relative_path; do
   fi
 done
 
+printf '%s\n' "$layout_required_files" | while IFS= read -r relative_path; do
+  if [ ! -f "$layout_skill_dir/$relative_path" ]; then
+    printf 'layout refiner skill missing: %s\n' "$relative_path" >&2
+    exit 1
+  fi
+done
+
 if ! grep -q '^name: lecture-slides-to-obsidian$' "$skill_dir/SKILL.md"; then
   printf 'invalid or missing skill name\n' >&2
   exit 1
@@ -128,6 +145,12 @@ if ! grep -q '^name: obsidian-live-lecture-notes$' "$live_notes_skill_dir/SKILL.
    ! grep -q '^name: lecture-asr-enricher$' "$asr_skill_dir/SKILL.md" || \
    ! grep -q '^description: .\+' "$asr_skill_dir/SKILL.md"; then
   printf 'invalid supplementary skill metadata\n' >&2
+  exit 1
+fi
+
+if ! grep -q '^name: slide-layout-refiner$' "$layout_skill_dir/SKILL.md" || \
+   ! grep -q '^description: .\+' "$layout_skill_dir/SKILL.md"; then
+  printf 'invalid slide layout refiner metadata\n' >&2
   exit 1
 fi
 
@@ -169,6 +192,13 @@ fi
 if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli"' "$live_notes_skill_dir/SKILL.md" || \
    ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli, obsidian-live-lecture-notes"' "$asr_skill_dir/SKILL.md"; then
   printf 'supplementary skill prerequisites are missing or out of sync\n' >&2
+  exit 1
+fi
+
+if ! grep -q 'optional-skills: "slide-layout-refiner"' "$skill_dir/SKILL.md" || \
+   ! grep -q 'preferred-model: "MiniMax-M3"' "$layout_skill_dir/SKILL.md" || \
+   ! grep -q 'enabled_by_default: false' "$skill_dir/requirements/skills.yaml"; then
+  printf 'optional multimodal layout refinement contract is missing\n' >&2
   exit 1
 fi
 
@@ -245,7 +275,8 @@ if ! command -v obsidian >/dev/null 2>&1 || \
 fi
 
 if [ ! -x "$live_notes_skill_dir/scripts/apply-note-patches.py" ] || \
-   [ ! -x "$asr_skill_dir/scripts/validate-enrichment-plan.py" ]; then
+   [ ! -x "$asr_skill_dir/scripts/validate-enrichment-plan.py" ] || \
+   [ ! -x "$layout_skill_dir/scripts/validate-layout-refinement.py" ]; then
   printf 'supplementary skill scripts must be executable\n' >&2
   exit 1
 fi

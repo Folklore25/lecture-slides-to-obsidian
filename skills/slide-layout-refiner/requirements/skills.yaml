@@ -1,0 +1,7 @@
+schema_version: 1
+required_skills:
+  - name: "obsidian-markdown"
+    source: "https://github.com/kepano/obsidian-skills/tree/main/skills/obsidian-markdown"
+model_requirements:
+  multimodal: true
+  preferred_model: "MiniMax-M3"

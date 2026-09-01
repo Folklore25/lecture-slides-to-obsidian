@@ -19,3 +19,10 @@ required_skills:
     source: "../obsidian-canvas-designer"
     verify:
       skill_name: "obsidian-canvas-designer"
+
+optional_skills:
+  - name: "slide-layout-refiner"
+    purpose: "Use a multimodal model to restore page-local slide hierarchy and asset placement without changing content or source-page separation."
+    source: "../slide-layout-refiner"
+    enabled_by_default: false
+    preferred_model: "MiniMax-M3"

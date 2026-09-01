@@ -1,6 +1,6 @@
 # Repository maintenance instructions
 
-- Treat all four directories under `skills/` as one cc-switch-managed package: course orchestrator, Canvas designer, live lecture notes, and ASR enricher.
+- Treat all five directories under `skills/` as one cc-switch-managed package: course orchestrator, optional slide-layout refiner, Canvas designer, live lecture notes, and ASR enricher.
 - Keep `SKILL.md` concise; route conditional detail to `references/`.
 - The official `mineru-open-api` precision CLI is the only extraction client. Never add direct MinerU HTTP code, a local parser/runtime, or lightweight fallback.
 - Keep source originals outside the Obsidian vault; only complete Markdown, derived assets, and knowledge-recall Canvas belong in document folders.
@@ -10,6 +10,7 @@
 - The main skill never draws Canvas. Delegate to `obsidian-canvas-designer`, which must apply the pinned Axton guidance, aesthetic score, DOM measure/reflow, and final hash-bound check.
 - Canvas readability is not complete until local Obsidian DOM measurement drives a second layout pass and the final check confirms measured height margin plus 16px effective reading font. Do not use screenshots by default.
 - Keep live student thoughts, teacher ASR additions, and source transcription as separate layers. Supplementary skills insert stable callout blocks and never rewrite source paragraphs or each other's markers.
+- Optional multimodal slide refinement is page-local only: source-page marker lines, visible token order, links, and per-page asset multisets are immutable. Reject the candidate on any conservation failure.
 - Keep structural alignment separate from pixel-level visual comparison; mark unperformed rendering `NOT-CHECKED`.
 - Keep course routing behavior aligned across `course-routing.md`, the registry example, output contract, examples, and routing test cases.
 - Never store a user's real semester root or course paths in the repository.
