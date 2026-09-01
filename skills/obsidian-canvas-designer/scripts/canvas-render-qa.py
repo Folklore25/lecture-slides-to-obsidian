@@ -125,6 +125,8 @@ def environment_errors(profile: dict, environment: dict) -> list[str]:
             matches = expected == actual
         if not matches:
             errors.append(f"render profile mismatch for {key}: expected {expected!r}, found {actual!r}")
+    if profile.get("requires_foreground") and not environment.get("document_has_focus"):
+        errors.append("Obsidian must be foreground and focused during DOM measurement")
     return errors
 
 
@@ -162,9 +164,11 @@ for(const node of canvas.nodes.values()){{
   const sizer=content?.querySelector('.markdown-preview-sizer');
   if(!node.isContentMounted||!sizer) throw new Error('Text node was not rendered: '+node.id);
   const children=[...sizer.children].filter(el=>!el.classList.contains('markdown-preview-pusher'));
+  if(children.length===0) throw new Error('Rendered Markdown children are missing: '+node.id);
   const maxChildBottom=Math.max(0,...children.map(el=>
     el.offsetTop+el.offsetHeight+parseFloat(getComputedStyle(el).marginBottom||'0')
   ));
+  if(maxChildBottom<=0) throw new Error('Rendered Markdown height is zero: '+node.id);
   nodes.push({{
     id:node.id,
     text:node.text,
@@ -187,6 +191,7 @@ return JSON.stringify({{
   canvas_font_size_px:firstSizer?parseFloat(getComputedStyle(firstSizer).fontSize):null,
   canvas_line_height_px:firstSizer?parseFloat(getComputedStyle(firstSizer).lineHeight):null,
   sidebar_font_size_px:(()=>{{const el=document.querySelector('.nav-file-title');return el?parseFloat(getComputedStyle(el).fontSize):null;}})(),
+  document_has_focus:document.hasFocus(),
   nodes
 }});
 }})()"""
@@ -212,6 +217,8 @@ return JSON.stringify({{zoom:canvas.zoom,anchor:anchor.id}});
 def measure_canvas(canvas: Path, vault_root: Path, profile: dict, mode: str) -> dict:
     relative = canvas.relative_to(vault_root).as_posix()
     run_cli(["obsidian", "open", f"path={relative}"], vault_root)
+    if sys.platform == "darwin":
+        subprocess.run(["open", "-a", "Obsidian"], check=False, capture_output=True, text=True)
     wait_seconds = profile.get("render_wait_ms", 800) / 1000
     time.sleep(wait_seconds)
     setup = obsidian_eval(setup_javascript(relative), vault_root)

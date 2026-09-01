@@ -35,13 +35,15 @@ Pixel-level visual diff against rendered source pages is not provided by this co
 - `scripts/validate-output.py` passes.
 - Complete Markdown has required properties, one H1, valid markers, and resolving assets.
 - The staging recall model accounts for every H2 section and contains no unsupported/generic relationship.
+- The delegated Canvas aesthetic check passes with score at least 85, no hard errors, compact H3 concept cards, semantic color discipline, and acceptable edge routing.
 - Canvas has one-minute recall, 2–7 learning modules, 4–20 traceable concept nodes, a connected selective semantic graph, synthesis, distinctions, and active-recall prompts.
 - Canvas JSON, IDs, meaningful edge labels, paths, density, and non-overlap checks pass.
-- Local Obsidian DOM measurement was used to rebuild card heights; every text card retains the workstation profile's 16px safety margin.
+- Local Obsidian DOM measurement was used to rebuild card heights; every text card retains the workstation profile's 8px safety margin before grid rounding.
 - Reading viewport is `zoom = 0`, giving a 16px effective Canvas font against the local 13px sidebar reference. Fit-all zoom is not a body-text readability gate.
 - Screenshot review was not used as the default renderer gate.
 - Only memory-critical visuals are linked; decorative or exhaustive asset galleries are absent.
 - Existing user-authored content was not overwritten without approval.
+- The main Agent did not redraw or cosmetically modify the Canvas after the Canvas subagent's final SHA-bound checks.
 
 ## Completion language
 

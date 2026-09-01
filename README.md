@@ -2,7 +2,7 @@
 
 一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 PDF、PPT/PPTX、政策文档和论文，通过 MinerU 官方 CLI 整理成适合 Obsidian 阅读、连接和课堂补充的派生资料。
 
-当前实现采用组合架构：MinerU 官方 CLI 负责提取，Obsidian 标准技能负责 Markdown/Canvas，本仓库只维护课程路由、normalization、目录边界和 QA。
+当前实现采用组合架构：MinerU 官方 CLI 负责提取，主技能负责编排，独立 Canvas 子技能负责 Axton-informed 视觉设计与真实渲染 QA。
 
 ## 设计目标
 
@@ -11,7 +11,7 @@
 - 图表、复杂排版、手写标注和低置信度页面保留视觉兜底。
 - 最终视觉资产统一命名为 `page-PPP-kind-NN.ext`，例如 `page-004-figure-01.png`。
 - 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。
-- 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和知识回忆 Canvas。QA report 与 recall model 只存在于 staging，验证完成即删除。
+- 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和知识回忆 Canvas。report、recall model、aesthetic/render checks 只存在于 staging，验证完成即删除。
 - Canvas 不是目录图：它提炼中心问题、学习模块、概念依赖/因果/对比链、边界条件和主动回忆问题，并让每个概念回链到完整课件。
 - Canvas 卡片高度通过本机 Obsidian DOM 两遍测量，不使用截图判断；最终阅读视图固定为 1:1、16px 字体，高于当前侧栏的 13px。
 - 用户在一个新学期首次提供课程名称时，只询问一次学期根目录并持久记录学期与课程映射。
@@ -29,23 +29,18 @@ lecture-slides-to-obsidian/
 ├── scripts/
 │   └── validate.sh
 ├── skills/
-│   └── lecture-slides-to-obsidian/
+│   ├── lecture-slides-to-obsidian/
 │       ├── SKILL.md
-│       ├── agents/openai.yaml
-│       ├── config/
-│       ├── examples/
-│       ├── requirements/
-│       ├── references/
-│       ├── scripts/
-│       ├── templates/
-│       └── state/
+│       └── ...课程解析、路由、Markdown 与最终 QA
+│   └── obsidian-canvas-designer/
+│       └── ...Canvas 设计、Axton 美术规则、静态评分与 DOM QA
 └── tests/
     ├── cases/
     ├── fixtures/
     └── golden/
 ```
 
-`skills/lecture-slides-to-obsidian/` 是可分发、可安装的完整技能目录。仓库级的 `tests/` 和 `scripts/` 只用于开发维护，不随技能运行。
+`skills/` 是可由 cc-switch 一起管理的技能包；其中两个目录均可独立发现和调用。仓库级 `tests/` 与 `scripts/` 只用于开发维护。
 
 ## 课程路由模型
 
@@ -77,7 +72,7 @@ lecture-slides-to-obsidian/
 
 原始 PDF/PPT 等不会复制、移动、symlink、embed 或作为 Canvas file node 放进 vault。Canvas 只连接完整 Markdown、经语义建模的关键概念，以及最多六个真正有助于记忆的派生视觉素材。
 
-知识回忆 Canvas 参考 [phd-deepread-workflow](https://github.com/heleninsights-dot/phd-deepread-workflow/tree/main) 的批判思考节点与有向关系，但改为两阶段生成：Agent 先通读完整 Markdown，写临时 `recall-model.json`；确定性脚本再负责布局和校验。它不会把标题顺序误当知识关系，也不采用固定论文模板。
+知识回忆 Canvas 参考 [phd-deepread-workflow](https://github.com/heleninsights-dot/phd-deepread-workflow/tree/main) 的批判思考节点，并强制吸收 [Axton Obsidian Canvas Creator](https://github.com/axtonliu/axton-obsidian-visual-skills/tree/1265976d9746a84858b4b7b42fb86a215aa93de9/obsidian-canvas-creator) 的布局选择、留白、视觉重心和边线优化原则；字符高度估算则由本机 DOM 实测替代。
 
 注册表是 skill-owned 本机状态，不应提交 GitHub。正常删除整个技能目录时，注册表会一起删除，不会另行残留在 `~/.config`。完整匹配与安全规则见 `references/course-routing.md`。
 
@@ -90,8 +85,8 @@ cc-switch 卸载时可能创建自己的 skill backup。若要求卸载备份中
 PDF 会上传到 MinerU 官方服务进行解析。转换前必须：
 
 - 能发现并加载 `obsidian-markdown`，用于 Obsidian properties、wikilinks、embeds、callouts 和 Markdown 语法。
-- 能发现并加载 `json-canvas`，用于知识回忆画布生成与 JSON Canvas 校验。
-- 能发现并加载 `obsidian-cli`，并使用运行中的本机 Obsidian 做真实 DOM 渲染检查。
+- 能发现并加载 `obsidian-canvas-designer`；其绘图 subagent 会加载 `json-canvas` 和 `obsidian-cli` 完成格式、美术与真实 DOM 检查。
+- 主技能加载 `obsidian-cli` 处理 vault-native 操作和最终交付验证。
 - 当前只支持已测量的 MacBook Pro 14 / Composer 主题 / Obsidian 1.13.7 环境，不宣称其他机器兼容。
 - 已安装官方 `mineru-open-api` CLI，并能访问 MinerU Precision API。
 - 本机具有支持 `aes-256-cbc` 的 OpenSSL。
@@ -130,8 +125,8 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 3. 官方 CLI 执行 `extract -f md,json -o <staging>/`，负责上传、轮询、下载和 assets。
 4. Adapter 把 CLI legacy content-list JSON 按 `page_idx` 转成 page-group compatibility JSON。
 5. Adapter 按页码/类型/序号重命名图片，输出 `asset-map.json` 和 `normalized-assets/`。
-6. Agent 通读完整 Markdown，建立覆盖所有 H2 的临时 recall model，再由 `build-canvas.py` 生成可回忆的语义关系图。
-7. `obsidian-markdown` 和 `json-canvas` 完成语法/结构检查，`obsidian-cli` 完成真实渲染检查。
+6. 主 Agent 通读完整 Markdown 并建立覆盖所有 H2 的临时 recall model。
+7. 独立 `obsidian-canvas-designer` 子技能由 subagent 执行布局、美术评分、DOM 实测和重排；主 Agent 只消费 Canvas 与 PASS/FAIL 证据。
 
 支持三个 conversion profile：`lecture-notes`、`policy-document`、`paper`。不是 slides 的资料不会被拒绝，而会在写入 vault 前要求确认合适的 profile。
 
@@ -141,34 +136,43 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 推荐使用 **cc-switch** 管理。在自定义仓库中填写仓库 Owner、Name、Branch，并把 **Subdirectory** 设为 `skills`。让 cc-switch 负责安装、更新、切换和恢复运行态 `state/`；不要直接在它管理的安装目录中开发。
 
-若不使用 cc-switch，把 `skills/lecture-slides-to-obsidian/` 整体复制或链接到当前运行环境支持的技能目录即可。具体目录位置和调用语法由运行环境决定。
+若不使用 cc-switch，把 `skills/lecture-slides-to-obsidian/` 和 `skills/obsidian-canvas-designer/` 一起复制或链接到当前运行环境支持的技能目录。具体目录位置和调用语法由运行环境决定。
 
 ## 本地验证
 
-技能提供五个 Agent-facing automation entry：
+主技能提供三个流程入口，Canvas 子技能提供三个独立入口：
 
 ```text
 preflight.py          分段收集/验证 vault、course、profile、language、OCR、helper skills、token state
 reconstruct-note.py  content_list_v2.json → 完整 profile-aware Markdown + normalization context
-build-canvas.py       staging recall model → 可回忆、可追溯的 vault-relative JSON Canvas
-canvas-render-qa.py   本机 Obsidian DOM → 实测卡片高度、字体与最终 PASS/FAIL
 fill-report.py        QA context JSON → staging 临时 report
+
+obsidian-canvas-designer/build-canvas.py          recall model → Canvas
+obsidian-canvas-designer/canvas-aesthetic-qa.py   Axton-informed static visual score
+obsidian-canvas-designer/canvas-render-qa.py      本机 DOM → 实测高度、字体与 PASS/FAIL
 ```
 
 Canvas 必须执行本机两遍渲染：
 
 ```bash
-python3 skills/lecture-slides-to-obsidian/scripts/canvas-render-qa.py measure \
+python3 skills/obsidian-canvas-designer/scripts/canvas-aesthetic-qa.py \
+  --canvas <document.canvas>
+
+python3 skills/obsidian-canvas-designer/scripts/canvas-render-qa.py measure \
   --canvas <document.canvas> --vault-root <vault-root> \
   --output <staging>/canvas-render-metrics.json
 
-python3 skills/lecture-slides-to-obsidian/scripts/build-canvas.py \
+python3 skills/obsidian-canvas-designer/scripts/build-canvas.py \
   --note <document.md> --vault-root <vault-root> --profile <profile> \
   --model <staging>/recall-model.json \
   --render-metrics <staging>/canvas-render-metrics.json \
   --output <document.canvas> --overwrite
 
-python3 skills/lecture-slides-to-obsidian/scripts/canvas-render-qa.py check \
+python3 skills/obsidian-canvas-designer/scripts/canvas-aesthetic-qa.py \
+  --canvas <document.canvas> \
+  --output <staging>/canvas-aesthetic-check.json
+
+python3 skills/obsidian-canvas-designer/scripts/canvas-render-qa.py check \
   --canvas <document.canvas> --vault-root <vault-root> \
   --output <staging>/canvas-render-check.json
 ```
@@ -188,6 +192,7 @@ python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py \
   <document-folder> --vault-root <vault-root> \
   --report <staging>/conversion-report.md \
   --recall-model <staging>/recall-model.json \
+  --aesthetic-check <staging>/canvas-aesthetic-check.json \
   --render-metrics <staging>/canvas-render-metrics.json \
   --render-check <staging>/canvas-render-check.json --delete-qa-on-success
 ```

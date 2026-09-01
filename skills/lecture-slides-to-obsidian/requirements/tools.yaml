@@ -2,12 +2,10 @@ schema_version: 1
 
 required_tools:
   - name: "obsidian"
-    purpose: "Use the running local Obsidian renderer for deterministic DOM-based Canvas readability QA."
+    purpose: "Perform vault-native reads, writes, moves, opens, and final artifact checks."
     source: "https://obsidian.md/help/cli"
     verify_command: "obsidian version"
     tested_version: "1.13.7 (installer 1.12.4)"
-    screenshot_qa: "forbidden-by-default"
-    render_profile: "config/render-profile.mbp14-composer.json"
   - name: "mineru-open-api"
     purpose: "Official MinerU client for authenticated extraction, polling, and Markdown/assets/JSON output."
     source: "https://github.com/opendatalab/MinerU-Ecosystem/tree/main/cli/mineru-open-api"

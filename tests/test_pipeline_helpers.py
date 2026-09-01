@@ -9,6 +9,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 SKILL = REPO / "skills/lecture-slides-to-obsidian"
+CANVAS_SKILL = REPO / "skills/obsidian-canvas-designer"
 CONTENT_LIST = REPO / "tests/fixtures/synthetic/content-list-v2-policy.json"
 REPORT_CONTEXT = SKILL / "templates/report-context.example.json"
 RECALL_MODEL = REPO / "tests/fixtures/synthetic/recall-model.policy.json"
@@ -25,6 +26,7 @@ class PipelineHelperTests(unittest.TestCase):
             canvas = folder / "example-policy.canvas"
             report = staging / "conversion-report.md"
             recall_model = staging / "recall-model.json"
+            aesthetic_check = staging / "canvas-aesthetic-check.json"
             render_metrics = staging / "canvas-render-metrics.json"
             render_check = staging / "canvas-render-check.json"
             context = staging / "normalization.json"
@@ -42,7 +44,7 @@ class PipelineHelperTests(unittest.TestCase):
                     "--source-sha256", "0" * 64,
                 ],
                 [
-                    sys.executable, str(SKILL / "scripts/build-canvas.py"),
+                    sys.executable, str(CANVAS_SKILL / "scripts/build-canvas.py"),
                     "--note", str(note), "--vault-root", str(vault),
                     "--profile", "policy-document", "--model", str(recall_model),
                     "--output", str(canvas),
@@ -55,6 +57,14 @@ class PipelineHelperTests(unittest.TestCase):
             for command in commands:
                 result = subprocess.run(command, capture_output=True, text=True, check=False)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            aesthetic = subprocess.run(
+                [
+                    sys.executable, str(CANVAS_SKILL / "scripts/canvas-aesthetic-qa.py"),
+                    "--canvas", str(canvas), "--output", str(aesthetic_check),
+                ],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(aesthetic.returncode, 0, aesthetic.stdout + aesthetic.stderr)
             render_metrics.write_text(json.dumps({
                 "schema_version": 1,
                 "mode": "measure",
@@ -73,6 +83,7 @@ class PipelineHelperTests(unittest.TestCase):
                     sys.executable, str(SKILL / "scripts/validate-output.py"),
                     str(folder), "--vault-root", str(vault), "--report", str(report),
                     "--recall-model", str(recall_model),
+                    "--aesthetic-check", str(aesthetic_check),
                     "--render-metrics", str(render_metrics),
                     "--render-check", str(render_check),
                     "--delete-qa-on-success",
@@ -86,6 +97,7 @@ class PipelineHelperTests(unittest.TestCase):
             self.assertFalse((folder / "conversion-report.md").exists())
             self.assertFalse(report.exists())
             self.assertFalse(recall_model.exists())
+            self.assertFalse(aesthetic_check.exists())
             self.assertFalse(render_metrics.exists())
             self.assertFalse(render_check.exists())
 

@@ -26,20 +26,20 @@ For each rendered text node, the script finds every real child of `.markdown-pre
 child.offsetTop + child.offsetHeight + child.marginBottom
 ```
 
-The local renderer needs `34px` beyond that bottom: `16px` top inset, `16px` bottom inset, and `2px` node border. Add another `16px` readability/safety margin and round up to `10px`:
+The local renderer needs `34px` beyond that bottom: `16px` top inset, `16px` bottom inset, and `2px` node border. Add another `8px` safety margin and round up to `10px`. The rounded result retains roughly 10–19px actual headroom without the oversized empty tails seen in earlier cards:
 
 ```text
 exact_required = max_child_bottom + 34
-required_height = ceil_to_10(exact_required + 16)
+required_height = ceil_to_10(exact_required + 8)
 ```
 
 The local experiment reproduced the supplied failure:
 
 | Card | Measured bottom | Exact required | Profile height |
 |---|---:|---:|---:|
-| Long three-detail policy card | 525 | 559 | 580 |
-| Plagiarism card | 434 | 468 | 490 |
-| Public-interest card | 436 | 470 | 490 |
+| Legacy long policy card | 525 | 559 | 570 |
+| Plagiarism card | 434 | 468 | 480 |
+| Public-interest card | 436 | 470 | 480 |
 
 Their previous `440px` height was short by roughly `119px`, `28px`, and `30px` respectively.
 
@@ -62,6 +62,8 @@ The supported reading viewport is `zoom = 0` (`1:1`), producing an effective `16
 ## Mandatory two-pass workflow
 
 Obsidian must be running with its CLI enabled.
+
+The script brings Obsidian to the foreground on the supported Mac before measuring. A mounted node with no rendered Markdown children or zero content height is a hard failure; never treat it as an empty 50px card.
 
 1. Build the first Canvas normally.
 2. Measure actual DOM layout:
@@ -100,7 +102,7 @@ scripts/canvas-render-qa.py check \
 ## Acceptance rules
 
 - Every text node is mounted and rendered in Obsidian; no source-text estimate counts as final evidence.
-- `node.height >= required_height` for every text node. Merely reaching the exact unclipped height is insufficient; retain the measured `16px` margin.
+- `node.height >= required_height` for every text node. Merely reaching the exact unclipped height is insufficient; retain the measured `8px` margin before grid rounding.
 - The final check's Canvas SHA-256 matches the delivered `.canvas` file.
 - Reading zoom is `0`; effective Canvas body text is `16px`, not smaller than the `13px` sidebar reference.
 - Screenshots are not part of the default gate. They cost context and introduce model-dependent judgment.

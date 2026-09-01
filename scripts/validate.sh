@@ -3,12 +3,12 @@ set -eu
 
 repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 skill_dir="$repo_dir/skills/lecture-slides-to-obsidian"
+canvas_skill_dir="$repo_dir/skills/obsidian-canvas-designer"
 
-required_files='SKILL.md
+main_required_files='SKILL.md
 agents/openai.yaml
 config/README.md
 config/pipeline.example.yaml
-config/render-profile.mbp14-composer.json
 examples/invocations.md
 examples/expected-note.md
 requirements/skills.yaml
@@ -22,16 +22,11 @@ references/mineru-cli.md
 references/mineru-normalization.md
 references/normalization-examples.md
 references/asset-naming.md
-references/canvas-contract.md
-references/canvas-recall-model.md
-references/canvas-render-qa.md
 references/output-contract.md
 references/obsidian-style.md
 references/quality-gates.md
 references/validation.md
 scripts/README.md
-scripts/build-canvas.py
-scripts/canvas-render-qa.py
 scripts/fill-report.py
 scripts/mineru-cli-adapter.py
 scripts/preflight.py
@@ -41,12 +36,34 @@ scripts/token-store.py
 scripts/validate-output.py
 state/README.md
 state/course-registry.example.yaml
-templates/report-context.example.json
+templates/report-context.example.json'
+
+canvas_required_files='SKILL.md
+agents/openai.yaml
+config/render-profile.mbp14-composer.json
+references/axton-aesthetics.md
+references/asset-contract.md
+references/canvas-contract.md
+references/delegation-contract.md
+references/recall-model.md
+references/render-qa.md
+requirements/skills.yaml
+requirements/tools.yaml
+scripts/build-canvas.py
+scripts/canvas-aesthetic-qa.py
+scripts/canvas-render-qa.py
 templates/recall-model.example.json'
 
-printf '%s\n' "$required_files" | while IFS= read -r relative_path; do
+printf '%s\n' "$main_required_files" | while IFS= read -r relative_path; do
   if [ ! -f "$skill_dir/$relative_path" ]; then
-    printf 'missing: %s\n' "$relative_path" >&2
+    printf 'main skill missing: %s\n' "$relative_path" >&2
+    exit 1
+  fi
+done
+
+printf '%s\n' "$canvas_required_files" | while IFS= read -r relative_path; do
+  if [ ! -f "$canvas_skill_dir/$relative_path" ]; then
+    printf 'Canvas skill missing: %s\n' "$relative_path" >&2
     exit 1
   fi
 done
@@ -58,6 +75,12 @@ fi
 
 if ! grep -q '^description: .\+' "$skill_dir/SKILL.md"; then
   printf 'missing skill description\n' >&2
+  exit 1
+fi
+
+if ! grep -q '^name: obsidian-canvas-designer$' "$canvas_skill_dir/SKILL.md" || \
+   ! grep -q '^description: .\+' "$canvas_skill_dir/SKILL.md"; then
+  printf 'invalid Canvas subskill metadata\n' >&2
   exit 1
 fi
 
@@ -73,7 +96,7 @@ if find "$repo_dir/tests/fixtures/private" -type f ! -name README.md -print 2>/d
   exit 1
 fi
 
-if grep -R -n '/Users/\|/home/' "$skill_dir/config" "$repo_dir/tests/cases" >/dev/null 2>&1; then
+if grep -R -n '/Users/\|/home/' "$skill_dir/config" "$canvas_skill_dir/config" "$repo_dir/tests/cases" >/dev/null 2>&1; then
   printf 'machine-specific path found in committed examples\n' >&2
   exit 1
 fi
@@ -90,14 +113,16 @@ if grep -R -n '~/.config/lecture-slides-to-obsidian\|XDG_CONFIG_HOME' "$skill_di
   exit 1
 fi
 
-if ! grep -q 'required-skills: "obsidian-markdown, json-canvas, obsidian-cli"' "$skill_dir/SKILL.md"; then
+if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli, obsidian-canvas-designer"' "$skill_dir/SKILL.md" || \
+   ! grep -q 'required-skills: "json-canvas, obsidian-cli"' "$canvas_skill_dir/SKILL.md"; then
   printf 'skill prerequisite metadata is missing or out of sync\n' >&2
   exit 1
 fi
 
-if ! grep -q 'name: "obsidian-cli"' "$skill_dir/requirements/skills.yaml" || \
+if ! grep -q 'name: "obsidian-canvas-designer"' "$skill_dir/requirements/skills.yaml" || \
+   ! grep -q 'design_reference:' "$canvas_skill_dir/requirements/skills.yaml" || \
    ! grep -q 'name: "obsidian"' "$skill_dir/requirements/tools.yaml"; then
-  printf 'local Obsidian renderer QA prerequisites are missing\n' >&2
+  printf 'Canvas delegation or Axton design prerequisites are missing\n' >&2
   exit 1
 fi
 
@@ -158,7 +183,8 @@ if ! command -v openssl >/dev/null 2>&1 || \
 fi
 
 if ! command -v obsidian >/dev/null 2>&1 || \
-   [ ! -x "$skill_dir/scripts/canvas-render-qa.py" ]; then
+   [ ! -x "$canvas_skill_dir/scripts/canvas-render-qa.py" ] || \
+   [ ! -x "$canvas_skill_dir/scripts/canvas-aesthetic-qa.py" ]; then
   printf 'Obsidian CLI and executable canvas-render-qa.py are required for local renderer QA\n' >&2
   exit 1
 fi

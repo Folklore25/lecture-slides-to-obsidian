@@ -2,6 +2,7 @@
   "schema_version": 1,
   "profile_id": "mbp14-1512x982-composer-obsidian-1.13.7",
   "scope": "single-maintainer-workstation",
+  "requires_foreground": true,
   "obsidian_version": "1.13.7",
   "installer_version": "1.12.4",
   "screen_css_width": 1512,
@@ -15,7 +16,7 @@
   "minimum_effective_font_px": 13,
   "reading_zoom": 0,
   "vertical_chrome_px": 34,
-  "safety_margin_px": 16,
+  "safety_margin_px": 8,
   "round_to_px": 10,
   "render_wait_ms": 800
 }

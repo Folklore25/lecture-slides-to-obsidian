@@ -1,6 +1,24 @@
 schema_version: 1
 
 cases:
+  - id: "delegated-canvas-subskill"
+    orchestrator_owns:
+      - "complete-note"
+      - "recall-model"
+      - "paths-and-overwrite-boundary"
+      - "final-package-validation"
+    subagent_owns:
+      - "layout"
+      - "aesthetics"
+      - "edge-routing"
+      - "dom-measure-and-reflow"
+    required_return:
+      - "canvas"
+      - "canvas-aesthetic-check.json"
+      - "canvas-render-metrics.json"
+      - "canvas-render-check.json"
+    expected_action: "delegate-without-redrawing-in-main-agent"
+
   - id: "lecture-knowledge-recall-map"
     profile: "lecture-notes"
     required_zones:
@@ -57,8 +75,16 @@ cases:
     workstation_profile: "mbp14-1512x982-composer-obsidian-1.13.7"
     first_pass_height: 440
     measured_exact_height: 559
-    profile_height: 580
+    profile_height: 570
     expected_action: "rebuild-and-reflow-from-dom-metrics"
+
+  - id: "compact-axton-informed-concept-card"
+    title_level: "H3"
+    statement_max_chars: 180
+    details_max: 2
+    per_card_recall_cue: false
+    source_link: "compact-one-line"
+    expected_action: "pass-aesthetic-density-gate"
 
   - id: "reading-font-at-one-to-one"
     canvas_font_px: 16

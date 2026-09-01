@@ -16,7 +16,7 @@ Reference inspiration: [phd-deepread-workflow](https://github.com/heleninsights-
 
 ## Required two-stage generation
 
-Do not ask `build-canvas.py` to infer meaning from Markdown headings. The Agent must first read the **complete note**, reason about the content, and write a staging `recall-model.json` following [canvas-recall-model.md](canvas-recall-model.md). Then run:
+Do not ask `build-canvas.py` to infer meaning from Markdown headings. The delegating Agent must first read the **complete note**, reason about the content, and write a staging `recall-model.json` following [recall-model.md](recall-model.md). Then run:
 
 ```text
 scripts/build-canvas.py \
@@ -52,7 +52,7 @@ Every relation records a short `why` in the staging model. It must be supported 
 
 ## Visual selection
 
-Do not attach every extracted image to the main note node. Select at most six memory-critical visuals—only diagrams, tables, equations, or charts whose absence would make an important concept harder to reconstruct. Each selected visual is attached to the concept it explains. Paths follow [asset-naming.md](asset-naming.md).
+Do not attach every extracted image to the main note node. Select at most six memory-critical visuals—only diagrams, tables, equations, or charts whose absence would make an important concept harder to reconstruct. Each selected visual is attached to the concept it explains. Paths follow [asset-contract.md](asset-contract.md).
 
 ## Pre-class and post-class lifecycle
 
@@ -72,7 +72,8 @@ A finished Canvas must pass all of these:
 - **Coverage test:** every major Markdown section is mapped or explicitly excluded in staging.
 - **Traceability test:** every concept links to an existing Markdown heading and states its exact 1-based source page; selected assets resolve inside the document folder.
 - **Density test:** no placeholder nodes, paragraph dumps, isolated concepts, node overlaps, or hub with more than six semantic connections.
-- **Renderer test:** [canvas-render-qa.md](canvas-render-qa.md) reports every text node above its measured height plus safety margin; screenshots do not count as this evidence.
+- **Aesthetic test:** [axton-aesthetics.md](axton-aesthetics.md) and `canvas-aesthetic-qa.py` pass before DOM measurement.
+- **Renderer test:** [render-qa.md](render-qa.md) reports every text node above its measured height plus safety margin; screenshots do not count as this evidence.
 
 ## JSON Canvas invariants
 

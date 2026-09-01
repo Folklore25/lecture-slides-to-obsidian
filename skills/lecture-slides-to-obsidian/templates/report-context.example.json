@@ -13,7 +13,8 @@
     "is_ocr": false,
     "loaded_helper_skills": [
       "obsidian-markdown",
-      "json-canvas"
+      "obsidian-cli",
+      "obsidian-canvas-designer"
     ],
     "page_count_source": "normalized page-group length",
     "page_count_observations": {
@@ -42,6 +43,8 @@
     "structural_alignment": "PASS",
     "markdown_validation": "PASS",
     "canvas_validation": "PASS",
+    "canvas_aesthetic_score": 100,
+    "canvas_subagent": "PASS",
     "pixel_visual_diff": "NOT-CHECKED"
   },
   "review_items": [],

@@ -10,14 +10,14 @@ Future test layers should be separated:
 4. **MinerU CLI adapter tests** — child-env credentials, official command flags, output discovery, legacy page grouping, redaction, and fail-closed behavior.
 5. **Course-routing tests** — first binding, aliases, active semesters, ambiguity, stale roots, containment, and collisions.
 6. **API normalization tests** — page-grouped content lists, legacy `page_idx`, duplicate anchors, heading levels, and auxiliary blocks.
-7. **Canvas tests** — semantic recall-model validation, section coverage, meaningful connected relationships, deterministic layout, and source-original exclusion.
-8. **Canvas renderer tests** — measured DOM height formula, safety rounding, local profile mismatch, effective font size, and stale-check rejection.
+7. **Canvas subskill tests** — semantic model validation, Axton-informed density/color/edge gates, deterministic layout, delegation boundaries, and source-original exclusion.
+8. **Canvas renderer tests** — foreground DOM enforcement, measured height formula, safety rounding, local profile mismatch, effective font size, and stale-check rejection.
 9. **Output-validator tests** — folder, Markdown, Canvas, assets, all temporary QA files, and NOT-CHECKED semantics.
 10. **Golden tests** — deterministic Markdown/assets from redistributable fixtures.
 11. **Visual review cases** — diagrams, tables, equations, OCR, and mixed-language pages.
 12. **End-to-end tests** — source file outside vault to official API to validated Obsidian folder.
 
-The automated integration test covers V2 reconstruction → staging recall-model Canvas build → temporary report render → validation → QA-state deletion. A local workstation experiment additionally verified the full Obsidian DOM measure → rebuild/reflow → DOM check path without screenshots. Live MinerU network calls remain out of test scope.
+The automated integration test covers V2 reconstruction → Canvas subskill build/aesthetic check → temporary report render → validation → QA-state deletion. Local workstation experiments additionally verify foreground Obsidian DOM measure → rebuild/reflow → aesthetic recheck → DOM check without screenshots. Live MinerU network calls remain out of test scope.
 
 Run the current checks from the repository root:
 

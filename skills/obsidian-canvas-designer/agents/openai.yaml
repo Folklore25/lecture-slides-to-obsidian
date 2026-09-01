@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian Canvas Designer"
+  short_description: "Design readable, polished Obsidian knowledge maps"
+  default_prompt: "Use $obsidian-canvas-designer to turn this semantic model and complete note into a polished, renderer-verified Obsidian Canvas."

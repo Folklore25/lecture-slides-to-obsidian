@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 REPO = Path(__file__).resolve().parents[1]
-SCRIPT = REPO / "skills/lecture-slides-to-obsidian/scripts/canvas-render-qa.py"
+SCRIPT = REPO / "skills/obsidian-canvas-designer/scripts/canvas-render-qa.py"
 SPEC = importlib.util.spec_from_file_location("canvas_render_qa", SCRIPT)
 RENDER_QA = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -15,6 +15,7 @@ SPEC.loader.exec_module(RENDER_QA)
 
 PROFILE = {
     "profile_id": "test-profile",
+    "requires_foreground": True,
     "obsidian_version": "1.13.7",
     "installer_version": "1.12.4",
     "screen_css_width": 1512,
@@ -28,7 +29,7 @@ PROFILE = {
     "minimum_effective_font_px": 13,
     "reading_zoom": 0,
     "vertical_chrome_px": 34,
-    "safety_margin_px": 16,
+    "safety_margin_px": 8,
     "round_to_px": 10,
 }
 
@@ -42,12 +43,13 @@ class CanvasRenderQaTests(unittest.TestCase):
         self.assertEqual(profile["canvas_font_size_px"], 16)
         self.assertEqual(profile["sidebar_font_size_px"], 13)
         self.assertEqual(profile["vertical_chrome_px"], 34)
-        self.assertEqual(profile["safety_margin_px"], 16)
+        self.assertEqual(profile["safety_margin_px"], 8)
+        self.assertTrue(profile["requires_foreground"])
 
     def test_measured_screenshot_cards_round_to_safe_heights(self):
-        self.assertEqual(RENDER_QA.rounded_required_height(525, 34, 16, 10), 580)
-        self.assertEqual(RENDER_QA.rounded_required_height(434, 34, 16, 10), 490)
-        self.assertEqual(RENDER_QA.rounded_required_height(436, 34, 16, 10), 490)
+        self.assertEqual(RENDER_QA.rounded_required_height(525, 34, 8, 10), 570)
+        self.assertEqual(RENDER_QA.rounded_required_height(434, 34, 8, 10), 480)
+        self.assertEqual(RENDER_QA.rounded_required_height(436, 34, 8, 10), 480)
 
     def test_check_requires_profile_margin_not_just_no_clipping(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -58,12 +60,13 @@ class CanvasRenderQaTests(unittest.TestCase):
                     "profile_id", "minimum_effective_font_px", "reading_zoom",
                     "vertical_chrome_px", "safety_margin_px", "round_to_px"
                 }},
+                "document_has_focus": True,
                 "nodes": [
                     {
                         "id": "0123456789abcdef",
                         "text": "## Concept\nBody",
                         "width": 420,
-                        "height": 570,
+                        "height": 560,
                         "max_child_bottom": 525,
                     }
                 ],
@@ -79,6 +82,7 @@ class CanvasRenderQaTests(unittest.TestCase):
                 "profile_id", "minimum_effective_font_px", "reading_zoom",
                 "vertical_chrome_px", "safety_margin_px", "round_to_px"
             }},
+            "document_has_focus": True,
             "theme": "Different theme",
         }
         errors = RENDER_QA.environment_errors(PROFILE, measured)

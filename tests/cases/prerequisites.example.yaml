@@ -4,7 +4,7 @@ cases:
   - id: "skills-openssl-and-encrypted-token-ready"
     available_skills:
       - "obsidian-markdown"
-      - "json-canvas"
+      - "obsidian-canvas-designer"
       - "obsidian-cli"
     obsidian_render_profile: "matching"
     openssl: "available-with-aes-256-cbc"
@@ -22,7 +22,7 @@ cases:
   - id: "encrypted-token-not-configured"
     available_skills:
       - "obsidian-markdown"
-      - "json-canvas"
+      - "obsidian-canvas-designer"
       - "obsidian-cli"
     openssl: "available-with-aes-256-cbc"
     mineru_network: "available"
@@ -32,7 +32,7 @@ cases:
   - id: "openssl-missing"
     available_skills:
       - "obsidian-markdown"
-      - "json-canvas"
+      - "obsidian-canvas-designer"
       - "obsidian-cli"
     openssl: "missing"
     encrypted_token_file: "missing"
@@ -41,7 +41,7 @@ cases:
   - id: "token-invalid-or-expired"
     available_skills:
       - "obsidian-markdown"
-      - "json-canvas"
+      - "obsidian-canvas-designer"
       - "obsidian-cli"
     mineru_network: "available"
     api_error: "A0202-or-A0211"
@@ -50,7 +50,7 @@ cases:
   - id: "local-mineru-present-but-api-unavailable"
     available_skills:
       - "obsidian-markdown"
-      - "json-canvas"
+      - "obsidian-canvas-designer"
       - "obsidian-cli"
       - "mineru-pdf"
     local_mineru_runtime: "available"
@@ -60,7 +60,7 @@ cases:
   - id: "local-render-profile-mismatch"
     available_skills:
       - "obsidian-markdown"
-      - "json-canvas"
+      - "obsidian-canvas-designer"
       - "obsidian-cli"
     obsidian_render_profile: "theme-or-version-mismatch"
     expected_action: "stop-and-recalibrate-without-screenshot-fallback"

@@ -41,7 +41,7 @@ class PreflightTests(unittest.TestCase):
                 "--profile", "lecture-notes", "--language", "en",
                 "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
-                "--loaded-skill", "json-canvas",
+                "--loaded-skill", "obsidian-canvas-designer",
                 "--loaded-skill", "obsidian-cli",
             ])
             self.assertEqual(code, 0)
@@ -54,7 +54,7 @@ class PreflightTests(unittest.TestCase):
                 source, "--vault-root", vault, "--course", "COURSE101",
                 "--language", "en", "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
-                "--loaded-skill", "json-canvas",
+                "--loaded-skill", "obsidian-canvas-designer",
                 "--loaded-skill", "obsidian-cli",
             ])
             profile_question = next(item for item in result["questions"] if item["id"] == "profile")
@@ -68,7 +68,7 @@ class PreflightTests(unittest.TestCase):
                 "--profile", "lecture-notes", "--language", "en",
                 "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
-                "--loaded-skill", "json-canvas",
+                "--loaded-skill", "obsidian-canvas-designer",
                 "--loaded-skill", "obsidian-cli",
             ])
             self.assertTrue(any(item["id"] == "profile_mismatch" for item in result["questions"]))
@@ -83,7 +83,7 @@ class PreflightTests(unittest.TestCase):
                 "--loaded-skill", "obsidian-markdown",
                 "--loaded-skill", "obsidian-cli",
             ])
-            self.assertTrue(any("json-canvas" in item for item in result["errors"]))
+            self.assertTrue(any("obsidian-canvas-designer" in item for item in result["errors"]))
 
     def test_language_auto_requires_concrete_confirmation(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -93,7 +93,7 @@ class PreflightTests(unittest.TestCase):
                 "--profile", "lecture-notes", "--language", "auto",
                 "--is-ocr", "false", "--token-file", token,
                 "--loaded-skill", "obsidian-markdown",
-                "--loaded-skill", "json-canvas",
+                "--loaded-skill", "obsidian-canvas-designer",
                 "--loaded-skill", "obsidian-cli",
             ])
             self.assertTrue(any(item["id"] == "language" for item in result["questions"]))

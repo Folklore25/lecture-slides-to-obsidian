@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 REPO = Path(__file__).resolve().parents[1]
-SCRIPT = REPO / "skills/lecture-slides-to-obsidian/scripts/build-canvas.py"
+SCRIPT = REPO / "skills/obsidian-canvas-designer/scripts/build-canvas.py"
 SPEC = importlib.util.spec_from_file_location("build_canvas", SCRIPT)
 BUILD_CANVAS = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

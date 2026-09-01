@@ -222,19 +222,15 @@ def validate_canvas(path: Path, folder: Path, vault_root: Path | None) -> list[s
                 if len(text) > 1400:
                     errors.append(f"text node {node_id} is too dense for recall: {len(text)} characters")
                 if role_match and role_match.group(1) == "concept":
-                    if "**Recall cue:**" not in text:
-                        errors.append(f"concept node {node_id} is missing a recall cue")
-                    source_link = re.search(r"\[\[[^\]]+#([^\]|]+)\|[^\]]+\]\]", text)
+                    source_link = re.search(r"\[\[[^\]]+#([^\]|]+)\|Source p\.(\d+)\]\]", text)
                     if not source_link:
-                        errors.append(f"concept node {node_id} is missing a source-heading link")
+                        errors.append(f"concept node {node_id} is missing a compact source-heading/page link")
                     elif source_link.group(1) not in note_h2:
                         errors.append(f"concept node {node_id} links an unknown source heading: {source_link.group(1)}")
-                    source_page = re.search(r"\bsource page (\d+)\b", text)
-                    if not source_page:
-                        errors.append(f"concept node {node_id} is missing exact source-page provenance")
-                    elif not 1 <= int(source_page.group(1)) <= note_page_count:
+                    source_page = int(source_link.group(2)) if source_link else None
+                    if source_page is not None and not 1 <= source_page <= note_page_count:
                         errors.append(f"concept node {node_id} source page is outside 1..{note_page_count}")
-                    elif source_link and source_link.group(1) in note_h2_pages and int(source_page.group(1)) not in note_h2_pages[source_link.group(1)]:
+                    elif source_link and source_link.group(1) in note_h2_pages and source_page not in note_h2_pages[source_link.group(1)]:
                         errors.append(
                             f"concept node {node_id} source heading/page pair does not occur in the note"
                         )
@@ -405,6 +401,7 @@ def main() -> int:
     parser.add_argument("--fixture-mode", action="store_true", help="Allow document-relative Canvas paths in tests only")
     parser.add_argument("--report", required=True, type=Path, help="Temporary QA report outside the vault")
     parser.add_argument("--recall-model", type=Path, help="Temporary Agent-authored recall model outside the vault")
+    parser.add_argument("--aesthetic-check", type=Path, help="Static Canvas aesthetic check outside the vault")
     parser.add_argument("--render-metrics", type=Path, help="First-pass Obsidian DOM measurements outside the vault")
     parser.add_argument("--render-check", type=Path, help="Final Obsidian DOM readability check outside the vault")
     parser.add_argument(
@@ -420,12 +417,15 @@ def main() -> int:
     report = report_input.resolve()
     recall_model_input = args.recall_model
     recall_model = recall_model_input.resolve() if recall_model_input else None
+    aesthetic_check_input = args.aesthetic_check
+    aesthetic_check = aesthetic_check_input.resolve() if aesthetic_check_input else None
     render_metrics_input = args.render_metrics
     render_metrics = render_metrics_input.resolve() if render_metrics_input else None
     render_check_input = args.render_check
     render_check = render_check_input.resolve() if render_check_input else None
     render_metrics_data: dict | None = None
     render_check_data: dict | None = None
+    aesthetic_check_data: dict | None = None
     errors: list[str] = []
 
     if vault_root is None and not args.fixture_mode:
@@ -438,6 +438,8 @@ def main() -> int:
         errors.append("temporary report filename must be conversion-report.md")
     if vault_root is not None and recall_model is None:
         errors.append("--recall-model is required outside explicit --fixture-mode")
+    if vault_root is not None and aesthetic_check is None:
+        errors.append("--aesthetic-check is required outside explicit --fixture-mode")
     if vault_root is not None and render_metrics is None:
         errors.append("--render-metrics is required outside explicit --fixture-mode")
     if vault_root is not None and render_check is None:
@@ -446,6 +448,10 @@ def main() -> int:
         errors.append("temporary recall model must not be a symlink")
     if recall_model is not None and recall_model.name != "recall-model.json":
         errors.append("temporary recall model filename must be recall-model.json")
+    if aesthetic_check_input is not None and aesthetic_check_input.is_symlink():
+        errors.append("temporary aesthetic check must not be a symlink")
+    if aesthetic_check is not None and aesthetic_check.name != "canvas-aesthetic-check.json":
+        errors.append("temporary aesthetic check filename must be canvas-aesthetic-check.json")
     for input_path, resolved, expected_name, label in (
         (render_metrics_input, render_metrics, "canvas-render-metrics.json", "render metrics"),
         (render_check_input, render_check, "canvas-render-check.json", "render check"),
@@ -463,6 +469,8 @@ def main() -> int:
         errors.append("temporary conversion report must be outside the document folder and vault")
     if recall_model is not None and (inside(recall_model, folder) or (vault_root and inside(recall_model, vault_root))):
         errors.append("temporary recall model must be outside the document folder and vault")
+    if aesthetic_check is not None and (inside(aesthetic_check, folder) or (vault_root and inside(aesthetic_check, vault_root))):
+        errors.append("temporary aesthetic check must be outside the document folder and vault")
     for resolved, label in ((render_metrics, "render metrics"), (render_check, "render check")):
         if resolved is not None and (inside(resolved, folder) or (vault_root and inside(resolved, vault_root))):
             errors.append(f"temporary {label} must be outside the document folder and vault")
@@ -476,6 +484,19 @@ def main() -> int:
                     errors.append("temporary recall model must use schema_version 1")
             except (json.JSONDecodeError, UnicodeDecodeError) as exc:
                 errors.append(f"invalid temporary recall model JSON: {exc}")
+    if aesthetic_check is not None:
+        if not aesthetic_check.is_file():
+            errors.append("temporary aesthetic check is missing")
+        else:
+            try:
+                data = json.loads(aesthetic_check.read_text(encoding="utf-8"))
+                if not isinstance(data, dict) or data.get("schema_version") != 1:
+                    errors.append("temporary aesthetic check must use schema_version 1")
+                elif not data.get("valid") or data.get("score", 0) < data.get("minimum_score", 85):
+                    errors.append("Canvas aesthetic check did not pass")
+                aesthetic_check_data = data
+            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                errors.append(f"invalid temporary aesthetic check JSON: {exc}")
     for resolved, label, expected_mode in (
         (render_metrics, "render metrics", "measure"),
         (render_check, "render check", "check"),
@@ -524,6 +545,8 @@ def main() -> int:
         if len(canvas_files) == 1:
             errors += validate_canvas(canvas_files[0], folder, vault_root)
             canvas_hash = sha256_file(canvas_files[0])
+            if aesthetic_check_data is not None and aesthetic_check_data.get("canvas_sha256") != canvas_hash:
+                errors.append("aesthetic check does not match the delivered Canvas")
             if render_check_data is not None and render_check_data.get("canvas_sha256") != canvas_hash:
                 errors.append("final render check does not match the delivered Canvas")
             if render_metrics_data is not None and not render_metrics_data.get("nodes"):
@@ -535,6 +558,7 @@ def main() -> int:
 
     report_deleted = False
     recall_model_deleted = False
+    aesthetic_check_deleted = False
     render_metrics_deleted = False
     render_check_deleted = False
     if not errors and args.delete_qa_on_success:
@@ -543,6 +567,9 @@ def main() -> int:
         if recall_model is not None:
             recall_model.unlink()
             recall_model_deleted = True
+        if aesthetic_check is not None:
+            aesthetic_check.unlink()
+            aesthetic_check_deleted = True
         if render_metrics is not None:
             render_metrics.unlink()
             render_metrics_deleted = True
@@ -556,6 +583,7 @@ def main() -> int:
         "report_deleted": report_deleted,
         "temporary_recall_model": str(recall_model) if recall_model else None,
         "recall_model_deleted": recall_model_deleted,
+        "aesthetic_check_deleted": aesthetic_check_deleted,
         "render_metrics_deleted": render_metrics_deleted,
         "render_check_deleted": render_check_deleted,
         "errors": errors,

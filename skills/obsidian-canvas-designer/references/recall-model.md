@@ -55,7 +55,7 @@ Four to twenty atomic recall nodes; eight to sixteen is the normal target for a 
   "kind": "concept",
   "title": "Control signal",
   "statement": "A concise statement of one idea and why it matters.",
-  "details": ["Up to three details needed to reconstruct the idea."],
+  "details": ["Up to two details needed to reconstruct the idea."],
   "recall_cue": "A short question or contrast that triggers retrieval.",
   "source_heading": "Exact H2 heading from the Markdown",
   "source_page": 4
@@ -66,7 +66,7 @@ Allowed `kind` values:
 
 `foundation`, `concept`, `mechanism`, `process`, `evidence`, `example`, `application`, `comparison`, `boundary`, `misconception`, `decision`, `claim`, `method`, `finding`, `limitation`, `rule`, `exception`.
 
-Use at least three kinds. A title plus copied paragraph is not an atomic recall node. `source_page` is required even when the heading is unique; the heading/page pair must occur in the Markdown, preserving exact provenance when headings repeat. Within each group, list concepts in the visual/logical order the renderer should preserve.
+Use at least three kinds. A title plus copied paragraph is not an atomic recall node. Titles are limited to 60 Latin or 30 CJK characters, statements to 180 characters, and details to two items of 140 characters each. `recall_cue` remains semantic input for the shared active-recall zone but is not repeated on the concept card. `source_page` is required even when the heading is unique; the heading/page pair must occur in the Markdown, preserving exact provenance when headings repeat. Within each group, list concepts in the visual/logical order the renderer should preserve.
 
 ## Relations
 

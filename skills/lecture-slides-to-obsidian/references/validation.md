@@ -3,7 +3,7 @@
 Run this before declaring completion:
 
 ```text
-scripts/validate-output.py <document-folder> --vault-root <vault-root> --report <staging>/conversion-report.md --recall-model <staging>/recall-model.json --render-metrics <staging>/canvas-render-metrics.json --render-check <staging>/canvas-render-check.json --delete-qa-on-success
+scripts/validate-output.py <document-folder> --vault-root <vault-root> --report <staging>/conversion-report.md --recall-model <staging>/recall-model.json --aesthetic-check <staging>/canvas-aesthetic-check.json --render-metrics <staging>/canvas-render-metrics.json --render-check <staging>/canvas-render-check.json --delete-qa-on-success
 ```
 
 ## Folder checks
@@ -35,7 +35,7 @@ Structured provenance must also be checked against MinerU content lists: marker 
 - Every edge endpoint resolves.
 - Exactly one overview, logic-chain synthesis, distinctions, and active-recall node exists.
 - There are 2–7 learning-module groups and 4–20 concept nodes.
-- Concept nodes have recall cues and exact heading/page provenance that occurs in the Markdown.
+- Concept cards use compact H3 hierarchy and exact heading/page provenance; recall cues are consolidated in the shared active-recall zone.
 - Semantic concept edges form one connected graph, stay between `N-1` and `2N`, and avoid generic labels.
 - No concept has more than six semantic connections and no text node is a paragraph dump.
 - Final Obsidian DOM check matches the delivered Canvas hash, reports no node below the measured safety height, and leaves the reading view at 16px effective font size.
@@ -51,8 +51,9 @@ Structured provenance must also be checked against MinerU content lists: marker 
 - Unperformed visual rendering is marked `NOT-CHECKED`, not `PASS`.
 - No token, Authorization header, signed URL, or absolute source path appears.
 - `recall-model.json` is outside the vault, valid JSON with schema version 1, and was used to build the Canvas.
+- `canvas-aesthetic-check.json` passes at score 85 or above and matches the delivered Canvas hash.
 - `canvas-render-metrics.json` is a complete first-pass DOM measurement; `canvas-render-check.json` is a successful final check for the delivered Canvas.
-- After the Agent has extracted the facts needed for its final response, `--delete-qa-on-success` removes the report, recall model, render metrics, and render check before that response is sent.
+- After the Agent has extracted the facts needed for its final response, `--delete-qa-on-success` removes the report, recall model, aesthetic check, render metrics, and render check before that response is sent.
 
 ## Reporting
 

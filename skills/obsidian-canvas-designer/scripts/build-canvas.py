@@ -53,6 +53,13 @@ def clean_heading(value: str) -> str:
     return re.sub(r"^#{1,6}\s+", "", value.strip())
 
 
+def validate_visual_title(value: str, label: str) -> None:
+    has_cjk = bool(re.search(r"[\u3400-\u9fff]", value))
+    maximum = 30 if has_cjk else 60
+    if len(value) > maximum:
+        raise CanvasBuildError(f"{label} is too long for a readable concept card; maximum {maximum} characters")
+
+
 def require_text(value, label: str, minimum: int = 1, maximum: int = 500) -> str:
     if not isinstance(value, str):
         raise CanvasBuildError(f"{label} must be text")
@@ -157,9 +164,10 @@ def validate_model(model: dict, markdown: str, profile: str) -> dict:
         if kind not in CONCEPT_KINDS:
             raise CanvasBuildError(f"concepts[{index}].kind is unsupported: {kind!r}")
         concept_kinds.add(kind)
-        require_text(concept.get("title"), f"concepts[{index}].title", maximum=90)
-        require_text(concept.get("statement"), f"concepts[{index}].statement", 12, 240)
-        require_text_list(concept.get("details", []), f"concepts[{index}].details", 0, 3, 160)
+        title = require_text(concept.get("title"), f"concepts[{index}].title", maximum=90)
+        validate_visual_title(title, f"concepts[{index}].title")
+        require_text(concept.get("statement"), f"concepts[{index}].statement", 12, 180)
+        require_text_list(concept.get("details", []), f"concepts[{index}].details", 0, 2, 140)
         require_text(concept.get("recall_cue"), f"concepts[{index}].recall_cue", 4, 160)
         heading = require_text(concept.get("source_heading"), f"concepts[{index}].source_heading", maximum=180)
         if clean_heading(heading) not in source_headings:
@@ -346,6 +354,14 @@ def concept_color(kind: str) -> str:
     return "3"
 
 
+def group_color(concepts: list[dict]) -> str:
+    counts: dict[str, int] = {}
+    for concept in concepts:
+        color = concept_color(concept["kind"])
+        counts[color] = counts.get(color, 0) + 1
+    return sorted(counts, key=lambda color: (-counts[color], color))[0] if counts else "3"
+
+
 def edge_sides(source: dict, target: dict) -> tuple[str, str]:
     source_x = source["x"] + source["width"] / 2
     source_y = source["y"] + source["height"] / 2
@@ -397,8 +413,8 @@ def build_canvas(
     edges: list[dict] = []
     node_by_key: dict[str, dict] = {}
     group_bottoms: list[int] = []
-    group_width = 500
-    group_gap = 80
+    group_width = 520
+    group_gap = 160
     group_y = 520
 
     for group_index, group in enumerate(groups):
@@ -408,41 +424,38 @@ def build_canvas(
         for concept in concepts_by_group[group["id"]]:
             details = "\n".join(f"- {value}" for value in concept["details"])
             source_heading = clean_heading(concept["source_heading"])
-            source_link = f"[[{note_relative}#{source_heading}|Open full section]]"
             parts = [
                 "<!-- recall-map: concept -->",
-                f"## {concept['title']}",
+                f"<!-- recall-kind: {concept['kind']} -->",
+                f"### {concept['title']}",
                 concept["statement"],
             ]
             if details:
                 parts += ["", details]
-            parts += [
-                "",
-                f"**Recall cue:** {concept['recall_cue']}",
-                f"**Source:** {source_link} · source page {concept['source_page']}",
-            ]
+            compact_source = f"[[{note_relative}#{source_heading}|Source p.{concept['source_page']}]]"
+            parts += ["", compact_source]
             text = "\n".join(parts)
             node_id = stable_id("concept", f"{note_relative}:{concept['id']}")
             height = render_height(
                 render_metrics,
                 node_id,
                 text,
-                420,
-                text_height(text, 420, minimum=210, maximum=900),
+                440,
+                text_height(text, 440, minimum=180, maximum=720),
             )
             node = {
                 "id": node_id,
                 "type": "text",
                 "x": group_x + 40,
                 "y": child_y,
-                "width": 420,
+                "width": 440,
                 "height": height,
                 "text": text,
                 "color": concept_color(concept["kind"]),
             }
             child_nodes.append(node)
             node_by_key[concept["id"]] = node
-            child_y += height + 50
+            child_y += height + 70
 
             for asset_index, asset_link in enumerate(asset_links.get(concept["id"], []), start=1):
                 asset = (document_folder / asset_link["path"]).resolve()
@@ -454,7 +467,7 @@ def build_canvas(
                     "type": "file",
                     "x": group_x + 40,
                     "y": child_y,
-                    "width": 420,
+                    "width": 440,
                     "height": 260,
                     "file": asset.relative_to(vault_root).as_posix(),
                     "color": "4",
@@ -472,7 +485,7 @@ def build_canvas(
                         "color": "4",
                     }
                 )
-                child_y += 310
+                child_y += 330
         group_height = child_y - group_y + 20
         group_nodes.append(
             {
@@ -482,8 +495,8 @@ def build_canvas(
                 "y": group_y,
                 "width": group_width,
                 "height": group_height,
-                "label": f"{group['order']:02d} · {group['title']} — {group['summary']}",
-                "color": str((group_index % 5) + 2),
+                "label": f"{group['order']:02d} · {group['title']}",
+                "color": group_color(concepts_by_group[group["id"]]),
             }
         )
         content_nodes.extend(child_nodes)

@@ -8,14 +8,14 @@ required_skills:
     verify:
       skill_name: "obsidian-markdown"
 
-  - name: "json-canvas"
-    purpose: "Render and validate Obsidian JSON Canvas knowledge-recall maps with file, text, group, semantic-edge, and selected asset nodes."
-    source: "https://github.com/kepano/obsidian-skills/tree/main/skills/json-canvas"
-    verify:
-      skill_name: "json-canvas"
-
   - name: "obsidian-cli"
-    purpose: "Open the generated Canvas in the local Obsidian renderer and verify card height and effective font size through DOM measurements."
+    purpose: "Perform vault-native note operations and support final package verification."
     source: "https://github.com/kepano/obsidian-skills/tree/main/skills/obsidian-cli"
     verify:
       skill_name: "obsidian-cli"
+
+  - name: "obsidian-canvas-designer"
+    purpose: "Accept a semantic recall model and independently design, render, and verify the knowledge-recall Canvas."
+    source: "../obsidian-canvas-designer"
+    verify:
+      skill_name: "obsidian-canvas-designer"

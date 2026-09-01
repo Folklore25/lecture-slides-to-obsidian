@@ -1,0 +1,9 @@
+schema_version: 1
+required_tools:
+  - name: "obsidian"
+    verify_command: "obsidian version"
+    tested_version: "1.13.7 (installer 1.12.4)"
+    render_profile: "config/render-profile.mbp14-composer.json"
+    screenshot_qa: "forbidden-by-default"
+  - name: "python3"
+    verify_command: "python3 --version"

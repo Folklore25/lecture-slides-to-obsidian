@@ -20,6 +20,7 @@ def run_validator(
     delete_report: bool = False,
     vault_root: Path | None = None,
     recall_model: Path | None = None,
+    aesthetic_check: Path | None = None,
     render_metrics: Path | None = None,
     render_check: Path | None = None,
 ) -> tuple[int, dict]:
@@ -30,6 +31,8 @@ def run_validator(
         command += ["--vault-root", str(vault_root)]
     if recall_model is not None:
         command += ["--recall-model", str(recall_model)]
+    if aesthetic_check is not None:
+        command += ["--aesthetic-check", str(aesthetic_check)]
     if render_metrics is not None:
         command += ["--render-metrics", str(render_metrics)]
     if render_check is not None:
@@ -45,9 +48,18 @@ def run_validator(
     return result.returncode, json.loads(result.stdout)
 
 
-def write_render_qa(staging: Path, canvas: Path) -> tuple[Path, Path]:
+def write_canvas_qa(staging: Path, canvas: Path) -> tuple[Path, Path, Path]:
+    canvas_hash = hashlib.sha256(canvas.read_bytes()).hexdigest()
+    aesthetic = staging / "canvas-aesthetic-check.json"
     metrics = staging / "canvas-render-metrics.json"
     check = staging / "canvas-render-check.json"
+    aesthetic.write_text(json.dumps({
+        "schema_version": 1,
+        "valid": True,
+        "score": 100,
+        "minimum_score": 85,
+        "canvas_sha256": canvas_hash,
+    }))
     metrics.write_text(json.dumps({
         "schema_version": 1,
         "mode": "measure",
@@ -59,9 +71,9 @@ def write_render_qa(staging: Path, canvas: Path) -> tuple[Path, Path]:
         "mode": "check",
         "measurement_complete": True,
         "valid": True,
-        "canvas_sha256": hashlib.sha256(canvas.read_bytes()).hexdigest(),
+        "canvas_sha256": canvas_hash,
     }))
-    return metrics, check
+    return aesthetic, metrics, check
 
 
 class ValidateOutputTests(unittest.TestCase):
@@ -146,15 +158,38 @@ class ValidateOutputTests(unittest.TestCase):
             shutil.copytree(FIXTURE, folder)
             staging.mkdir()
             shutil.copy2(REPORT_FIXTURE, report)
-            render_metrics, render_check = write_render_qa(staging, folder / "sample.canvas")
+            aesthetic_check, render_metrics, render_check = write_canvas_qa(staging, folder / "sample.canvas")
             check = json.loads(render_check.read_text())
             check["canvas_sha256"] = "0" * 64
             render_check.write_text(json.dumps(check))
             code, result = run_validator(
-                folder, report, render_metrics=render_metrics, render_check=render_check
+                folder, report, aesthetic_check=aesthetic_check,
+                render_metrics=render_metrics, render_check=render_check,
             )
             self.assertNotEqual(code, 0)
             self.assertTrue(any("does not match the delivered Canvas" in item for item in result["errors"]))
+
+    def test_stale_aesthetic_check_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            folder = base / "document"
+            staging = base / "staging"
+            report = staging / "conversion-report.md"
+            shutil.copytree(FIXTURE, folder)
+            staging.mkdir()
+            shutil.copy2(REPORT_FIXTURE, report)
+            aesthetic_check, render_metrics, render_check = write_canvas_qa(
+                staging, folder / "sample.canvas"
+            )
+            aesthetic = json.loads(aesthetic_check.read_text())
+            aesthetic["canvas_sha256"] = "0" * 64
+            aesthetic_check.write_text(json.dumps(aesthetic))
+            code, result = run_validator(
+                folder, report, aesthetic_check=aesthetic_check,
+                render_metrics=render_metrics, render_check=render_check,
+            )
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("aesthetic check does not match" in item for item in result["errors"]))
 
     def test_temporary_report_is_deleted_on_success(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -225,9 +260,10 @@ class ValidateOutputTests(unittest.TestCase):
             )
             note_node["file"] = "COURSE101/Lectures/sample/sample.md"
             canvas_path.write_text(json.dumps(canvas))
-            render_metrics, render_check = write_render_qa(report.parent, canvas_path)
+            aesthetic_check, render_metrics, render_check = write_canvas_qa(report.parent, canvas_path)
             code, result = run_validator(
                 folder, report, vault_root=vault, recall_model=recall_model,
+                aesthetic_check=aesthetic_check,
                 render_metrics=render_metrics, render_check=render_check,
             )
             self.assertEqual(code, 0)
@@ -244,9 +280,10 @@ class ValidateOutputTests(unittest.TestCase):
             report.parent.mkdir()
             shutil.copy2(REPORT_FIXTURE, report)
             recall_model.write_text('{"schema_version":1}')
-            render_metrics, render_check = write_render_qa(report.parent, folder / "sample.canvas")
+            aesthetic_check, render_metrics, render_check = write_canvas_qa(report.parent, folder / "sample.canvas")
             code, result = run_validator(
                 folder, report, vault_root=vault, recall_model=recall_model,
+                aesthetic_check=aesthetic_check,
                 render_metrics=render_metrics, render_check=render_check,
             )
             self.assertNotEqual(code, 0)

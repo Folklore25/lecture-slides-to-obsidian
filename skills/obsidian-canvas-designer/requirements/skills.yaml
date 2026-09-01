@@ -1,0 +1,13 @@
+schema_version: 1
+required_skills:
+  - name: "json-canvas"
+    purpose: "Own JSON Canvas syntax, node/edge fields, IDs, and static reference integrity."
+    source: "https://github.com/kepano/obsidian-skills/tree/main/skills/json-canvas"
+  - name: "obsidian-cli"
+    purpose: "Open and measure the generated Canvas in the supported local Obsidian renderer."
+    source: "https://github.com/kepano/obsidian-skills/tree/main/skills/obsidian-cli"
+design_reference:
+  name: "obsidian-canvas-creator"
+  source: "https://github.com/axtonliu/axton-obsidian-visual-skills/tree/1265976d9746a84858b4b7b42fb86a215aa93de9/obsidian-canvas-creator"
+  license: "MIT"
+  required: true

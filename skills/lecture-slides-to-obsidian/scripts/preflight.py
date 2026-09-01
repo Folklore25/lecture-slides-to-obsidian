@@ -18,7 +18,7 @@ SUPPORTED = {
     ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx",
 }
 PROFILES = {"lecture-notes", "policy-document", "paper"}
-REQUIRED_SKILLS = {"obsidian-markdown", "json-canvas", "obsidian-cli"}
+REQUIRED_SKILLS = {"obsidian-markdown", "obsidian-cli", "obsidian-canvas-designer"}
 MINERU_LANGUAGES = {
     "ch", "ch_server", "en", "japan", "korean", "chinese_cht", "ta",
     "te", "ka", "el", "th", "latin", "arabic", "cyrillic",
