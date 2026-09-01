@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "note": "COURSE101/Lectures/example/example.md",
+  "asr_source": "teacher-session.md",
+  "entries": [
+    {
+      "id": "teacher-20260901-001",
+      "actor": "teacher",
+      "kind": "example",
+      "target_heading": "Core concept",
+      "target_level": 2,
+      "body": "The lecturer used a queue to illustrate how a bottleneck constrains the whole process.",
+      "source_anchor": "00:31:24",
+      "evidence": "A short ASR fragment supporting the example.",
+      "novelty_basis": "new-example",
+      "confidence": "high",
+      "apply": true,
+      "routing_status": "matched"
+    }
+  ],
+  "no_additions_reason": null
+}

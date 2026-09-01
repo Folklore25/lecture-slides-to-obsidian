@@ -2,7 +2,7 @@
 
 一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 PDF、PPT/PPTX、政策文档和论文，通过 MinerU 官方 CLI 整理成适合 Obsidian 阅读、连接和课堂补充的派生资料。
 
-当前实现采用组合架构：MinerU 官方 CLI 负责提取，主技能负责编排，独立 Canvas 子技能负责 Axton-informed 视觉设计与真实渲染 QA。
+当前实现采用四技能组合：MinerU官方CLI与主技能负责课前转换，Canvas子技能负责视觉产物，live-notes技能负责课堂即时思考，ASR enricher负责课后教师上下文增量。
 
 ## 设计目标
 
@@ -14,6 +14,8 @@
 - 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和知识回忆 Canvas。report、recall model、aesthetic/render checks 只存在于 staging，验证完成即删除。
 - Canvas 不是目录图：它提炼中心问题、学习模块、概念依赖/因果/对比链、边界条件和主动回忆问题，并让每个概念回链到完整课件。
 - Canvas 卡片高度通过本机 Obsidian DOM 两遍测量，不使用截图判断；最终阅读视图固定为 1:1、16px 字体，高于当前侧栏的 13px。
+- 课堂即时想法通过独立技能插入对应章节，并与课件转录正文分层保存。
+- 课后教师ASR上下文通过独立技能做增量比较，只补充老师新增的信息，不重复课件内容。
 - 用户在一个新学期首次提供课程名称时，只询问一次学期根目录并持久记录学期与课程映射。
 - 后续通过课程代码、正式名称或已登记别名唯一匹配，自动归档到对应学期的课程子目录。
 - 这是通用、运行环境无关的 Agent Skill；推荐通过 cc-switch 统一安装、更新和切换。
@@ -30,17 +32,21 @@ lecture-slides-to-obsidian/
 │   └── validate.sh
 ├── skills/
 │   ├── lecture-slides-to-obsidian/
-│       ├── SKILL.md
-│       └── ...课程解析、路由、Markdown 与最终 QA
-│   └── obsidian-canvas-designer/
-│       └── ...Canvas 设计、Axton 美术规则、静态评分与 DOM QA
+│   │   ├── SKILL.md
+│   │   └── ...课程解析、路由、Markdown 与最终 QA
+│   ├── obsidian-canvas-designer/
+│   │   └── ...Canvas 设计、Axton 美术规则、静态评分与 DOM QA
+│   ├── obsidian-live-lecture-notes/
+│   │   └── ...课堂即时想法路由与非破坏式插入
+│   └── lecture-asr-enricher/
+│       └── ...课后ASR增量提取、证据计划与老师补充
 └── tests/
     ├── cases/
     ├── fixtures/
     └── golden/
 ```
 
-`skills/` 是可由 cc-switch 一起管理的技能包；其中两个目录均可独立发现和调用。仓库级 `tests/` 与 `scripts/` 只用于开发维护。
+`skills/` 是可由 cc-switch 一起管理的技能包；其中四个目录均可独立发现和调用。仓库级 `tests/` 与 `scripts/` 只用于开发维护。
 
 ## 课程路由模型
 
@@ -81,6 +87,12 @@ lecture-slides-to-obsidian/
 cc-switch 卸载时可能创建自己的 skill backup。若要求卸载备份中也不保留课程路径，应先运行技能内的 `scripts/purge-state.sh --confirm`，再从 cc-switch 卸载技能。
 
 目录整体替换式更新必须保留并原位恢复 `state/`。在自动迁移实现前，更新器不应把 package 内容覆盖到一个已有运行态目录而忽略其中的 registry。
+
+## 课堂中与课后补充
+
+课堂中直接调用 `obsidian-live-lecture-notes`。它只绑定一次当前打开的 course-material note；每条聊天想法会被路由到最匹配的现有H2/H3，以稳定ID callout追加。无法可靠归位时暂存到 `## In-class notes`，避免打断课堂。
+
+课后已有教师ASR Markdown时调用 `lecture-asr-enricher`。它比较ASR与现有课件笔记，只保留老师新增的解释、例子、强调、纠正、边界、Q&A和有效课程安排；低置信度内容留在review plan，不写入笔记。教师补充复用同一插入协议，因此不会覆盖课件正文或学生课堂思考。
 
 ## 解析策略与前置要求
 
@@ -138,7 +150,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 推荐使用 **cc-switch** 管理。在自定义仓库中填写仓库 Owner、Name、Branch，并把 **Subdirectory** 设为 `skills`。让 cc-switch 负责安装、更新、切换和恢复运行态 `state/`；不要直接在它管理的安装目录中开发。
 
-若不使用 cc-switch，把 `skills/lecture-slides-to-obsidian/` 和 `skills/obsidian-canvas-designer/` 一起复制或链接到当前运行环境支持的技能目录。具体目录位置和调用语法由运行环境决定。
+若不使用 cc-switch，把 `skills/` 下四个技能目录一起复制或链接到当前运行环境支持的技能目录。具体目录位置和调用语法由运行环境决定。
 
 如果完整 Markdown 已存在而只缺 Canvas，直接调用 `obsidian-canvas-designer`。这一入口不加载 MinerU、token、提取、课程路由或 conversion report。
 
@@ -146,7 +158,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 ## 本地验证
 
-主技能提供三个流程入口，Canvas 子技能提供四个独立入口：
+主技能提供三个流程入口，Canvas子技能提供四个入口，课堂补充技能各提供一个确定性入口：
 
 ```text
 preflight.py          分段收集/验证 vault、course、profile、language、OCR、helper skills、token state
@@ -157,6 +169,9 @@ obsidian-canvas-designer/build-canvas.py          recall model → Canvas
 obsidian-canvas-designer/recall-skeleton.py       H2/page inventory → authoring draft
 obsidian-canvas-designer/canvas-aesthetic-qa.py   Axton-informed static visual score
 obsidian-canvas-designer/canvas-render-qa.py      本机 DOM → 实测高度、字体与 PASS/FAIL
+
+obsidian-live-lecture-notes/apply-note-patches.py  学生/老师callout → Obsidian原生幂等插入
+lecture-asr-enricher/validate-enrichment-plan.py   ASR增量计划 → 可应用teacher patch
 ```
 
 Canvas 必须执行本机两遍渲染：

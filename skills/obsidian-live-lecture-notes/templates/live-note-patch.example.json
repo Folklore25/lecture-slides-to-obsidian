@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "note": "COURSE101/Lectures/example/example.md",
+  "entries": [
+    {
+      "id": "student-20260901T143022-001",
+      "actor": "student",
+      "kind": "connection",
+      "target_heading": "Core concept",
+      "target_level": 2,
+      "body": "This idea connects the mechanism to a boundary discussed earlier.",
+      "captured_at": "2026-09-01T14:30:22+08:00",
+      "routing_status": "matched"
+    }
+  ]
+}

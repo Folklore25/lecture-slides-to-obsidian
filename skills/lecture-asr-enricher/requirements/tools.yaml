@@ -1,0 +1,6 @@
+schema_version: 1
+required_tools:
+  - name: "obsidian"
+    verify_command: "obsidian version"
+  - name: "python3"
+    verify_command: "python3 --version"

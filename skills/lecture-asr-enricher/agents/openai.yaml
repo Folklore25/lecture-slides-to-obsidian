@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lecture ASR Enricher"
+  short_description: "Add new lecturer context from ASR to course notes"
+  default_prompt: "Use $lecture-asr-enricher to compare this teacher ASR transcript with my course note and insert only the genuinely new teaching context."

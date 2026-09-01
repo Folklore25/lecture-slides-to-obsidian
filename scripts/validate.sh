@@ -4,6 +4,8 @@ set -eu
 repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 skill_dir="$repo_dir/skills/lecture-slides-to-obsidian"
 canvas_skill_dir="$repo_dir/skills/obsidian-canvas-designer"
+live_notes_skill_dir="$repo_dir/skills/obsidian-live-lecture-notes"
+asr_skill_dir="$repo_dir/skills/lecture-asr-enricher"
 
 main_required_files='SKILL.md
 agents/openai.yaml
@@ -59,6 +61,24 @@ scripts/recall-skeleton.py
 templates/delegated-task.md
 templates/recall-model.lecture-notes.example.json'
 
+live_notes_required_files='SKILL.md
+agents/openai.yaml
+references/insertion-contract.md
+references/live-workflow.md
+requirements/skills.yaml
+requirements/tools.yaml
+scripts/apply-note-patches.py
+templates/live-note-patch.example.json'
+
+asr_required_files='SKILL.md
+agents/openai.yaml
+references/enrichment-plan.md
+references/novelty-policy.md
+requirements/skills.yaml
+requirements/tools.yaml
+scripts/validate-enrichment-plan.py
+templates/enrichment-plan.example.json'
+
 printf '%s\n' "$main_required_files" | while IFS= read -r relative_path; do
   if [ ! -f "$skill_dir/$relative_path" ]; then
     printf 'main skill missing: %s\n' "$relative_path" >&2
@@ -69,6 +89,20 @@ done
 printf '%s\n' "$canvas_required_files" | while IFS= read -r relative_path; do
   if [ ! -f "$canvas_skill_dir/$relative_path" ]; then
     printf 'Canvas skill missing: %s\n' "$relative_path" >&2
+    exit 1
+  fi
+done
+
+printf '%s\n' "$live_notes_required_files" | while IFS= read -r relative_path; do
+  if [ ! -f "$live_notes_skill_dir/$relative_path" ]; then
+    printf 'live-notes skill missing: %s\n' "$relative_path" >&2
+    exit 1
+  fi
+done
+
+printf '%s\n' "$asr_required_files" | while IFS= read -r relative_path; do
+  if [ ! -f "$asr_skill_dir/$relative_path" ]; then
+    printf 'ASR enricher skill missing: %s\n' "$relative_path" >&2
     exit 1
   fi
 done
@@ -86,6 +120,14 @@ fi
 if ! grep -q '^name: obsidian-canvas-designer$' "$canvas_skill_dir/SKILL.md" || \
    ! grep -q '^description: .\+' "$canvas_skill_dir/SKILL.md"; then
   printf 'invalid Canvas subskill metadata\n' >&2
+  exit 1
+fi
+
+if ! grep -q '^name: obsidian-live-lecture-notes$' "$live_notes_skill_dir/SKILL.md" || \
+   ! grep -q '^description: .\+' "$live_notes_skill_dir/SKILL.md" || \
+   ! grep -q '^name: lecture-asr-enricher$' "$asr_skill_dir/SKILL.md" || \
+   ! grep -q '^description: .\+' "$asr_skill_dir/SKILL.md"; then
+  printf 'invalid supplementary skill metadata\n' >&2
   exit 1
 fi
 
@@ -121,6 +163,12 @@ fi
 if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli, obsidian-canvas-designer"' "$skill_dir/SKILL.md" || \
    ! grep -q 'required-skills: "json-canvas, obsidian-cli"' "$canvas_skill_dir/SKILL.md"; then
   printf 'skill prerequisite metadata is missing or out of sync\n' >&2
+  exit 1
+fi
+
+if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli"' "$live_notes_skill_dir/SKILL.md" || \
+   ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli, obsidian-live-lecture-notes"' "$asr_skill_dir/SKILL.md"; then
+  printf 'supplementary skill prerequisites are missing or out of sync\n' >&2
   exit 1
 fi
 
@@ -193,6 +241,12 @@ if ! command -v obsidian >/dev/null 2>&1 || \
    [ ! -x "$canvas_skill_dir/scripts/canvas-aesthetic-qa.py" ] || \
    [ ! -x "$canvas_skill_dir/scripts/recall-skeleton.py" ]; then
   printf 'Obsidian CLI and executable canvas-render-qa.py are required for local renderer QA\n' >&2
+  exit 1
+fi
+
+if [ ! -x "$live_notes_skill_dir/scripts/apply-note-patches.py" ] || \
+   [ ! -x "$asr_skill_dir/scripts/validate-enrichment-plan.py" ]; then
+  printf 'supplementary skill scripts must be executable\n' >&2
   exit 1
 fi
 

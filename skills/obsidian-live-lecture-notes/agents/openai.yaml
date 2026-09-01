@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian Live Lecture Notes"
+  short_description: "Place live classroom thoughts into the right note section"
+  default_prompt: "Use $obsidian-live-lecture-notes to capture this classroom thought in the corresponding section of my open course note."
