@@ -76,8 +76,11 @@ conversion:
   visual_layout_refinement:
     enabled: false
     skill: "slide-layout-refiner"
-    preferred_model: "MiniMax-M3"
     requires_multimodal: true
+    requires_visual_input: true
+    accepted_source_views:
+      - "original-pdf"
+      - "rendered-page-images"
     source_format: "pdf"
     scope: "inside-source-page-markers-only"
     write_mode: "overwrite-final-markdown"

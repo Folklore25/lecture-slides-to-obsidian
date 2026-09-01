@@ -4,4 +4,7 @@ required_skills:
     source: "https://github.com/kepano/obsidian-skills/tree/main/skills/obsidian-markdown"
 model_requirements:
   multimodal: true
-  preferred_model: "MiniMax-M3"
+  visual_input: true
+  accepted_source_views:
+    - "original-pdf"
+    - "rendered-page-images"

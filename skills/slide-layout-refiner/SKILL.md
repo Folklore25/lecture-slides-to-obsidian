@@ -3,8 +3,8 @@ name: slide-layout-refiner
 description: Optionally refine the readability and page-local layout of MinerU-derived slide Markdown by comparing it with the original PDF using a multimodal model. Use only after extraction and before user notes; preserve all content, text order, page order, and per-page assets.
 metadata:
   required-skills: "obsidian-markdown"
-  preferred-model: "MiniMax-M3"
   requires-multimodal: "true"
+  requires-visual-input: "true"
 ---
 
 # Slide Layout Refiner
@@ -25,7 +25,7 @@ Run only before classroom/student/teacher layers exist. If the Markdown contains
 
 ## Workflow
 
-1. Confirm the option is enabled and the selected model is multimodal. Prefer `MiniMax-M3` as requested. If the runtime cannot provide the original PDF visually, skip refinement and keep the base Markdown; do not use a text-only guess.
+1. Confirm the option is enabled and the selected model supports visual input. It must be able to inspect the original PDF directly or inspect page images rendered from it. If neither visual input path is available, skip refinement and keep the base Markdown; do not use a text-only guess.
 2. Read [references/refinement-contract.md](references/refinement-contract.md).
 3. Create a uniquely named run directory with the platform temporary-directory API. A non-hidden `tmp/` directory inside the installed skill is the fallback. Resolve the path and prove it is outside the vault; never create `.tmp`, `.staging`, `.cache`, or any other dot-prefixed path in the vault.
 4. Copy the target Markdown byte-for-byte to `<run-dir>/before.md`. This is a rollback snapshot, not a second output version.

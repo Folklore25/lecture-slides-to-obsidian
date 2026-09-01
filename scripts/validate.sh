@@ -196,7 +196,7 @@ if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli"' "$live_notes_s
 fi
 
 if ! grep -q 'optional-skills: "slide-layout-refiner"' "$skill_dir/SKILL.md" || \
-   ! grep -q 'preferred-model: "MiniMax-M3"' "$layout_skill_dir/SKILL.md" || \
+   ! grep -q 'requires-visual-input: "true"' "$layout_skill_dir/SKILL.md" || \
    ! grep -q 'enabled_by_default: false' "$skill_dir/requirements/skills.yaml"; then
   printf 'optional multimodal layout refinement contract is missing\n' >&2
   exit 1

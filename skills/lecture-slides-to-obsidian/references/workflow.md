@@ -24,7 +24,7 @@ Prefer page-grouped `content_list_v2.json`. Otherwise group legacy blocks by `pa
 
 ### Optional multimodal layout refinement
 
-Disabled by default. First write the base Markdown to its final vault path. When enabled, make a byte-exact snapshot in the outside-vault run directory and delegate the original PDF plus the final Markdown path to `slide-layout-refiner` using a multimodal model, preferably `MiniMax-M3`. The refiner directly overwrites that file and may change structure only inside each immutable `<!-- source-page: N -->` segment. Deterministic validation compares the overwrite with the snapshot. On any failure it restores the snapshot automatically; no second Markdown version is retained.
+Disabled by default. First write the base Markdown to its final vault path. When enabled, make a byte-exact snapshot in the outside-vault run directory and delegate the original PDF plus the final Markdown path to `slide-layout-refiner` using a model that supports visual input. The model must inspect the PDF directly or inspect rendered page images. The refiner directly overwrites that file and may change structure only inside each immutable `<!-- source-page: N -->` segment. Deterministic validation compares the overwrite with the snapshot. On any failure it restores the snapshot automatically; no second Markdown version is retained.
 
 ## 5. Derived artifact generation
 

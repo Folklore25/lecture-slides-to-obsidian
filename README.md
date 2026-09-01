@@ -9,7 +9,7 @@
 - 追求 semantic fidelity，而不是宣称 PDF → Markdown “无损”。
 - 文字、层级、列表、公式和表格尽量结构化。
 - 图表、复杂排版、手写标注和低置信度页面保留视觉兜底。
-- 可选使用MiniMax-M3等多模态模型逐页对照原PDF，只整理每个`source-page`边界内部的版式；默认关闭，内容与顺序守恒验证失败时保留MinerU原稿。
+- 可选使用支持视觉输入的模型逐页对照原PDF，只整理每个`source-page`边界内部的版式；默认关闭，内容与顺序守恒验证失败时保留MinerU原稿。
 - 最终视觉资产统一命名为 `page-PPP-kind-NN.ext`，例如 `page-004-figure-01.png`。
 - 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。
 - 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和知识回忆 Canvas。report、snapshot、recall model、aesthetic/render checks 只存在于系统 tmp 或技能安装目录的 `tmp/`，验证完成即删除；不会在 vault 中创建任何点号开头的工作目录。
@@ -143,7 +143,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 4. Adapter 把 CLI legacy content-list JSON 按 `page_idx` 转成 page-group compatibility JSON。
 5. Adapter 按页码/类型/序号重命名图片，输出 `asset-map.json` 和 `normalized-assets/`。
 6. `reconstruct-note.py`生成基础MinerU Markdown与不可变source-page markers。
-7. 可选的`slide-layout-refiner`让MiniMax-M3直接查看原PDF，并直接覆盖最终Markdown，但只能修改相邻markers之间的结构。目标是完整保存信息和提高可读性，不是像素级还原；会将`\-`/装饰符号整理为真实列表，并让每级子列表使用四个ASCII空格加`- `表达层级，禁止Tab缩进。marker行逐字节锁定，文本token顺序和每页asset集合必须完全守恒；验证失败时自动从tmp快照恢复。
+7. 可选的`slide-layout-refiner`使用支持视觉输入的模型直接查看原PDF或逐页渲染图，并直接覆盖最终Markdown，但只能修改相邻markers之间的结构。目标是完整保存信息和提高可读性，不是像素级还原；会将`\-`/装饰符号整理为真实列表，并让每级子列表使用四个ASCII空格加`- `表达层级，禁止Tab缩进。marker行逐字节锁定，文本token顺序和每页asset集合必须完全守恒；验证失败时自动从tmp快照恢复。
 8. 主 Agent 通读最终采用的Markdown并建立覆盖所有H2的临时recall model。
 9. 独立`obsidian-canvas-designer`子技能由subagent执行布局、美术评分、DOM实测和重排；主Agent只消费Canvas与PASS/FAIL证据。
 

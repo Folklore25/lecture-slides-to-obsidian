@@ -25,4 +25,4 @@ optional_skills:
     purpose: "Use a multimodal model to restore page-local slide hierarchy and asset placement without changing content or source-page separation."
     source: "../slide-layout-refiner"
     enabled_by_default: false
-    preferred_model: "MiniMax-M3"
+    requires_visual_input: true

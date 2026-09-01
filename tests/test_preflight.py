@@ -98,7 +98,7 @@ class PreflightTests(unittest.TestCase):
             ])
             self.assertTrue(any(item["id"] == "language" for item in result["questions"]))
 
-    def test_optional_layout_refinement_requires_loaded_skill_and_model(self):
+    def test_optional_layout_refinement_requires_loaded_skill_and_visual_input_check(self):
         with tempfile.TemporaryDirectory() as temp:
             source, vault, token = self.make_paths(Path(temp))
             _, result = run_preflight([
@@ -111,9 +111,9 @@ class PreflightTests(unittest.TestCase):
                 "--visual-layout-refinement",
             ])
             self.assertTrue(any("slide-layout-refiner" in item for item in result["errors"]))
-            self.assertTrue(any(item["id"] == "layout_model" for item in result["questions"]))
+            self.assertTrue(any(item["id"] == "layout_visual_input" for item in result["questions"]))
 
-    def test_optional_layout_refinement_accepts_minimax_model(self):
+    def test_optional_layout_refinement_accepts_visual_input_capability(self):
         with tempfile.TemporaryDirectory() as temp:
             source, vault, token = self.make_paths(Path(temp))
             code, result = run_preflight([
@@ -124,10 +124,26 @@ class PreflightTests(unittest.TestCase):
                 "--loaded-skill", "obsidian-cli",
                 "--loaded-skill", "obsidian-canvas-designer",
                 "--loaded-skill", "slide-layout-refiner",
-                "--visual-layout-refinement", "--layout-model", "MiniMax-M3",
+                "--visual-layout-refinement", "--layout-visual-input", "true",
             ])
             self.assertEqual(code, 0)
-            self.assertEqual(result["checks"]["layout_model"], "MiniMax-M3")
+            self.assertTrue(result["checks"]["layout_visual_input"])
+
+    def test_optional_layout_refinement_rejects_text_only_model(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source, vault, token = self.make_paths(Path(temp))
+            code, result = run_preflight([
+                source, "--vault-root", vault, "--course", "COURSE101",
+                "--profile", "lecture-notes", "--language", "en",
+                "--is-ocr", "false", "--token-file", token,
+                "--loaded-skill", "obsidian-markdown",
+                "--loaded-skill", "obsidian-cli",
+                "--loaded-skill", "obsidian-canvas-designer",
+                "--loaded-skill", "slide-layout-refiner",
+                "--visual-layout-refinement", "--layout-visual-input", "false",
+            ])
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("visual input" in item for item in result["errors"]))
 
 
 if __name__ == "__main__":

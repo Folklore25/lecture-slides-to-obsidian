@@ -55,7 +55,7 @@ def main() -> int:
     parser.add_argument("--is-ocr", choices=("true", "false"))
     parser.add_argument("--loaded-skill", action="append", default=[])
     parser.add_argument("--visual-layout-refinement", action="store_true")
-    parser.add_argument("--layout-model")
+    parser.add_argument("--layout-visual-input", choices=("true", "false"))
     parser.add_argument("--fixture-mode", action="store_true")
     parser.add_argument(
         "--token-file",
@@ -122,13 +122,15 @@ def main() -> int:
     if args.visual_layout_refinement:
         if "slide-layout-refiner" not in loaded:
             errors.append("optional slide-layout-refiner skill was enabled but not loaded")
-        if not args.layout_model:
+        if args.layout_visual_input is None:
             questions.append({
-                "id": "layout_model",
-                "prompt": "请选择支持直接读取原PDF的多模态模型；推荐 MiniMax-M3。",
+                "id": "layout_visual_input",
+                "prompt": "当前所选模型是否支持直接查看原PDF或逐页渲染图？请明确回答 true 或 false。",
             })
+        elif args.layout_visual_input == "false":
+            errors.append("visual layout refinement requires a model with visual input")
         else:
-            checks["layout_model"] = args.layout_model
+            checks["layout_visual_input"] = True
 
     obsidian_cli = shutil.which("obsidian")
     if not args.fixture_mode and obsidian_cli is None:

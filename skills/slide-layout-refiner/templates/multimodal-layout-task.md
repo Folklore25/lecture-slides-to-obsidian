@@ -1,4 +1,4 @@
-Use `$slide-layout-refiner` with a multimodal model. Preferred model: `MiniMax-M3`.
+Use `$slide-layout-refiner` with a model that supports visual input. The model must be able to inspect the original PDF directly or inspect page images rendered from it.
 
 Inputs:
 
