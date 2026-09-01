@@ -143,7 +143,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 4. Adapter 把 CLI legacy content-list JSON 按 `page_idx` 转成 page-group compatibility JSON。
 5. Adapter 按页码/类型/序号重命名图片，输出 `asset-map.json` 和 `normalized-assets/`。
 6. `reconstruct-note.py`生成基础MinerU Markdown与不可变source-page markers。
-7. 可选的`slide-layout-refiner`让MiniMax-M3直接查看原PDF，并直接覆盖最终Markdown，但只能修改相邻markers之间的结构。目标是完整保存信息和提高可读性，不是像素级还原；会将`\-`/装饰符号整理为真实列表，并用Tab + `-`表达层级。marker行逐字节锁定，文本token顺序和每页asset集合必须完全守恒；验证失败时自动从tmp快照恢复。
+7. 可选的`slide-layout-refiner`让MiniMax-M3直接查看原PDF，并直接覆盖最终Markdown，但只能修改相邻markers之间的结构。目标是完整保存信息和提高可读性，不是像素级还原；会将`\-`/装饰符号整理为真实列表，并让每级子列表使用两个普通空格加`- `表达层级，禁止Tab缩进。marker行逐字节锁定，文本token顺序和每页asset集合必须完全守恒；验证失败时自动从tmp快照恢复。
 8. 主 Agent 通读最终采用的Markdown并建立覆盖所有H2的临时recall model。
 9. 独立`obsidian-canvas-designer`子技能由subagent执行布局、美术评分、DOM实测和重排；主Agent只消费Canvas与PASS/FAIL证据。
 

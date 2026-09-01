@@ -12,7 +12,7 @@ There is one Markdown output path. The model edits that target in place. A byte-
 
 After removing Markdown-only syntax, the snapshot and overwritten target must produce the same visible token sequence on every page. This allows heading demotion, bullet normalization, line joining, blockquotes, and table separators while rejecting edits, additions, deletions, and reordering.
 
-The validator intentionally treats line-leading escaped `\-` and `▶`, `►`, `▪`, `•`, `●`, `◦`, and `‣` as bullet syntax in the snapshot. The overwritten target must replace them with real Markdown `-` list items. Nested bullets may use Tab + `-` when that represents the slide's information hierarchy.
+The validator intentionally treats line-leading escaped `\-` and `▶`, `►`, `▪`, `•`, `●`, `◦`, and `‣` as bullet syntax in the snapshot. The overwritten target must replace them with real Markdown `-` list items. A child item uses exactly two ASCII spaces per nesting level before `- `, must belong to a preceding parent list item, and must never use a Tab character.
 
 ## Asset conservation
 
@@ -39,7 +39,7 @@ The validator intentionally treats line-leading escaped `\-` and `▶`, `►`, `
 
 - one slide title remains H2 while labels from a web screenshot become H3/list items;
 - a sequence of `▶` lines becomes one Markdown list;
-- MinerU output such as `\- detail` becomes `- detail`, or a Tab-indented `- detail` when it belongs under a parent point;
+- MinerU output such as `\- detail` becomes `- detail`, or `  - detail` when it belongs under a parent point;
 - a diagram embed moves next to its related bullet instead of appearing as an isolated raw asset line;
 - visually paired label/value blocks become a Markdown table without changing cell text order.
 

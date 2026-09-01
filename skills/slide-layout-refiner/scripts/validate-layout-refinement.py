@@ -22,6 +22,8 @@ MARKDOWN_LINK = re.compile(r"(?<!!)\[([^\]]+)\]\(([^)]+)\)")
 BULLET_GLYPH = re.compile(r"(?m)^\s*[▶►▪•●◦‣]\s*")
 CALLOUT = re.compile(r"(?m)^\s*>\s*\[![^\]]+\]")
 HORIZONTAL_RULE = re.compile(r"(?m)^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$")
+TAB_LIST = re.compile(r"(?m)^[ ]*\t+[ \t]*[-+*]\s+")
+SPACE_LIST = re.compile(r"^( *)([-+*])\s+")
 
 
 class RefinementError(RuntimeError):
@@ -130,6 +132,27 @@ def heading_structure_errors(text: str) -> list[str]:
     return errors
 
 
+def list_structure_errors(text: str) -> list[str]:
+    errors = []
+    if TAB_LIST.search(text):
+        errors.append("Tab-indented list item is forbidden; use two ASCII spaces per nesting level")
+
+    active_indents: set[int] = set()
+    for line in text.splitlines():
+        match = SPACE_LIST.match(line)
+        if match:
+            indent = len(match.group(1))
+            if indent % 2:
+                errors.append(f"list indentation must use multiples of two ASCII spaces, found {indent}")
+            elif indent and indent - 2 not in active_indents:
+                errors.append("indented list item has no preceding parent list item")
+            active_indents = {level for level in active_indents if level < indent}
+            active_indents.add(indent)
+        elif line.strip() and not line.startswith(" ") and not line.startswith("\t"):
+            active_indents.clear()
+    return errors
+
+
 def validate_refinement(snapshot: str, refined: str) -> dict:
     errors = []
     if "lecture-layer:" in snapshot or "lecture-layer:" in refined:
@@ -168,6 +191,7 @@ def validate_refinement(snapshot: str, refined: str) -> dict:
             if re.search(r"(?m)^\s*\\-\s+", refined_page):
                 page_errors.append("escaped list marker remains in refined Markdown")
             page_errors.extend(heading_structure_errors(refined_page))
+            page_errors.extend(list_structure_errors(refined_page))
             if CALLOUT.search(refined_page):
                 page_errors.append("callout syntax introduces a generated visible label")
             without_comments = re.sub(r"<!--.*?-->", "", refined_page, flags=re.S)

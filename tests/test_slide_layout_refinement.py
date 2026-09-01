@@ -52,9 +52,9 @@ source_pages: 2
 
 - First point
 
-### Systematic
+- Systematic
 
-	- about research design
+  - about research design
 
 > ![[assets/page-001-figure-01.png|480]]
 
@@ -84,7 +84,7 @@ class SlideLayoutRefinementTests(unittest.TestCase):
         self.assertTrue(any("visible text tokens" in item for item in result["errors"]))
 
     def test_text_reordering_is_rejected(self):
-        changed = REFINED.replace("- First point\n\n### Systematic", "### Systematic\n\n- First point")
+        changed = REFINED.replace("- First point\n\n- Systematic", "- Systematic\n\n- First point")
         result = REFINER.validate_refinement(BASE, changed)
         self.assertFalse(result["valid"])
 
@@ -110,13 +110,13 @@ class SlideLayoutRefinementTests(unittest.TestCase):
         self.assertIn("frontmatter changed", result["errors"])
 
     def test_multiple_h2_titles_in_one_slide_are_rejected(self):
-        changed = REFINED.replace("### Systematic", "## Systematic")
+        changed = REFINED.replace("- Systematic", "## Systematic")
         result = REFINER.validate_refinement(BASE, changed)
         self.assertFalse(result["valid"])
         self.assertTrue(any("more than one H2" in item for item in result["errors"]))
 
     def test_h4_without_h3_region_is_rejected(self):
-        changed = REFINED.replace("### Systematic", "#### Systematic")
+        changed = REFINED.replace("- Systematic", "#### Systematic")
         result = REFINER.validate_refinement(BASE, changed)
         self.assertFalse(result["valid"])
         self.assertTrue(any("H4 appears" in item for item in result["errors"]))
@@ -134,16 +134,28 @@ class SlideLayoutRefinementTests(unittest.TestCase):
         self.assertTrue(any("raw HTML" in item for item in result["errors"]))
 
     def test_new_horizontal_rule_is_rejected(self):
-        changed = REFINED.replace("### Systematic", "---\n\n### Systematic")
+        changed = REFINED.replace("- Systematic", "---\n\n- Systematic")
         result = REFINER.validate_refinement(BASE, changed)
         self.assertFalse(result["valid"])
         self.assertTrue(any("horizontal rule" in item for item in result["errors"]))
 
     def test_escaped_list_marker_must_be_normalized(self):
-        changed = REFINED.replace("\t- about research design", "\t\\- about research design")
+        changed = REFINED.replace("  - about research design", "  \\- about research design")
         result = REFINER.validate_refinement(BASE, changed)
         self.assertFalse(result["valid"])
         self.assertTrue(any("escaped list marker remains" in item for item in result["errors"]))
+
+    def test_tab_indented_list_is_rejected(self):
+        changed = REFINED.replace("  - about research design", "\t- about research design")
+        result = REFINER.validate_refinement(BASE, changed)
+        self.assertFalse(result["valid"])
+        self.assertTrue(any("Tab-indented list" in item for item in result["errors"]))
+
+    def test_indented_list_without_parent_is_rejected(self):
+        changed = REFINED.replace("- Systematic\n\n  - about research design", "### Systematic\n\n  - about research design")
+        result = REFINER.validate_refinement(BASE, changed)
+        self.assertFalse(result["valid"])
+        self.assertTrue(any("no preceding parent" in item for item in result["errors"]))
 
     def test_cli_validates_direct_overwrite_without_second_vault_note(self):
         with tempfile.TemporaryDirectory() as temp:

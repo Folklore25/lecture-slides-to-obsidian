@@ -39,7 +39,7 @@ Run only before classroom/student/teacher layers exist. If the Markdown contains
 - identify the true slide title from the PDF and adjust heading levels;
 - demote MinerU's fragmented pseudo-H2 blocks to H3, paragraph, list, or table structure;
 - convert decorative bullet glyphs such as `▶`, `►`, `▪`, or `•` into Markdown lists;
-- convert MinerU's line-leading escaped `\-` into real `-` list items and use Tab + `-` for genuine nested hierarchy;
+- convert MinerU's line-leading escaped `\-` into real `-` list items; for genuine nested hierarchy, indent each child level with exactly two ASCII spaces before `- ` and never use a Tab character;
 - join visually continuous lines into paragraphs without changing token order;
 - represent faithful hierarchy/grouping with native headings, nested/ordered lists, tables, blockquotes, emphasis, highlights, embeds, and whitespace;
 - move or resize an existing asset embed within its original source page so it sits beside the content it explains.
