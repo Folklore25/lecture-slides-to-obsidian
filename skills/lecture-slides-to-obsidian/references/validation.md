@@ -6,7 +6,7 @@ Run this before declaring completion:
 scripts/validate-output.py <document-folder> --vault-root <vault-root> --report <staging>/conversion-report.md --recall-model <staging>/recall-model.json --aesthetic-check <staging>/canvas-aesthetic-check.json --render-metrics <staging>/canvas-render-metrics.json --render-check <staging>/canvas-render-check.json --delete-qa-on-success
 ```
 
-When optional multimodal layout refinement is enabled, also pass `--layout-refinement-report <staging>/layout-refinement-report.json`. Omit it when the feature is disabled or its rejected candidate was not adopted.
+When optional multimodal layout refinement is enabled and its in-place overwrite passes, also pass `--layout-refinement-report <tmp>/layout-refinement-report.json`. Omit it when the feature is disabled or the overwrite was rolled back. The report and its pre-edit snapshot must be outside the vault.
 
 ## Folder checks
 
@@ -53,7 +53,8 @@ Structured provenance must also be checked against MinerU content lists: marker 
 - Unperformed visual rendering is marked `NOT-CHECKED`, not `PASS`.
 - No token, Authorization header, signed URL, or absolute source path appears.
 - `recall-model.json` is outside the vault, valid JSON with schema version 1, and was used to build the Canvas.
-- If supplied, `layout-refinement-report.json` is valid and its candidate SHA matches the delivered Markdown.
+- If supplied, `layout-refinement-report.json` is valid and its refined target SHA matches the delivered Markdown.
+- The document folder contains no dot-prefixed file or directory. The workflow never creates hidden staging/tmp/cache paths anywhere in the vault.
 - `canvas-aesthetic-check.json` passes at score 85 or above and matches the delivered Canvas hash.
 - `canvas-render-metrics.json` is a complete first-pass DOM measurement; `canvas-render-check.json` is a successful final check for the delivered Canvas.
 - After the Agent has extracted the facts needed for its final response, `--delete-qa-on-success` removes the report, recall model, optional layout report, aesthetic check, render metrics, and render check before that response is sent.

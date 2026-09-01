@@ -26,6 +26,10 @@ output:
     - "fallback"
 
 staging:
+  root: "system-temporary-directory"
+  fallback_root: "installed-skill/tmp"
+  allow_inside_vault: false
+  create_dot_prefixed_paths_in_vault: false
   report_name: "conversion-report.md"
   layout_refinement_report_name: "layout-refinement-report.json"
   recall_model_name: "recall-model.json"
@@ -76,7 +80,9 @@ conversion:
     requires_multimodal: true
     source_format: "pdf"
     scope: "inside-source-page-markers-only"
-    on_failure: "keep-base-mineru-markdown"
+    write_mode: "overwrite-final-markdown"
+    snapshot_location: "staging-outside-vault"
+    on_failure: "restore-snapshot-without-confirmation"
 
 obsidian:
   wikilinks: true

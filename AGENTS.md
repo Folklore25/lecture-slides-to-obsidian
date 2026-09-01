@@ -4,13 +4,14 @@
 - Keep `SKILL.md` concise; route conditional detail to `references/`.
 - The official `mineru-open-api` precision CLI is the only extraction client. Never add direct MinerU HTTP code, a local parser/runtime, or lightweight fallback.
 - Keep source originals outside the Obsidian vault; only complete Markdown, derived assets, and knowledge-recall Canvas belong in document folders.
-- Conversion reports, recall models, aesthetic checks, and render checks are temporary Agent QA state outside the vault. Delete all after successful validation.
+- Conversion reports, rollback snapshots, recall models, aesthetic checks, and render checks are temporary Agent QA state under system tmp or the installed skill directory, outside the vault. Delete all after successful validation.
 - Use the official CLI JSON output grouped by `page_idx`; never derive page boundaries with global Markdown anchors.
 - Enforce `page-PPP-kind-NN.ext` final asset names and keep `asset-map.json` in staging only.
 - The main skill never draws Canvas. Delegate to `obsidian-canvas-designer`, which must apply the pinned Axton guidance, aesthetic score, DOM measure/reflow, and final hash-bound check.
 - Canvas readability is not complete until local Obsidian DOM measurement drives a second layout pass and the final check confirms measured height margin plus 16px effective reading font. Do not use screenshots by default.
 - Keep live student thoughts, teacher ASR additions, and source transcription as separate layers. Supplementary skills insert stable callout blocks and never rewrite source paragraphs or each other's markers.
-- Optional multimodal slide refinement is page-local only: source-page marker lines, visible token order, links, and per-page asset multisets are immutable. Reject the candidate on any conservation failure.
+- Optional multimodal slide refinement directly overwrites the final Markdown and is page-local only: source-page marker lines, visible token order, links, and per-page asset multisets are immutable. Restore the outside-vault snapshot automatically on any conservation failure.
+- Never create a workflow-owned dot-prefixed directory or file in the Obsidian vault. Do not modify an existing `.obsidian/` directory as part of conversion.
 - Keep structural alignment separate from pixel-level visual comparison; mark unperformed rendering `NOT-CHECKED`.
 - Keep course routing behavior aligned across `course-routing.md`, the registry example, output contract, examples, and routing test cases.
 - Never store a user's real semester root or course paths in the repository.

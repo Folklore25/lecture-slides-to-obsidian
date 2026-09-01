@@ -16,7 +16,7 @@ Load `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`. Verify
 
 ## 3. Staging and official CLI extraction
 
-Create staging outside the vault and preserve the source hash. Run `scripts/mineru-cli-adapter.py`; it unlocks the token, sets `MINERU_TOKEN`, and delegates upload/poll/download to `mineru-open-api extract -f md,json`. Follow [mineru-cli.md](mineru-cli.md). Do not call MinerU HTTP endpoints directly.
+Create a uniquely named run directory under the system temporary directory; if unavailable, use a non-hidden `tmp/` directory inside the installed skill. It must resolve outside the vault. Never create a dot-prefixed staging/cache/tmp directory in the vault. Preserve the source hash. Run `scripts/mineru-cli-adapter.py`; it unlocks the token, sets `MINERU_TOKEN`, and delegates upload/poll/download to `mineru-open-api extract -f md,json`. Follow [mineru-cli.md](mineru-cli.md). Do not call MinerU HTTP endpoints directly.
 
 ## 4. Page reconstruction
 
@@ -24,7 +24,7 @@ Prefer page-grouped `content_list_v2.json`. Otherwise group legacy blocks by `pa
 
 ### Optional multimodal layout refinement
 
-Disabled by default. When enabled, delegate the original PDF and staging base Markdown to `slide-layout-refiner` using a multimodal model, preferably `MiniMax-M3`. The refiner may change structure only inside each immutable `<!-- source-page: N -->` segment. Accept its candidate only when deterministic validation proves frontmatter, marker lines, visible text order, links, and per-page assets are conserved. On any failure, keep the base MinerU Markdown.
+Disabled by default. First write the base Markdown to its final vault path. When enabled, make a byte-exact snapshot in the outside-vault run directory and delegate the original PDF plus the final Markdown path to `slide-layout-refiner` using a multimodal model, preferably `MiniMax-M3`. The refiner directly overwrites that file and may change structure only inside each immutable `<!-- source-page: N -->` segment. Deterministic validation compares the overwrite with the snapshot. On any failure it restores the snapshot automatically; no second Markdown version is retained.
 
 ## 5. Derived artifact generation
 

@@ -12,7 +12,7 @@
 - 可选使用MiniMax-M3等多模态模型逐页对照原PDF，只整理每个`source-page`边界内部的版式；默认关闭，内容与顺序守恒验证失败时保留MinerU原稿。
 - 最终视觉资产统一命名为 `page-PPP-kind-NN.ext`，例如 `page-004-figure-01.png`。
 - 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。
-- 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和知识回忆 Canvas。report、recall model、aesthetic/render checks 只存在于 staging，验证完成即删除。
+- 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和知识回忆 Canvas。report、snapshot、recall model、aesthetic/render checks 只存在于系统 tmp 或技能安装目录的 `tmp/`，验证完成即删除；不会在 vault 中创建任何点号开头的工作目录。
 - Canvas 不是目录图：它提炼中心问题、学习模块、概念依赖/因果/对比链、边界条件和主动回忆问题，并让每个概念回链到完整课件。
 - Canvas 卡片高度通过本机 Obsidian DOM 两遍测量，不使用截图判断；最终阅读视图固定为 1:1、16px 字体，高于当前侧栏的 13px。
 - 课堂即时想法通过独立技能插入对应章节，并与课件转录正文分层保存。
@@ -143,7 +143,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 4. Adapter 把 CLI legacy content-list JSON 按 `page_idx` 转成 page-group compatibility JSON。
 5. Adapter 按页码/类型/序号重命名图片，输出 `asset-map.json` 和 `normalized-assets/`。
 6. `reconstruct-note.py`生成基础MinerU Markdown与不可变source-page markers。
-7. 可选的`slide-layout-refiner`让MiniMax-M3直接查看原PDF，但只能修改相邻markers之间的Markdown结构。marker行逐字节锁定，文本token顺序和每页asset集合必须完全守恒；candidate验证失败时保留基础Markdown。
+7. 可选的`slide-layout-refiner`让MiniMax-M3直接查看原PDF，并直接覆盖最终Markdown，但只能修改相邻markers之间的结构。目标是完整保存信息和提高可读性，不是像素级还原；会将`\-`/装饰符号整理为真实列表，并用Tab + `-`表达层级。marker行逐字节锁定，文本token顺序和每页asset集合必须完全守恒；验证失败时自动从tmp快照恢复。
 8. 主 Agent 通读最终采用的Markdown并建立覆盖所有H2的临时recall model。
 9. 独立`obsidian-canvas-designer`子技能由subagent执行布局、美术评分、DOM实测和重排；主Agent只消费Canvas与PASS/FAIL证据。
 
@@ -177,7 +177,7 @@ obsidian-canvas-designer/canvas-render-qa.py      本机 DOM → 实测高度、
 
 obsidian-live-lecture-notes/apply-note-patches.py  学生/老师callout → Obsidian原生幂等插入
 lecture-asr-enricher/validate-enrichment-plan.py   ASR增量计划 → 可应用teacher patch
-slide-layout-refiner/validate-layout-refinement.py  候选版式 → 逐页内容/asset守恒PASS或拒绝
+slide-layout-refiner/validate-layout-refinement.py  原位覆盖结果 → 逐页内容/asset守恒PASS或自动回滚
 ```
 
 Canvas 必须执行本机两遍渲染：
@@ -234,7 +234,7 @@ python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py \
   --render-check <staging>/canvas-render-check.json --delete-qa-on-success
 ```
 
-启用可选版式整理时，最终验证额外传入 `--layout-refinement-report <staging>/layout-refinement-report.json`；未启用时不需要该文件。
+启用可选版式整理时，最终验证额外传入 `--layout-refinement-report <tmp>/layout-refinement-report.json`；未启用时不需要该文件。
 
 它验证 source-original exclusion、frontmatter、H1/page markers、wikilinks/assets，以及 Canvas 的语义结构、真实 DOM 高度、安全余量、有效字体、路径和非重叠布局；成功后删除全部 staging QA 文件。
 

@@ -14,7 +14,7 @@ The source original remains outside the Obsidian vault. The default deliverable 
             │   └── page-007-fallback-01.png
 ```
 
-The folder must not contain a conversion report, PDF, PPT/PPTX, DOC/DOCX, XLS/XLSX, or archive original. It must not depend on staging paths.
+The folder must not contain a conversion report, PDF, PPT/PPTX, DOC/DOCX, XLS/XLSX, archive original, second/backup note, or dot-prefixed file/directory. It must not depend on staging paths.
 
 ## Complete Markdown
 

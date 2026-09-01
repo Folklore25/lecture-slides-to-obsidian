@@ -1,6 +1,6 @@
 # Native Markdown slide layout
 
-Use Obsidian-native Markdown structures according to the PDF's actual visual hierarchy. Variety is useful only when it represents structure; do not decorate every slide with every syntax.
+Use Obsidian-native Markdown structures to preserve all information and make the note easier to read. The goal is not pixel-perfect reconstruction of the slide. Use the PDF to recover hierarchy and relationships, then choose the clearest portable Markdown representation. Variety is useful only when it represents structure; do not decorate every slide with every syntax.
 
 ## Heading allocation
 
@@ -13,8 +13,8 @@ Use Obsidian-native Markdown structures according to the PDF's actual visual hie
 
 ## Native structures
 
-- Unordered lists: parallel points.
-- Nested lists: visible parent/detail hierarchy such as a `Systematic` point followed by `about research design`.
+- Unordered lists: parallel points. Convert MinerU lines beginning with escaped `\-` or decorative glyphs into real `-` list items.
+- Nested lists: parent/detail hierarchy such as a `Systematic` point followed by `about research design`. Prefer a Tab followed by `-` for a child item when editing in Obsidian; keep indentation consistent within the slide and never let indentation turn prose into a code block.
 - Ordered lists: actual sequence, stages, or ranking.
 - Tables: true row/column comparison, matrix, label/value grid, or schedule. Preserve left-to-right then top-to-bottom text order.
 - Blockquotes: source material visually presented as a quotation; not a generic container.
@@ -23,3 +23,5 @@ Use Obsidian-native Markdown structures according to the PDF's actual visual hie
 - Math/code fences: preserve when the source already contains math/code; do not invent them as decoration.
 
 Do not use callouts because their generated titles introduce visible words. Do not use raw HTML, custom CSS, Mermaid, or plugin-specific columns. Source-page comments are the only slide separators.
+
+When visual fidelity conflicts with readability, preserve every piece of information and its order, then choose the clearer native Markdown structure. Do not preserve awkward MinerU escaping or pseudo-layout merely because it resembles the extraction output.

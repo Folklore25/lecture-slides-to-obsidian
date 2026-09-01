@@ -545,6 +545,15 @@ def main() -> int:
             errors.append(f"invalid temporary {label} JSON: {exc}")
 
     if not errors:
+        hidden_entries = [
+            path for path in folder.rglob("*")
+            if any(part.startswith(".") for part in path.relative_to(folder).parts)
+        ]
+        if hidden_entries:
+            errors.append(
+                "dot-prefixed files/directories are forbidden in the document folder: "
+                + ", ".join(str(path.relative_to(folder)) for path in hidden_entries)
+            )
         forbidden = [path for path in folder.rglob("*") if path.is_file() and path.suffix.lower() in SOURCE_EXTENSIONS]
         if forbidden:
             errors.append("source originals found in document folder: " + ", ".join(path.name for path in forbidden))
@@ -565,7 +574,7 @@ def main() -> int:
 
         if len(markdown_files) == 1:
             errors += validate_markdown(markdown_files[0], folder, vault_root)
-            if layout_report_data is not None and layout_report_data.get("candidate_sha256") != sha256_file(markdown_files[0]):
+            if layout_report_data is not None and layout_report_data.get("refined_sha256") != sha256_file(markdown_files[0]):
                 errors.append("layout refinement report does not match the delivered Markdown")
         if len(canvas_files) == 1:
             errors += validate_canvas(canvas_files[0], folder, vault_root)

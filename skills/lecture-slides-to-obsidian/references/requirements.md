@@ -20,7 +20,7 @@ Delegate all Canvas layout, styling, static aesthetic scoring, local DOM measure
 
 ### `slide-layout-refiner`
 
-Load only when the user enables multimodal slide-layout refinement. It reads the original PDF visually and produces a staging candidate; it may modify syntax and same-page asset placement only. Preferred model is `MiniMax-M3`. If multimodal access or validation is unavailable, keep the base MinerU Markdown rather than guessing.
+Load only when the user enables multimodal slide-layout refinement. It reads the original PDF visually and directly overwrites the one final Markdown note; it may modify syntax and same-page asset placement only. A byte-exact rollback snapshot and report live under system tmp or the installed skill directory, outside the vault. Preferred model is `MiniMax-M3`. If multimodal access or validation is unavailable, keep or restore the base MinerU Markdown rather than guessing.
 
 ## Required service
 

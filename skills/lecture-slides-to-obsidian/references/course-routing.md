@@ -53,7 +53,7 @@ Every source document gets one self-contained derived folder:
             └── assets/
 ```
 
-Registered role paths may differ, but the document folder must contain only the complete Markdown, extracted assets, and knowledge-recall Canvas. Temporary reports and recall models remain in staging outside the vault.
+Registered role paths may differ, but the document folder must contain only the complete Markdown, extracted assets, and knowledge-recall Canvas. Temporary reports and recall models remain under system tmp or the installed skill directory, outside the vault.
 
 ## Source originals stay external
 

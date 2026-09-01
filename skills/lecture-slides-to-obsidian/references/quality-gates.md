@@ -7,7 +7,8 @@ A conversion is complete only when required gates pass or the report marks an ex
 - Semester ID/label and vault root are independently validated.
 - Course matching is exact, or near-match candidates and the user's choice are recorded.
 - The source resolves outside the Obsidian vault and remains unchanged.
-- The document folder contains only derived Markdown, Canvas, and assets; the temporary report, recall model, and DOM render-QA files are outside the vault.
+- The document folder contains only derived Markdown, Canvas, and assets; the temporary report, recall model, snapshots, and DOM render-QA files are under the system temporary directory or installed skill directory, outside the vault.
+- No dot-prefixed staging, tmp, cache, backup, or other workflow-owned path was created in the vault.
 
 ## CLI and secret safety
 
@@ -25,7 +26,7 @@ A conversion is complete only when required gates pass or the report marks an ex
 - Auxiliary headers/footers/footnotes are inventoried and omissions documented.
 - Figures, tables, equations, and fallback pages are counted, including zeros.
 - Final visual assets follow the deterministic `page-PPP-kind-NN.ext` contract and match staging `asset-map.json`.
-- When multimodal layout refinement is enabled, its report passes frontmatter, immutable marker-line, page-local token order, link, and per-page asset conservation. When disabled, record `DISABLED`; when rejected, preserve the base Markdown and record `REJECTED`.
+- When multimodal layout refinement is enabled, it overwrites the one final Markdown path and its report passes frontmatter, immutable marker-line, page-local token order, link, and per-page asset conservation. Failure automatically restores the outside-vault snapshot. When disabled, record `DISABLED`; when rolled back, record `REJECTED`.
 
 ## Pixel-level visual comparison — optional
 

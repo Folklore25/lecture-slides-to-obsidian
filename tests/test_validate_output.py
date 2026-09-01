@@ -208,7 +208,7 @@ class ValidateOutputTests(unittest.TestCase):
             layout_report.write_text(json.dumps({
                 "schema_version": 1,
                 "valid": True,
-                "candidate_sha256": note_hash,
+                "refined_sha256": note_hash,
             }))
             code, result = run_validator(
                 folder, report, layout_refinement_report=layout_report
@@ -216,7 +216,7 @@ class ValidateOutputTests(unittest.TestCase):
             self.assertEqual(code, 0, result["errors"])
 
             stale = json.loads(layout_report.read_text())
-            stale["candidate_sha256"] = "0" * 64
+            stale["refined_sha256"] = "0" * 64
             layout_report.write_text(json.dumps(stale))
             code, result = run_validator(
                 folder, report, layout_refinement_report=layout_report
@@ -245,6 +245,20 @@ class ValidateOutputTests(unittest.TestCase):
             code, result = run_validator(folder, report)
             self.assertNotEqual(code, 0)
             self.assertTrue(any("outside the document folder" in item for item in result["errors"]))
+
+    def test_dot_prefixed_workflow_folder_in_document_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            folder = root / "document"
+            report = root / "tmp/conversion-report.md"
+            shutil.copytree(FIXTURE, folder)
+            (folder / ".staging").mkdir()
+            (folder / ".staging/before.md").write_text("temporary")
+            report.parent.mkdir()
+            shutil.copy2(REPORT_FIXTURE, report)
+            code, result = run_validator(folder, report)
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("dot-prefixed" in item for item in result["errors"]))
 
     def test_standardized_asset_name_passes(self):
         with tempfile.TemporaryDirectory() as temp:

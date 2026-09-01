@@ -9,16 +9,16 @@ metadata:
 
 # Slide Layout Refiner
 
-Restore readable slide structure after MinerU extraction without changing what the source says. This skill is optional and disabled by default.
+Restore readable slide structure after MinerU extraction without changing what the source says. The priority is complete information preservation and reading clarity, not pixel-perfect reconstruction. This skill is optional and disabled by default.
 
 Each `<!-- source-page: N -->` marker is an immutable slide boundary. Optimize only the content between two adjacent markers; never merge, split, move, regenerate, or restyle the markers themselves.
 
 ## Inputs
 
 - original PDF outside the vault;
-- base MinerU-derived Markdown under staging;
+- target MinerU-derived Markdown in its final vault location;
 - normalized document-local assets;
-- candidate output path under staging;
+- an exact pre-edit snapshot and validation report under the system temporary directory or the installed skill directory, never under the vault;
 - optional page-group JSON for provenance diagnostics.
 
 Run only before classroom/student/teacher layers exist. If the Markdown contains `lecture-layer:` markers or user-authored additions, stop rather than reformatting them.
@@ -27,16 +27,19 @@ Run only before classroom/student/teacher layers exist. If the Markdown contains
 
 1. Confirm the option is enabled and the selected model is multimodal. Prefer `MiniMax-M3` as requested. If the runtime cannot provide the original PDF visually, skip refinement and keep the base Markdown; do not use a text-only guess.
 2. Read [references/refinement-contract.md](references/refinement-contract.md).
-3. Read [references/native-markdown-layout.md](references/native-markdown-layout.md), then give one PDF and its base Markdown to a visual-layout subagent using [templates/multimodal-layout-task.md](templates/multimodal-layout-task.md).
-4. The subagent writes a candidate Markdown file only. It must not overwrite the base or final note.
-5. Run `scripts/validate-layout-refinement.py --base ... --candidate ... --report ...`.
-6. Accept the candidate only when every conservation gate passes. Otherwise preserve the base Markdown unchanged and report the rejected differences.
+3. Create a uniquely named run directory with the platform temporary-directory API. A non-hidden `tmp/` directory inside the installed skill is the fallback. Resolve the path and prove it is outside the vault; never create `.tmp`, `.staging`, `.cache`, or any other dot-prefixed path in the vault.
+4. Copy the target Markdown byte-for-byte to `<run-dir>/before.md`. This is a rollback snapshot, not a second output version.
+5. Read [references/native-markdown-layout.md](references/native-markdown-layout.md), then give one PDF and the target Markdown to a visual-layout subagent using [templates/multimodal-layout-task.md](templates/multimodal-layout-task.md).
+6. The subagent directly overwrites the target Markdown. It must not create another Markdown copy in the vault.
+7. Run `scripts/validate-layout-refinement.py --snapshot <run-dir>/before.md --target <vault-note.md> --vault-root <vault-root> --report <run-dir>/layout-refinement-report.json`.
+8. The validator automatically restores the snapshot when any conservation gate fails; do not ask for approval before this rollback. On success, keep only the overwritten target and retain the report only until final package validation. Delete the snapshot, report, and empty run directory before completion.
 
 ## Allowed transformations
 
 - identify the true slide title from the PDF and adjust heading levels;
 - demote MinerU's fragmented pseudo-H2 blocks to H3, paragraph, list, or table structure;
 - convert decorative bullet glyphs such as `▶`, `►`, `▪`, or `•` into Markdown lists;
+- convert MinerU's line-leading escaped `\-` into real `-` list items and use Tab + `-` for genuine nested hierarchy;
 - join visually continuous lines into paragraphs without changing token order;
 - represent faithful hierarchy/grouping with native headings, nested/ordered lists, tables, blockquotes, emphasis, highlights, embeds, and whitespace;
 - move or resize an existing asset embed within its original source page so it sits beside the content it explains.
@@ -50,11 +53,12 @@ Run only before classroom/student/teacher layers exist. If the Markdown contains
 - adding callout titles, explanations, links, or source metadata not present in the base;
 - using raw HTML, custom CSS, Mermaid, or other non-native layout workarounds;
 - copying the original PDF into the vault;
+- creating a dot-prefixed directory or temporary file anywhere in the vault;
 - refining a note after student/teacher additions exist.
 
 ## Resources
 
-- Read [references/refinement-contract.md](references/refinement-contract.md) before generating a candidate.
+- Read [references/refinement-contract.md](references/refinement-contract.md) before overwriting the target.
 - Read [references/native-markdown-layout.md](references/native-markdown-layout.md) for H1–H4 allocation and syntax selection.
 - Use [templates/multimodal-layout-task.md](templates/multimodal-layout-task.md) for the visual subagent.
 - Treat the validator report as mandatory evidence, not an optional lint result.
