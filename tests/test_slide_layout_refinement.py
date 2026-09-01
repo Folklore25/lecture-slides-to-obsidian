@@ -54,7 +54,7 @@ source_pages: 2
 
 - Systematic
 
-  - about research design
+    - about research design
 
 > ![[assets/page-001-figure-01.png|480]]
 
@@ -140,19 +140,25 @@ class SlideLayoutRefinementTests(unittest.TestCase):
         self.assertTrue(any("horizontal rule" in item for item in result["errors"]))
 
     def test_escaped_list_marker_must_be_normalized(self):
-        changed = REFINED.replace("  - about research design", "  \\- about research design")
+        changed = REFINED.replace("    - about research design", "    \\- about research design")
         result = REFINER.validate_refinement(BASE, changed)
         self.assertFalse(result["valid"])
         self.assertTrue(any("escaped list marker remains" in item for item in result["errors"]))
 
     def test_tab_indented_list_is_rejected(self):
-        changed = REFINED.replace("  - about research design", "\t- about research design")
+        changed = REFINED.replace("    - about research design", "\t- about research design")
         result = REFINER.validate_refinement(BASE, changed)
         self.assertFalse(result["valid"])
         self.assertTrue(any("Tab-indented list" in item for item in result["errors"]))
 
+    def test_two_space_indentation_is_rejected(self):
+        changed = REFINED.replace("    - about research design", "  - about research design")
+        result = REFINER.validate_refinement(BASE, changed)
+        self.assertFalse(result["valid"])
+        self.assertTrue(any("multiples of four" in item for item in result["errors"]))
+
     def test_indented_list_without_parent_is_rejected(self):
-        changed = REFINED.replace("- Systematic\n\n  - about research design", "### Systematic\n\n  - about research design")
+        changed = REFINED.replace("- Systematic\n\n    - about research design", "### Systematic\n\n    - about research design")
         result = REFINER.validate_refinement(BASE, changed)
         self.assertFalse(result["valid"])
         self.assertTrue(any("no preceding parent" in item for item in result["errors"]))

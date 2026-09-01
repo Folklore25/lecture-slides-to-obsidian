@@ -15,7 +15,7 @@ Correct layout only:
 - identify real slide-title/section/body hierarchy;
 - demote fragmented pseudo-headings;
 - normalize decorative bullet glyphs and line-leading `\-` into real `-` list items;
-- when the source expresses a parent/detail hierarchy, place children directly below the parent and use exactly two ASCII spaces per nesting level before `- `; never use Tab indentation;
+- when the source expresses a parent/detail hierarchy, place children directly below the parent and use exactly four ASCII spaces per nesting level before `- `; never use Tab indentation;
 - allocate at most one true H2 slide title, then H3 regions and H4 nested labels;
 - restore paragraph, nested/ordered list, table, blockquote, emphasis, highlight, and embed structure suggested by the slide;
 - reposition or resize existing asset embeds within the same page.

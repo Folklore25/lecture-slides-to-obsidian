@@ -14,12 +14,12 @@ Use Obsidian-native Markdown structures to preserve all information and make the
 ## Native structures
 
 - Unordered lists: parallel points. Convert MinerU lines beginning with escaped `\-` or decorative glyphs into real `-` list items.
-- Nested lists: parent/detail hierarchy such as `Focus` followed by two specific abilities. Put each child directly under a parent list item and indent each nesting level with exactly two ASCII spaces, followed by `- `; never insert a Tab character. An indented bullet without a parent list item is invalid for this workflow because Obsidian may render it as a code block.
+- Nested lists: parent/detail hierarchy such as `Focus` followed by two specific abilities. Put each child directly under a parent list item and indent each nesting level with exactly four ASCII spaces, followed by `- `; never insert a Tab character. An indented bullet without a parent list item is invalid for this workflow because Obsidian may render it as a code block.
 
 ```markdown
 - Focus:
-  - your understanding of the concepts learned
-  - your ability to apply them
+    - your understanding of the concepts learned
+    - your ability to apply them
 ```
 - Ordered lists: actual sequence, stages, or ranking.
 - Tables: true row/column comparison, matrix, label/value grid, or schedule. Preserve left-to-right then top-to-bottom text order.

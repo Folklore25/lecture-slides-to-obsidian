@@ -135,16 +135,16 @@ def heading_structure_errors(text: str) -> list[str]:
 def list_structure_errors(text: str) -> list[str]:
     errors = []
     if TAB_LIST.search(text):
-        errors.append("Tab-indented list item is forbidden; use two ASCII spaces per nesting level")
+        errors.append("Tab-indented list item is forbidden; use four ASCII spaces per nesting level")
 
     active_indents: set[int] = set()
     for line in text.splitlines():
         match = SPACE_LIST.match(line)
         if match:
             indent = len(match.group(1))
-            if indent % 2:
-                errors.append(f"list indentation must use multiples of two ASCII spaces, found {indent}")
-            elif indent and indent - 2 not in active_indents:
+            if indent % 4:
+                errors.append(f"list indentation must use multiples of four ASCII spaces, found {indent}")
+            elif indent and indent - 4 not in active_indents:
                 errors.append("indented list item has no preceding parent list item")
             active_indents = {level for level in active_indents if level < indent}
             active_indents.add(indent)
