@@ -66,6 +66,22 @@ Final text.
 """
 
 
+FALLBACK_CALLOUT = """<!-- conversion-layer:fallback-table:page-001:start -->
+> [!example] Editable table (Markdown fallback)
+> Preserved fallback table content.
+<!-- conversion-layer:fallback-table:page-001:end -->
+
+"""
+BASE_WITH_CALLOUT = BASE.replace(
+    "![[assets/page-001-figure-01.png]]",
+    FALLBACK_CALLOUT + "![[assets/page-001-figure-01.png]]",
+)
+REFINED_WITH_CALLOUT = REFINED.replace(
+    "> ![[assets/page-001-figure-01.png|480]]",
+    FALLBACK_CALLOUT + "> ![[assets/page-001-figure-01.png|480]]",
+)
+
+
 class SlideLayoutRefinementTests(unittest.TestCase):
     def test_page_local_layout_changes_preserve_content(self):
         result = REFINER.validate_refinement(BASE, REFINED)
@@ -121,11 +137,61 @@ class SlideLayoutRefinementTests(unittest.TestCase):
         self.assertFalse(result["valid"])
         self.assertTrue(any("H4 appears" in item for item in result["errors"]))
 
-    def test_callout_layout_is_rejected(self):
+    def test_new_callout_is_rejected(self):
         changed = REFINED.replace("- First point", "> [!note]\n> First point")
         result = REFINER.validate_refinement(BASE, changed)
         self.assertFalse(result["valid"])
-        self.assertTrue(any("callout syntax" in item for item in result["errors"]))
+        self.assertTrue(any("Callout headers" in item for item in result["errors"]))
+
+    def test_existing_conversion_fallback_callout_is_preserved(self):
+        result = REFINER.validate_refinement(BASE_WITH_CALLOUT, REFINED_WITH_CALLOUT)
+        self.assertTrue(result["valid"], result["errors"])
+        page_one = next(page for page in result["pages"] if page["page"] == 1)
+        self.assertEqual(
+            page_one["refined_callout_headers"],
+            ["> [!example] Editable table (Markdown fallback)"],
+        )
+
+    def test_existing_unmarked_callout_is_not_assumed_user_authored(self):
+        unmarked_base = BASE_WITH_CALLOUT.replace(
+            "<!-- conversion-layer:fallback-table:page-001:start -->\n", ""
+        ).replace("<!-- conversion-layer:fallback-table:page-001:end -->\n\n", "")
+        unmarked_refined = REFINED_WITH_CALLOUT.replace(
+            "<!-- conversion-layer:fallback-table:page-001:start -->\n", ""
+        ).replace("<!-- conversion-layer:fallback-table:page-001:end -->\n\n", "")
+        result = REFINER.validate_refinement(unmarked_base, unmarked_refined)
+        self.assertTrue(result["valid"], result["errors"])
+
+    def test_existing_callout_title_change_is_rejected(self):
+        changed = REFINED_WITH_CALLOUT.replace(
+            "Editable table (Markdown fallback)", "Edited fallback"
+        )
+        result = REFINER.validate_refinement(BASE_WITH_CALLOUT, changed)
+        self.assertFalse(result["valid"])
+        self.assertTrue(any("Callout headers" in item for item in result["errors"]))
+
+    def test_existing_callout_removal_is_rejected(self):
+        changed = REFINED_WITH_CALLOUT.replace(FALLBACK_CALLOUT, "")
+        result = REFINER.validate_refinement(BASE_WITH_CALLOUT, changed)
+        self.assertFalse(result["valid"])
+        self.assertTrue(any("Callout headers" in item for item in result["errors"]))
+
+    def test_conversion_provenance_marker_removal_is_rejected(self):
+        changed = REFINED_WITH_CALLOUT.replace(
+            "<!-- conversion-layer:fallback-table:page-001:start -->\n", ""
+        )
+        result = REFINER.validate_refinement(BASE_WITH_CALLOUT, changed)
+        self.assertFalse(result["valid"])
+        self.assertTrue(any("conversion-layer provenance" in item for item in result["errors"]))
+
+    def test_lecture_layer_still_stops_refinement(self):
+        marker = "<!-- lecture-layer:student:example:start -->\n"
+        result = REFINER.validate_refinement(
+            BASE_WITH_CALLOUT.replace(FALLBACK_CALLOUT, marker + FALLBACK_CALLOUT),
+            REFINED_WITH_CALLOUT.replace(FALLBACK_CALLOUT, marker + FALLBACK_CALLOUT),
+        )
+        self.assertFalse(result["valid"])
+        self.assertTrue(any("student/teacher layers" in item for item in result["errors"]))
 
     def test_raw_html_layout_is_rejected(self):
         changed = REFINED.replace("Final text.", "<div>Final text.</div>")

@@ -28,6 +28,13 @@ The validator intentionally treats line-leading escaped `\-` and `▶`, `►`, `
 - Source page comments remain unchanged.
 - No `lecture-layer:` markers may exist in either input.
 
+## Existing Callouts
+
+- Compare Callout header lines per page in order. The exact header, including type, fold state, and visible title, must remain unchanged.
+- A Callout that already exists in the snapshot is allowed. Do not classify it as user-authored without explicit provenance.
+- Adding, removing, retitling, changing the type/fold state of, or reordering a Callout fails validation.
+- `lecture-layer:` remains the authoritative stop marker for classroom additions. Conversion-generated fallback Callouts should use `conversion-layer:` markers, which do not trigger the stop rule and must remain byte-identical and in order during refinement.
+
 ## Rollback and temporary-path boundary
 
 - Validation failure restores the target from the snapshot automatically and byte-for-byte.

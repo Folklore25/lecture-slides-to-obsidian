@@ -11,6 +11,7 @@
 - Canvas readability is not complete until local Obsidian DOM measurement drives a second layout pass and the final check confirms measured height margin plus 16px effective reading font. Do not use screenshots by default.
 - Keep live student thoughts, teacher ASR additions, and source transcription as separate layers. Supplementary skills insert stable callout blocks and never rewrite source paragraphs or each other's markers.
 - Optional multimodal slide refinement directly overwrites the final Markdown and is page-local only: source-page marker lines, visible token order, links, and per-page asset multisets are immutable. Restore the outside-vault snapshot automatically on any conservation failure.
+- Pre-existing Callouts are valid conversion artifacts, not evidence of user authorship. Preserve their exact headers and `conversion-layer:` provenance; stop only for `lecture-layer:` or explicitly known later additions.
 - Never create a workflow-owned dot-prefixed directory or file in the Obsidian vault. Do not modify an existing `.obsidian/` directory as part of conversion.
 - Keep structural alignment separate from pixel-level visual comparison; mark unperformed rendering `NOT-CHECKED`.
 - Keep course routing behavior aligned across `course-routing.md`, the registry example, output contract, examples, and routing test cases.

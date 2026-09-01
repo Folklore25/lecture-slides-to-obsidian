@@ -20,6 +20,6 @@ Correct layout only:
 - restore paragraph, nested/ordered list, table, blockquote, emphasis, highlight, and embed structure suggested by the slide;
 - reposition or resize existing asset embeds within the same page.
 
-Do not change, correct, add, omit, translate, summarize, or reorder visible content. Do not move an asset across page markers or invent captions. Do not use callouts, raw HTML/CSS, Mermaid, or plugin-specific layout syntax. Preserve frontmatter and page markers byte-for-byte.
+Do not change, correct, add, omit, translate, summarize, or reorder visible content. Do not move an asset across page markers or invent captions. Do not create, remove, retitle, change the type/fold state of, or reorder Callouts. Preserve every Callout header already present in the target exactly; its presence alone is not a reason to stop. Do not use raw HTML/CSS, Mermaid, or plugin-specific layout syntax. Preserve frontmatter and page markers byte-for-byte.
 
 Optimize for complete information preservation and reading clarity, not pixel-perfect slide reconstruction. Overwrite the target Markdown directly. Do not create a second Markdown file, backup, report, dot-prefixed file, or dot-prefixed directory in the vault. After writing, return the unchanged target path for deterministic validation.

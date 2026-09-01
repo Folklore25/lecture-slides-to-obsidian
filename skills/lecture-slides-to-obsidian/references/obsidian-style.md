@@ -38,7 +38,7 @@ Omit unsupported optional metadata instead of inventing it. Do not include the a
 
 - Use `[[wikilinks]]` for internal notes and `![[assets/file.png]]` for local asset embeds.
 - Use standard Markdown links only for external URLs.
-- Use callouts for conversion warnings and review items, not ordinary source content.
+- Use callouts for conversion warnings and review items, not ordinary source content. Wrap conversion-generated Callouts in stable `<!-- conversion-layer:<kind>:<id>:start -->` / `<!-- conversion-layer:<kind>:<id>:end -->` markers when authoring them. These markers distinguish pipeline fallbacks from later `lecture-layer:` additions.
 - Keep reliable equations in LaTeX delimiters; otherwise embed the extracted/fallback asset and flag uncertainty.
 - Use Markdown tables only when relationships are unambiguous; otherwise preserve the table image and structured HTML/Markdown in a callout or adjacent section.
 

@@ -28,6 +28,6 @@ Use Obsidian-native Markdown structures to preserve all information and make the
 - Obsidian embeds: `![[assets/file.png|width]]`, positioned inside the same slide beside related content.
 - Math/code fences: preserve when the source already contains math/code; do not invent them as decoration.
 
-Do not use callouts because their generated titles introduce visible words. Do not use raw HTML, custom CSS, Mermaid, or plugin-specific columns. Source-page comments are the only slide separators.
+Do not create new Callouts because their generated titles introduce visible words. If the snapshot already contains a conversion warning or fallback Callout, preserve its header line exactly and keep it on the same source page; its presence alone does not mean the user edited the note. Do not use raw HTML, custom CSS, Mermaid, or plugin-specific columns. Source-page comments are the only slide separators.
 
 When visual fidelity conflicts with readability, preserve every piece of information and its order, then choose the clearer native Markdown structure. Do not preserve awkward MinerU escaping or pseudo-layout merely because it resembles the extraction output.

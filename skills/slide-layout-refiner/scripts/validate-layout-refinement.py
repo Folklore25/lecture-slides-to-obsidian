@@ -20,7 +20,8 @@ MARKDOWN_IMAGE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 WIKILINK = re.compile(r"(?<!!)\[\[([^\]]+)\]\]")
 MARKDOWN_LINK = re.compile(r"(?<!!)\[([^\]]+)\]\(([^)]+)\)")
 BULLET_GLYPH = re.compile(r"(?m)^\s*[▶►▪•●◦‣]\s*")
-CALLOUT = re.compile(r"(?m)^\s*>\s*\[![^\]]+\]")
+CALLOUT_HEADER = re.compile(r"(?m)^[ \t]*>[ \t]*\[![^\]\r\n]+\][+-]?(?:[ \t]+[^\r\n]*)?$")
+CONVERSION_LAYER_MARKER = re.compile(r"(?m)^[ \t]*<!--\s*conversion-layer:[^>\r\n]+-->[ \t]*$")
 HORIZONTAL_RULE = re.compile(r"(?m)^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$")
 TAB_LIST = re.compile(r"(?m)^[ ]*\t+[ \t]*[-+*]\s+")
 SPACE_LIST = re.compile(r"^( *)([-+*])\s+")
@@ -175,6 +176,10 @@ def validate_refinement(snapshot: str, refined: str) -> dict:
         page_id = snapshot_ids[index]
         snapshot_canonical = canonical_page(snapshot_page)
         refined_canonical = canonical_page(refined_page)
+        snapshot_callouts = CALLOUT_HEADER.findall(snapshot_page)
+        refined_callouts = CALLOUT_HEADER.findall(refined_page)
+        snapshot_conversion_markers = CONVERSION_LAYER_MARKER.findall(snapshot_page)
+        refined_conversion_markers = CONVERSION_LAYER_MARKER.findall(refined_page)
         page_errors = []
         if snapshot_canonical["tokens"] != refined_canonical["tokens"]:
             page_errors.append("visible text tokens changed or reordered")
@@ -182,6 +187,10 @@ def validate_refinement(snapshot: str, refined: str) -> dict:
             page_errors.append("asset set changed on this page")
         if collections.Counter(snapshot_canonical["links"]) != collections.Counter(refined_canonical["links"]):
             page_errors.append("link destinations changed on this page")
+        if snapshot_callouts != refined_callouts:
+            page_errors.append("Callout headers changed, were added/removed, or were reordered")
+        if snapshot_conversion_markers != refined_conversion_markers:
+            page_errors.append("conversion-layer provenance markers changed, were added/removed, or were reordered")
         if page_id is None:
             if snapshot_page != refined_page:
                 page_errors.append("document preamble changed")
@@ -192,8 +201,6 @@ def validate_refinement(snapshot: str, refined: str) -> dict:
                 page_errors.append("escaped list marker remains in refined Markdown")
             page_errors.extend(heading_structure_errors(refined_page))
             page_errors.extend(list_structure_errors(refined_page))
-            if CALLOUT.search(refined_page):
-                page_errors.append("callout syntax introduces a generated visible label")
             without_comments = re.sub(r"<!--.*?-->", "", refined_page, flags=re.S)
             if re.search(r"</?[A-Za-z][^>]*>", without_comments):
                 page_errors.append("raw HTML is forbidden; use native Markdown")
@@ -210,6 +217,10 @@ def validate_refinement(snapshot: str, refined: str) -> dict:
                 "snapshot_assets": snapshot_canonical["assets"],
                 "refined_assets": refined_canonical["assets"],
                 "asset_order_changed": snapshot_canonical["assets"] != refined_canonical["assets"],
+                "snapshot_callout_headers": snapshot_callouts,
+                "refined_callout_headers": refined_callouts,
+                "snapshot_conversion_markers": snapshot_conversion_markers,
+                "refined_conversion_markers": refined_conversion_markers,
                 "errors": page_errors,
             }
         )

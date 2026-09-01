@@ -21,7 +21,7 @@ Each `<!-- source-page: N -->` marker is an immutable slide boundary. Optimize o
 - an exact pre-edit snapshot and validation report under the system temporary directory or the installed skill directory, never under the vault;
 - optional page-group JSON for provenance diagnostics.
 
-Run only before classroom/student/teacher layers exist. If the Markdown contains `lecture-layer:` markers or user-authored additions, stop rather than reformatting them.
+Run only before classroom/student/teacher layers exist. If the Markdown contains `lecture-layer:` markers, or the user explicitly identifies later additions, stop rather than reformatting them. A pre-existing Callout is not evidence of user authorship: conversion warnings and fallback tables may legitimately use Callouts. Do not ask the user how to handle a file merely because it already contains Callout syntax.
 
 ## Workflow
 
@@ -33,6 +33,8 @@ Run only before classroom/student/teacher layers exist. If the Markdown contains
 6. The subagent directly overwrites the target Markdown. It must not create another Markdown copy in the vault.
 7. Run `scripts/validate-layout-refinement.py --snapshot <run-dir>/before.md --target <vault-note.md> --vault-root <vault-root> --report <run-dir>/layout-refinement-report.json`.
 8. The validator automatically restores the snapshot when any conservation gate fails; do not ask for approval before this rollback. On success, keep only the overwritten target and retain the report only until final package validation. Delete the snapshot, report, and empty run directory before completion.
+
+When the snapshot already contains Callouts, continue automatically and preserve every Callout header line exactly. The refiner may improve surrounding page structure but must not create, remove, retitle, change the type/fold state of, or reorder a Callout. Only explicit lecture-layer provenance or known later additions trigger the stop rule.
 
 ## Allowed transformations
 
@@ -50,7 +52,7 @@ Run only before classroom/student/teacher layers exist. If the Markdown contains
 - fixing OCR/spelling, even when the PDF suggests a correction;
 - reordering text tokens or source pages;
 - moving assets across page markers, removing assets, or inventing captions;
-- adding callout titles, explanations, links, or source metadata not present in the base;
+- creating, removing, retitling, changing the type/fold state of, or reordering Callouts;
 - using raw HTML, custom CSS, Mermaid, or other non-native layout workarounds;
 - copying the original PDF into the vault;
 - creating a dot-prefixed directory or temporary file anywhere in the vault;
