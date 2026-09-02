@@ -31,6 +31,7 @@ PROFILE = {
     "vertical_chrome_px": 34,
     "safety_margin_px": 8,
     "round_to_px": 10,
+    "top_lane_to_modules_gap_px": 80,
 }
 
 
@@ -44,6 +45,7 @@ class CanvasRenderQaTests(unittest.TestCase):
         self.assertEqual(profile["sidebar_font_size_px"], 13)
         self.assertEqual(profile["vertical_chrome_px"], 34)
         self.assertEqual(profile["safety_margin_px"], 8)
+        self.assertEqual(profile["top_lane_to_modules_gap_px"], 80)
         self.assertTrue(profile["requires_foreground"])
 
     def test_measured_screenshot_cards_round_to_safe_heights(self):
@@ -87,6 +89,36 @@ class CanvasRenderQaTests(unittest.TestCase):
         }
         errors = RENDER_QA.environment_errors(PROFILE, measured)
         self.assertTrue(any("theme" in item for item in errors))
+
+    def test_final_check_rejects_top_lane_overlap(self):
+        with tempfile.TemporaryDirectory() as temp:
+            canvas = Path(temp) / "sample.canvas"
+            canvas.write_text(json.dumps({
+                "nodes": [
+                    {"id":"overview","type":"text","x":0,"y":0,"width":800,"height":470,
+                     "text":"<!-- recall-map: overview -->\n# Recall"},
+                    {"id":"source","type":"file","x":880,"y":0,"width":420,"height":470,"file":"note.md"},
+                    {"id":"module","type":"group","x":0,"y":520,"width":520,"height":500,"label":"01 · Module"},
+                ],
+                "edges": [],
+            }))
+            measured = {
+                **{key: value for key, value in PROFILE.items() if key not in {
+                    "profile_id", "minimum_effective_font_px", "reading_zoom",
+                    "vertical_chrome_px", "safety_margin_px", "round_to_px",
+                    "top_lane_to_modules_gap_px",
+                }},
+                "document_has_focus": True,
+                "reading_view": {"zoom": 0},
+                "nodes": [{
+                    "id": "overview", "text": "<!-- recall-map: overview -->\n# Recall",
+                    "width": 800, "height": 470, "max_child_bottom": 400,
+                }],
+            }
+            result = RENDER_QA.build_result(canvas, PROFILE, measured, "check")
+            self.assertFalse(result["valid"])
+            self.assertEqual(result["top_lane_to_modules_gap"], 50)
+            self.assertTrue(any("requires at least 80px" in item for item in result["layout_errors"]))
 
 
 if __name__ == "__main__":

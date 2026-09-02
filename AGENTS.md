@@ -13,6 +13,7 @@
 - Optional multimodal slide refinement directly overwrites the final Markdown and is page-local only: source-page marker lines, visible token order, links, and per-page asset multisets are immutable. Restore the outside-vault snapshot automatically on any conservation failure.
 - Pre-existing Callouts are valid conversion artifacts, not evidence of user authorship. Preserve their exact headers and `conversion-layer:` provenance; stop only for `lecture-layer:` or explicitly known later additions.
 - Never create a workflow-owned dot-prefixed directory or file in the Obsidian vault. Do not modify an existing `.obsidian/` directory as part of conversion.
+- Canvas learning modules must start from the final top-lane bottom plus 80px; never restore the old fixed `y = 520` placement after overview DOM reflow.
 - Keep structural alignment separate from pixel-level visual comparison; mark unperformed rendering `NOT-CHECKED`.
 - Keep course routing behavior aligned across `course-routing.md`, the registry example, output contract, examples, and routing test cases.
 - Never store a user's real semester root or course paths in the repository.

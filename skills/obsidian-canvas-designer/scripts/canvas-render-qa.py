@@ -17,6 +17,7 @@ from pathlib import Path
 
 
 DEFAULT_PROFILE = Path(__file__).resolve().parent.parent / "config/render-profile.mbp14-composer.json"
+OVERVIEW_MARKER = "<!-- recall-map: overview -->"
 
 
 class RenderQaError(RuntimeError):
@@ -51,6 +52,36 @@ def rounded_required_height(
 ) -> int:
     raw = max_child_bottom + vertical_chrome_px + safety_margin_px
     return int(math.ceil(raw / round_to_px) * round_to_px)
+
+
+def contains(group: dict, node: dict) -> bool:
+    return (
+        node["x"] >= group["x"]
+        and node["y"] >= group["y"]
+        and node["x"] + node["width"] <= group["x"] + group["width"]
+        and node["y"] + node["height"] <= group["y"] + group["height"]
+    )
+
+
+def top_lane_clearance(canvas_data: dict) -> int | None:
+    nodes = canvas_data.get("nodes", [])
+    groups = [node for node in nodes if isinstance(node, dict) and node.get("type") == "group"]
+    overview = [
+        node for node in nodes
+        if isinstance(node, dict)
+        and node.get("type") == "text"
+        and OVERVIEW_MARKER in node.get("text", "")
+    ]
+    outside_files = [
+        node for node in nodes
+        if isinstance(node, dict)
+        and node.get("type") == "file"
+        and not any(contains(group, node) for group in groups)
+    ]
+    if not groups or not overview:
+        return None
+    top_lane_bottom = max(node["y"] + node["height"] for node in overview + outside_files)
+    return min(group["y"] for group in groups) - top_lane_bottom
 
 
 def write_json_atomic(path: Path, value: dict) -> None:
@@ -239,6 +270,18 @@ def measure_canvas(canvas: Path, vault_root: Path, profile: dict, mode: str) -> 
 
 def build_result(canvas: Path, profile: dict, measured: dict, mode: str) -> dict:
     env_errors = environment_errors(profile, measured)
+    canvas_data = json.loads(canvas.read_text(encoding="utf-8"))
+    top_gap = top_lane_clearance(canvas_data)
+    layout_errors = []
+    minimum_top_gap = profile.get("top_lane_to_modules_gap_px", 80)
+    if mode == "check":
+        if top_gap is None:
+            layout_errors.append("top orientation lane or learning-module groups are missing")
+        elif top_gap < minimum_top_gap:
+            layout_errors.append(
+                f"top orientation lane has only {top_gap}px before learning modules; "
+                f"requires at least {minimum_top_gap}px"
+            )
     records = []
     for node in measured.get("nodes", []):
         required = rounded_required_height(
@@ -274,7 +317,7 @@ def build_result(canvas: Path, profile: dict, measured: dict, mode: str) -> dict
             actual_zoom = profile["reading_zoom"] if not isinstance(actual_zoom, (int, float)) else actual_zoom
     effective_font = measured.get("canvas_font_size_px", 0) * (2 ** actual_zoom)
     readable_scale = effective_font >= profile["minimum_effective_font_px"]
-    valid = not env_errors and readable_scale and (mode == "measure" or not under_margin)
+    valid = not env_errors and not layout_errors and readable_scale and (mode == "measure" or not under_margin)
     return {
         "schema_version": 1,
         "mode": mode,
@@ -283,6 +326,9 @@ def build_result(canvas: Path, profile: dict, measured: dict, mode: str) -> dict
         "canvas_sha256": sha256_file(canvas),
         "environment": {key: value for key, value in measured.items() if key != "nodes"},
         "environment_errors": env_errors,
+        "layout_errors": layout_errors,
+        "top_lane_to_modules_gap": top_gap,
+        "minimum_top_lane_to_modules_gap": minimum_top_gap,
         "nodes": records,
         "clipped_nodes": clipped,
         "nodes_below_profile_margin": under_margin,

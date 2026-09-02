@@ -43,6 +43,17 @@ The local experiment reproduced the supplied failure:
 
 Their previous `440px` height was short by roughly `119px`, `28px`, and `30px` respectively.
 
+## Top-lane reflow
+
+The Composer renderer places a learning-module group label roughly `58` canvas px above the group's stored `y`. A nominal 50 px gap between the overview and group bounds therefore still allows the label to overlap the overview. The supported profile requires:
+
+```text
+top_lane_bottom = max(overview_bottom, source_preview_bottom)
+module_group_y = ceil_to_10(top_lane_bottom + 80)
+```
+
+The extra 80 px contains the upward-rendered label and leaves about 20 px of visible separation without creating a large empty band. `build-canvas.py` must recompute this value from DOM-measured overview height during the second pass. `canvas-aesthetic-qa.py` and final renderer `check` both fail when clearance is below 80 px.
+
 ## Font-size/readability formula
 
 Canvas zoom scales text and cards together:
@@ -103,6 +114,7 @@ scripts/canvas-render-qa.py check \
 
 - Every text node is mounted and rendered in Obsidian; no source-text estimate counts as final evidence.
 - `node.height >= required_height` for every text node. Merely reaching the exact unclipped height is insufficient; retain the measured `8px` margin before grid rounding.
+- The learning-module group row begins at least `80px` below the bottom of the overview/source lane after the measured rebuild.
 - The final check's Canvas SHA-256 matches the delivered `.canvas` file.
 - Reading zoom is `0`; effective Canvas body text is `16px`, not smaller than the `13px` sidebar reference.
 - Screenshots are not part of the default gate. They cost context and introduce model-dependent judgment.

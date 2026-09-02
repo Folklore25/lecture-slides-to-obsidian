@@ -40,6 +40,8 @@ The renderer creates four visual zones:
 
 The Canvas may omit low-value detail from view, but not silently. The model's `coverage` ledger must account for every H2 heading/page occurrence by mapping it to concept nodes or giving a concrete omission reason. This is how repeated headings stay distinct and the Canvas remains concise without pretending to contain the full note.
 
+The overview and source-note preview form one top orientation lane. Learning-module group bounds begin at least 80 px below the lower edge of that lane. This clearance includes the group labels that Obsidian renders above group bounds. Compute the row dynamically from the final overview height; a fixed module-row `y` is invalid.
+
 ## Relationship quality
 
 Relations must say what one concept does to another. Use a small supported vocabulary:
@@ -74,6 +76,7 @@ A finished Canvas must pass all of these:
 - **Coverage test:** every major Markdown section is mapped or explicitly excluded in staging.
 - **Traceability test:** every concept links to an exact existing `## H2` and states its 1-based source page; H3 is not accepted and selected assets resolve inside the document folder.
 - **Density test:** no placeholder nodes, paragraph dumps, isolated concepts, node overlaps, or hub with more than six semantic connections.
+- **Top-lane clearance test:** after DOM-driven reflow, the overview/source lane has at least 80 px before the learning-module group bounds.
 - **Aesthetic test:** [axton-aesthetics.md](axton-aesthetics.md) and `canvas-aesthetic-qa.py` pass before DOM measurement.
 - **Renderer test:** [render-qa.md](render-qa.md) reports every text node above its measured height plus safety margin; screenshots do not count as this evidence.
 

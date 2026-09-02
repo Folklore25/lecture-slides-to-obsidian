@@ -34,6 +34,8 @@ HEADING_RE = re.compile(r"(?m)^##\s+(.+?)\s*$")
 ASSET_NAME = re.compile(
     r"^assets/page-\d{3}-(figure|table|equation|chart|fallback)-\d{2}\.(png|jpg|jpeg|webp|gif|bmp|svg)$"
 )
+TOP_LANE_TO_MODULE_GAP = 80
+LAYOUT_GRID = 10
 
 
 class CanvasBuildError(RuntimeError):
@@ -434,14 +436,59 @@ def build_canvas(
     for item in model.get("asset_links", []):
         asset_links.setdefault(item["concept"], []).append(item)
 
+    group_width = 520
+    group_gap = 160
+    total_width = max(1600, len(groups) * (group_width + group_gap) - group_gap)
+    orientation = model["orientation"]
+    overview_width = min(1040, total_width - 500)
+    overview_text = "\n".join(
+        [
+            "<!-- recall-map: overview -->",
+            "# One-minute recall",
+            f"**Central question:** {orientation['central_question']}",
+            f"**Answer:** {orientation['one_sentence_answer']}",
+            "",
+            "**Takeaways**",
+            *[f"- {item}" for item in orientation["takeaways"]],
+        ]
+    )
+    overview_node = {
+        "id": stable_id("overview", note_relative),
+        "type": "text",
+        "x": 0,
+        "y": 0,
+        "width": overview_width,
+        "height": render_height(
+            render_metrics,
+            stable_id("overview", note_relative),
+            overview_text,
+            overview_width,
+            text_height(overview_text, overview_width, 300, 700),
+        ),
+        "text": overview_text,
+        "color": "6",
+    }
+    file_node = {
+        "id": stable_id("file", note_relative),
+        "type": "file",
+        "x": overview_node["width"] + 80,
+        "y": 0,
+        "width": 420,
+        "height": overview_node["height"],
+        "file": note_relative,
+        "color": "1",
+    }
+
     group_nodes: list[dict] = []
     content_nodes: list[dict] = []
     edges: list[dict] = []
     node_by_key: dict[str, dict] = {}
     group_bottoms: list[int] = []
-    group_width = 520
-    group_gap = 160
-    group_y = 520
+    top_lane_bottom = max(
+        overview_node["y"] + overview_node["height"],
+        file_node["y"] + file_node["height"],
+    )
+    group_y = int(math.ceil((top_lane_bottom + TOP_LANE_TO_MODULE_GAP) / LAYOUT_GRID) * LAYOUT_GRID)
 
     for group_index, group in enumerate(groups):
         group_x = group_index * (group_width + group_gap)
@@ -527,47 +574,6 @@ def build_canvas(
         )
         content_nodes.extend(child_nodes)
         group_bottoms.append(group_y + group_height)
-
-    total_width = max(1600, len(groups) * (group_width + group_gap) - group_gap)
-    orientation = model["orientation"]
-    overview_width = min(1040, total_width - 500)
-    overview_text = "\n".join(
-        [
-            "<!-- recall-map: overview -->",
-            "# One-minute recall",
-            f"**Central question:** {orientation['central_question']}",
-            f"**Answer:** {orientation['one_sentence_answer']}",
-            "",
-            "**Takeaways**",
-            *[f"- {item}" for item in orientation["takeaways"]],
-        ]
-    )
-    overview_node = {
-        "id": stable_id("overview", note_relative),
-        "type": "text",
-        "x": 0,
-        "y": 0,
-        "width": overview_width,
-        "height": render_height(
-            render_metrics,
-            stable_id("overview", note_relative),
-            overview_text,
-            overview_width,
-            text_height(overview_text, overview_width, 300, 700),
-        ),
-        "text": overview_text,
-        "color": "6",
-    }
-    file_node = {
-        "id": stable_id("file", note_relative),
-        "type": "file",
-        "x": overview_node["width"] + 80,
-        "y": 0,
-        "width": 420,
-        "height": overview_node["height"],
-        "file": note_relative,
-        "color": "1",
-    }
 
     synthesis_y = max(group_bottoms) + 180
     synthesis = model["synthesis"]

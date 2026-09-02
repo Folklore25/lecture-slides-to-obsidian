@@ -42,6 +42,26 @@ class CanvasAestheticQaTests(unittest.TestCase):
         self.assertFalse(result["valid"])
         self.assertTrue(any("color does not match" in item for item in result["hard_errors"]))
 
+    def test_top_orientation_lane_requires_group_label_clearance(self):
+        canvas = json.loads(FIXTURE.read_text())
+        groups = [node for node in canvas["nodes"] if node.get("type") == "group"]
+        overview = next(
+            node for node in canvas["nodes"]
+            if "<!-- recall-map: overview -->" in node.get("text", "")
+        )
+        outside_file = next(
+            node for node in canvas["nodes"]
+            if node.get("type") == "file"
+            and not any(AESTHETIC.contains(group, node) for group in groups)
+        )
+        module_top = min(group["y"] for group in groups)
+        overview["height"] = module_top - overview["y"] - 50
+        outside_file["height"] = module_top - outside_file["y"] - 50
+        result = AESTHETIC.score_canvas(canvas)
+        self.assertFalse(result["valid"])
+        self.assertEqual(result["top_lane_to_modules_gap"], 50)
+        self.assertTrue(any("upward-rendered group labels" in item for item in result["hard_errors"]))
+
 
 if __name__ == "__main__":
     unittest.main()

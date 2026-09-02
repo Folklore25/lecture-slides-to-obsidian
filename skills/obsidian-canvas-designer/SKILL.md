@@ -41,6 +41,7 @@ For a direct Canvas-only request without an explicit vault root, run `obsidian v
 
 - Use one dominant reading direction. Avoid hub-and-spoke unless the content is genuinely radial.
 - Reserve 120–180 px between groups when an edge label occupies that channel; reserve 60–90 px between vertically stacked cards.
+- Treat the purple overview and red source-note preview as one top orientation lane. Compute the learning-module `y` from the rendered bottom of that lane plus 80 px; never use a fixed module `y`. Recompute it after DOM-driven height changes.
 - Limit the visible palette to semantic roles. Avoid assigning a new color merely because a group is next in sequence.
 - Keep edge labels active and short. Minimize crossings and reject edges that pass through unrelated cards.
 - At fit-all zoom, judge only structure. At the supported reading zoom, body text must meet the local sidebar reference and every card must retain the measured height margin.

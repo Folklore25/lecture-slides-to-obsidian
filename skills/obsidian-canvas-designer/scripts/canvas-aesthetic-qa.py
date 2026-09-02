@@ -24,6 +24,7 @@ EXPECTED_COLORS = {
     "mechanism": "5", "process": "5", "method": "5",
     "claim": "6", "decision": "6", "comparison": "6",
 }
+TOP_LANE_TO_MODULE_GAP = 80
 
 
 class AestheticQaError(RuntimeError):
@@ -65,6 +66,27 @@ def contains(group: dict, node: dict) -> bool:
         and node["x"] + node["width"] <= group["x"] + group["width"]
         and node["y"] + node["height"] <= group["y"] + group["height"]
     )
+
+
+def top_lane_clearance(nodes: list[dict], groups: list[dict]) -> int | None:
+    if not groups:
+        return None
+    overview = [
+        node for node in nodes
+        if node.get("type") == "text"
+        and isinstance(node.get("text"), str)
+        and "<!-- recall-map: overview -->" in node["text"]
+    ]
+    outside_files = [
+        node for node in nodes
+        if node.get("type") == "file" and not any(contains(group, node) for group in groups)
+    ]
+    top_nodes = overview + outside_files
+    if not top_nodes:
+        return None
+    top_lane_bottom = max(node["y"] + node["height"] for node in top_nodes)
+    module_top = min(group["y"] for group in groups)
+    return module_top - top_lane_bottom
 
 
 def orientation(a, b, c) -> float:
@@ -110,6 +132,15 @@ def score_canvas(data: dict) -> dict:
     hard_errors: list[str] = []
     review_items: list[str] = []
     deductions = 0
+
+    top_gap = top_lane_clearance(nodes, groups)
+    if top_gap is None:
+        hard_errors.append("top orientation lane or learning-module groups are missing")
+    elif top_gap < TOP_LANE_TO_MODULE_GAP:
+        hard_errors.append(
+            f"top orientation lane has only {top_gap}px before learning modules; "
+            f"requires at least {TOP_LANE_TO_MODULE_GAP}px for the upward-rendered group labels"
+        )
 
     for node in nodes:
         if node.get("type") != "text" or not isinstance(node.get("text"), str):
@@ -213,6 +244,8 @@ def score_canvas(data: dict) -> dict:
         "concept_nodes": len(concepts),
         "semantic_edges": len(semantic_edges),
         "edge_crossings": crossings,
+        "top_lane_to_modules_gap": top_gap,
+        "minimum_top_lane_to_modules_gap": TOP_LANE_TO_MODULE_GAP,
         "hard_errors": hard_errors,
         "review_items": review_items,
     }

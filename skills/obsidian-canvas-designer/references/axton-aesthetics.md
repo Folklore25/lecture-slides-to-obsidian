@@ -42,9 +42,12 @@ Do not render the per-concept `recall_cue`; consolidate cues in the active-recal
 - Vertical card gap: 70 px.
 - Inter-group edge-label channel: 160 px.
 - Synthesis strip top gap: 180 px.
+- Top orientation lane to learning-module group bounds: 80 px. The group label renders roughly 58 canvas px above its group bound on the supported workstation, leaving about 20 px of visible separation.
 - Align coordinates and measured heights to a 10 px grid.
 
 Repeat the same width and gap within one role. Variation should encode meaning, not compensate for accidental overflow.
+
+The overview/source lane height is content-dependent. Set the module row from `max(overview_bottom, source_preview_bottom) + 80`, rounded to the grid. Never anchor modules to a fixed `y`; DOM reflow must move the entire module row and all downstream synthesis nodes when the overview grows.
 
 ## Color discipline
 

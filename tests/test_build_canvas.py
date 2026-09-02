@@ -86,6 +86,15 @@ class BuildCanvasTests(unittest.TestCase):
             first = BUILD_CANVAS.build_canvas(note, vault, "lecture-notes", model, assets)
             second = BUILD_CANVAS.build_canvas(note, vault, "lecture-notes", model, assets)
             self.assertEqual(first, second)
+            overview = next(
+                node for node in first["nodes"]
+                if "<!-- recall-map: overview -->" in node.get("text", "")
+            )
+            module_top = min(node["y"] for node in first["nodes"] if node["type"] == "group")
+            self.assertEqual(
+                module_top - (overview["y"] + overview["height"]),
+                BUILD_CANVAS.TOP_LANE_TO_MODULE_GAP,
+            )
             file_nodes = [node for node in first["nodes"] if node["type"] == "file"]
             paths = {node["file"] for node in file_nodes}
             self.assertIn("COURSE101/Lectures/example-lesson/example-lesson.md", paths)
@@ -194,6 +203,18 @@ class BuildCanvasTests(unittest.TestCase):
                 if "<!-- recall-map: synthesis -->" in node.get("text", "")
             )
             self.assertGreater(second_synthesis_y, first_synthesis_y)
+            first_overview = next(
+                node for node in first["nodes"]
+                if "<!-- recall-map: overview -->" in node.get("text", "")
+            )
+            second_overview = second_by_id[first_overview["id"]]
+            first_group_y = min(node["y"] for node in first["nodes"] if node["type"] == "group")
+            second_group_y = min(node["y"] for node in second["nodes"] if node["type"] == "group")
+            self.assertEqual(second_group_y - first_group_y, 40)
+            self.assertEqual(
+                second_group_y - (second_overview["y"] + second_overview["height"]),
+                BUILD_CANVAS.TOP_LANE_TO_MODULE_GAP,
+            )
             self.assertEqual(set(first_by_id), set(second_by_id))
 
     def test_missing_section_coverage_is_rejected(self):
