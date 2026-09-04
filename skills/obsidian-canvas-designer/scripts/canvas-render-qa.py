@@ -307,6 +307,15 @@ def build_result(canvas: Path, profile: dict, measured: dict, mode: str) -> dict
         )
     clipped = [record["id"] for record in records if record["clipped"]]
     under_margin = [record["id"] for record in records if not record["passes_profile_margin"]]
+    minimum_headroom = profile.get("minimum_headroom_px", profile["safety_margin_px"])
+    maximum_headroom = profile.get("maximum_headroom_px")
+    below_minimum_headroom = [
+        record["id"] for record in records if record["headroom"] < minimum_headroom
+    ]
+    above_maximum_headroom = [
+        record["id"] for record in records
+        if maximum_headroom is not None and record["headroom"] > maximum_headroom
+    ]
     actual_zoom = profile["reading_zoom"]
     if mode == "check":
         actual_zoom = measured.get("reading_view", {}).get("zoom")
@@ -317,7 +326,12 @@ def build_result(canvas: Path, profile: dict, measured: dict, mode: str) -> dict
             actual_zoom = profile["reading_zoom"] if not isinstance(actual_zoom, (int, float)) else actual_zoom
     effective_font = measured.get("canvas_font_size_px", 0) * (2 ** actual_zoom)
     readable_scale = effective_font >= profile["minimum_effective_font_px"]
-    valid = not env_errors and not layout_errors and readable_scale and (mode == "measure" or not under_margin)
+    valid = (
+        not env_errors
+        and not layout_errors
+        and readable_scale
+        and (mode == "measure" or (not under_margin and not below_minimum_headroom and not above_maximum_headroom))
+    )
     return {
         "schema_version": 1,
         "mode": mode,
@@ -332,9 +346,13 @@ def build_result(canvas: Path, profile: dict, measured: dict, mode: str) -> dict
         "nodes": records,
         "clipped_nodes": clipped,
         "nodes_below_profile_margin": under_margin,
+        "nodes_below_minimum_headroom": below_minimum_headroom,
+        "nodes_above_maximum_headroom": above_maximum_headroom,
         "reading_zoom": actual_zoom,
         "effective_font_size_px": effective_font,
         "minimum_effective_font_px": profile["minimum_effective_font_px"],
+        "minimum_headroom_px": minimum_headroom,
+        "maximum_headroom_px": maximum_headroom,
         "reading_scale_pass": readable_scale,
         "measurement_complete": bool(records) and not env_errors,
         "valid": valid,

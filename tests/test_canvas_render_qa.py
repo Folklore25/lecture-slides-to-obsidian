@@ -30,7 +30,9 @@ PROFILE = {
     "reading_zoom": 0,
     "vertical_chrome_px": 34,
     "safety_margin_px": 8,
-    "round_to_px": 10,
+    "minimum_headroom_px": 8,
+    "maximum_headroom_px": 12,
+    "round_to_px": 4,
     "top_lane_to_modules_gap_px": 80,
 }
 
@@ -45,13 +47,15 @@ class CanvasRenderQaTests(unittest.TestCase):
         self.assertEqual(profile["sidebar_font_size_px"], 13)
         self.assertEqual(profile["vertical_chrome_px"], 34)
         self.assertEqual(profile["safety_margin_px"], 8)
+        self.assertEqual(profile["minimum_headroom_px"], 8)
+        self.assertEqual(profile["maximum_headroom_px"], 12)
         self.assertEqual(profile["top_lane_to_modules_gap_px"], 80)
         self.assertTrue(profile["requires_foreground"])
 
     def test_measured_screenshot_cards_round_to_safe_heights(self):
-        self.assertEqual(RENDER_QA.rounded_required_height(525, 34, 8, 10), 570)
-        self.assertEqual(RENDER_QA.rounded_required_height(434, 34, 8, 10), 480)
-        self.assertEqual(RENDER_QA.rounded_required_height(436, 34, 8, 10), 480)
+        self.assertEqual(RENDER_QA.rounded_required_height(525, 34, 8, 4), 568)
+        self.assertEqual(RENDER_QA.rounded_required_height(434, 34, 8, 4), 476)
+        self.assertEqual(RENDER_QA.rounded_required_height(436, 34, 8, 4), 480)
 
     def test_check_requires_profile_margin_not_just_no_clipping(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -77,6 +81,30 @@ class CanvasRenderQaTests(unittest.TestCase):
             self.assertFalse(result["valid"])
             self.assertEqual(result["clipped_nodes"], [])
             self.assertEqual(result["nodes_below_profile_margin"], ["0123456789abcdef"])
+
+    def test_check_rejects_excessive_card_headroom(self):
+        with tempfile.TemporaryDirectory() as temp:
+            canvas = Path(temp) / "sample.canvas"
+            canvas.write_text('{"nodes":[],"edges":[]}')
+            measured = {
+                **{key: value for key, value in PROFILE.items() if key not in {
+                    "profile_id", "minimum_effective_font_px", "reading_zoom",
+                    "vertical_chrome_px", "safety_margin_px", "round_to_px",
+                    "minimum_headroom_px", "maximum_headroom_px",
+                }},
+                "document_has_focus": True,
+                "reading_view": {"zoom": 0},
+                "nodes": [{
+                    "id": "0123456789abcdef",
+                    "text": "## Concept\nBody",
+                    "width": 420,
+                    "height": 700,
+                    "max_child_bottom": 525,
+                }],
+            }
+            result = RENDER_QA.build_result(canvas, PROFILE, measured, "check")
+            self.assertFalse(result["valid"])
+            self.assertEqual(result["nodes_above_maximum_headroom"], ["0123456789abcdef"])
 
     def test_environment_mismatch_fails_closed(self):
         measured = {

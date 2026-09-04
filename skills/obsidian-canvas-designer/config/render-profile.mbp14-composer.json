@@ -17,7 +17,9 @@
   "reading_zoom": 0,
   "vertical_chrome_px": 34,
   "safety_margin_px": 8,
-  "round_to_px": 10,
+  "minimum_headroom_px": 8,
+  "maximum_headroom_px": 12,
+  "round_to_px": 4,
   "top_lane_to_modules_gap_px": 80,
   "render_wait_ms": 800
 }

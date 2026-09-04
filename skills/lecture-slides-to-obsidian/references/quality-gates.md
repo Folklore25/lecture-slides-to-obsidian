@@ -41,6 +41,7 @@ Pixel-level visual diff against rendered source pages is not provided by this co
 - Canvas has one-minute recall, 2–7 learning modules, 4–20 traceable concept nodes, a connected selective semantic graph, synthesis, distinctions, and active-recall prompts.
 - Canvas JSON, IDs, meaningful edge labels, paths, density, and non-overlap checks pass.
 - Local Obsidian DOM measurement was used to rebuild card heights; every text card retains the workstation profile's 8px safety margin before grid rounding.
+- Final DOM QA also enforces the workstation compactness range: `8–12px` effective headroom per text card. Excessive empty tails are a failed gate, not an aesthetic warning.
 - The learning-module row was recomputed after DOM measurement and begins at least 80px below the final overview/source-lane bottom, so upward-rendered group labels cannot overlap it.
 - Reading viewport is `zoom = 0`, giving a 16px effective Canvas font against the local 13px sidebar reference. Fit-all zoom is not a body-text readability gate.
 - Screenshot review was not used as the default renderer gate.

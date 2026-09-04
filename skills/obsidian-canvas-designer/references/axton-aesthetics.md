@@ -43,7 +43,7 @@ Do not render the per-concept `recall_cue`; consolidate cues in the active-recal
 - Inter-group edge-label channel: 160 px.
 - Synthesis strip top gap: 180 px.
 - Top orientation lane to learning-module group bounds: 80 px. The group label renders roughly 58 canvas px above its group bound on the supported workstation, leaving about 20 px of visible separation.
-- Align coordinates and measured heights to a 10 px grid.
+- Align coordinates to a 10 px grid; measured card heights use the local 4 px compactness grid.
 
 Repeat the same width and gap within one role. Variation should encode meaning, not compensate for accidental overflow.
 

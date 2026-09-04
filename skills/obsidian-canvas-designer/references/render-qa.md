@@ -16,7 +16,7 @@ This repository intentionally supports one measured environment for now:
 - rendered Canvas Markdown: `16px` font, `27.2px` line height;
 - file-navigation/sidebar text: `13px`.
 
-The machine-readable profile is [../config/render-profile.mbp14-composer.json](../config/render-profile.mbp14-composer.json). `canvas-render-qa.py` fails closed if version, screen, theme, font, line height, or pixel ratio differs. Do not guess substitute parameters and do not claim cross-machine compatibility.
+The machine-readable profile is [../config/render-profile.mbp14-composer.json](../config/render-profile.mbp14-composer.json). `canvas-render-qa.py` fails closed if version, screen, theme, font, line height, pixel ratio, or compactness thresholds differ. Do not guess substitute parameters and do not claim cross-machine compatibility.
 
 ## Measured height formula
 
@@ -26,12 +26,20 @@ For each rendered text node, the script finds every real child of `.markdown-pre
 child.offsetTop + child.offsetHeight + child.marginBottom
 ```
 
-The local renderer needs `34px` beyond that bottom: `16px` top inset, `16px` bottom inset, and `2px` node border. Add another `8px` safety margin and round up to `10px`. The rounded result retains roughly 10–19px actual headroom without the oversized empty tails seen in earlier cards:
+The local renderer needs `34px` beyond that bottom: `16px` top inset, `16px` bottom inset, and `2px` node border. Add an `8px` safety margin and round up to the profile's `4px` grid. The supported profile accepts only `8–12px` of effective headroom after this chrome; a card with more is too loose and fails final renderer QA. This normally produces roughly 8–10px without the oversized empty tails seen in earlier cards:
 
 ```text
 exact_required = max_child_bottom + 34
-required_height = ceil_to_10(exact_required + 8)
+required_height = ceil_to_4(exact_required + 8)
 ```
+
+The compactness gate is two-sided:
+
+```text
+8px <= node.height - (max_child_bottom + 34px) <= 12px
+```
+
+The lower bound prevents clipping. The upper bound prevents stale or overly generous geometry from passing merely because the text fits. When the upper bound fails, rebuild from the same DOM measurements; do not manually hide the extra space with zoom.
 
 The local experiment reproduced the supplied failure:
 
@@ -114,6 +122,7 @@ scripts/canvas-render-qa.py check \
 
 - Every text node is mounted and rendered in Obsidian; no source-text estimate counts as final evidence.
 - `node.height >= required_height` for every text node. Merely reaching the exact unclipped height is insufficient; retain the measured `8px` margin before grid rounding.
+- `8px <= headroom <= 12px` for every text node. A large empty tail is a readability/scanability failure, not a cosmetic preference.
 - The learning-module group row begins at least `80px` below the bottom of the overview/source lane after the measured rebuild.
 - The final check's Canvas SHA-256 matches the delivered `.canvas` file.
 - Reading zoom is `0`; effective Canvas body text is `16px`, not smaller than the `13px` sidebar reference.

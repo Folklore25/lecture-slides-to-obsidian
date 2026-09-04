@@ -76,6 +76,7 @@ A finished Canvas must pass all of these:
 - **Coverage test:** every major Markdown section is mapped or explicitly excluded in staging.
 - **Traceability test:** every concept links to an exact existing `## H2` and states its 1-based source page; H3 is not accepted and selected assets resolve inside the document folder.
 - **Density test:** no placeholder nodes, paragraph dumps, isolated concepts, node overlaps, or hub with more than six semantic connections.
+- **Card compactness test:** every rendered text node has `8–12px` effective headroom after local renderer chrome; both clipping and oversized empty tails fail.
 - **Top-lane clearance test:** after DOM-driven reflow, the overview/source lane has at least 80 px before the learning-module group bounds.
 - **Aesthetic test:** [axton-aesthetics.md](axton-aesthetics.md) and `canvas-aesthetic-qa.py` pass before DOM measurement.
 - **Renderer test:** [render-qa.md](render-qa.md) reports every text node above its measured height plus safety margin; screenshots do not count as this evidence.

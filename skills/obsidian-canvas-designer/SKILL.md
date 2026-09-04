@@ -45,6 +45,7 @@ For a direct Canvas-only request without an explicit vault root, run `obsidian v
 - Limit the visible palette to semantic roles. Avoid assigning a new color merely because a group is next in sequence.
 - Keep edge labels active and short. Minimize crossings and reject edges that pass through unrelated cards.
 - At fit-all zoom, judge only structure. At the supported reading zoom, body text must meet the local sidebar reference and every card must retain the measured height margin.
+- Card height is a two-sided contract: after subtracting the local `34px` renderer chrome, effective headroom must be `8–12px`. Do not accept cards with large empty tails simply because they are not clipped.
 - Do not add or use an offline-estimate completion flag. If the supported Obsidian renderer is unavailable, return FAIL with the first-pass Canvas unaccepted.
 - Never replace the complete Markdown with Canvas prose. The Canvas is a retrieval map with compact links back to detail.
 
