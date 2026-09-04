@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply idempotent student/teacher callout patches to an Obsidian course note."""
+"""Apply idempotent student/teacher callout patches to an Obsidian course note via a filesystem or Obsidian CLI backend."""
 
 from __future__ import annotations
 
@@ -217,6 +217,31 @@ def obsidian_read(note: str, vault_root: Path) -> str:
     return run_cli(["obsidian", "read", f"path={note}"], vault_root)
 
 
+def resolve_note_path(note: str, vault_root: Path) -> Path:
+    destination = (vault_root / note).resolve()
+    try:
+        destination.relative_to(vault_root.resolve())
+    except ValueError as exc:
+        raise PatchError("resolved note escapes vault root") from exc
+    return destination
+
+
+def fs_read(note: str, vault_root: Path) -> str:
+    destination = resolve_note_path(note, vault_root)
+    try:
+        return destination.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise PatchError(f"note not found in vault: {note}") from exc
+
+
+def read_note(note: str, vault_root: Path, backend: str) -> str:
+    if backend == "fs":
+        return fs_read(note, vault_root)
+    if shutil.which("obsidian") is None:
+        raise PatchError("Obsidian CLI is unavailable")
+    return obsidian_read(note, vault_root)
+
+
 def write_atomic(path: Path, content: str) -> None:
     temporary = None
     try:
@@ -231,7 +256,16 @@ def write_atomic(path: Path, content: str) -> None:
             temporary.unlink()
 
 
-def write_note(note: str, original: str, modified: str, vault_root: Path) -> str:
+def fs_write(note: str, original: str, modified: str, vault_root: Path) -> str:
+    if sha256_text(fs_read(note, vault_root)) != sha256_text(original):
+        raise PatchError("note changed after planning; re-read and rebuild the patch before writing")
+    write_atomic(resolve_note_path(note, vault_root), modified)
+    if sha256_text(fs_read(note, vault_root)) != sha256_text(modified):
+        raise PatchError("post-write readback does not match the intended note")
+    return "filesystem-atomic"
+
+
+def cli_write(note: str, original: str, modified: str, vault_root: Path) -> str:
     latest = obsidian_read(note, vault_root)
     if sha256_text(latest) != sha256_text(original):
         raise PatchError("note changed after planning; re-read and rebuild the patch before writing")
@@ -241,12 +275,7 @@ def write_note(note: str, original: str, modified: str, vault_root: Path) -> str
         run_cli(["obsidian", "create", f"path={note}", f"content={modified}", "overwrite"], vault_root)
         writer = "obsidian-cli-create"
     else:
-        destination = (vault_root / note).resolve()
-        try:
-            destination.relative_to(vault_root.resolve())
-        except ValueError as exc:
-            raise PatchError("resolved note escapes vault root") from exc
-        write_atomic(destination, modified)
+        write_atomic(resolve_note_path(note, vault_root), modified)
         writer = "atomic-large-file-fallback"
     verified = obsidian_read(note, vault_root)
     if sha256_text(verified) != sha256_text(modified):
@@ -254,32 +283,39 @@ def write_note(note: str, original: str, modified: str, vault_root: Path) -> str
     return writer
 
 
+def write_note(note: str, original: str, modified: str, vault_root: Path, backend: str) -> str:
+    if backend == "fs":
+        return fs_write(note, original, modified, vault_root)
+    return cli_write(note, original, modified, vault_root)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--vault-root", required=True, type=Path)
     parser.add_argument("--patch", required=True, type=Path)
+    parser.add_argument("--backend", required=True, choices=["fs", "obsidian-cli"],
+                        help="fs reads/writes the vault file directly; obsidian-cli drives the Obsidian CLI plugin")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     try:
-        if shutil.which("obsidian") is None:
-            raise PatchError("Obsidian CLI is unavailable")
         vault_root = args.vault_root.resolve()
         if not vault_root.is_dir():
             raise PatchError("vault root is not an existing directory")
         patch = json.loads(args.patch.read_text(encoding="utf-8"))
         note, entries = validate_patch(patch)
-        original = obsidian_read(note, vault_root)
+        original = read_note(note, vault_root, args.backend)
         if frontmatter_type(original) != "course-material":
             raise PatchError("target note frontmatter type must be course-material")
         modified, outcomes = apply_entries(original, entries)
         writer = "dry-run"
         if not args.dry_run and modified != original:
-            writer = write_note(note, original, modified, vault_root)
+            writer = write_note(note, original, modified, vault_root, args.backend)
         print(
             json.dumps(
                 {
                     "ok": True,
                     "note": note,
+                    "backend": args.backend,
                     "writer": writer,
                     "before_sha256": sha256_text(original),
                     "after_sha256": sha256_text(modified),

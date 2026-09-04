@@ -97,7 +97,7 @@ cc-switch 卸载时可能创建自己的 skill backup。若要求卸载备份中
 
 课堂中直接调用 `obsidian-live-lecture-notes`。它只绑定一次当前打开的 course-material note；每条聊天想法会被路由到最匹配的现有H2/H3，以稳定ID callout追加。无法可靠归位时暂存到 `## In-class notes`，避免打断课堂。
 
-课后已有教师ASR Markdown时调用 `lecture-asr-enricher`。它比较ASR与现有课件笔记，只保留老师新增的解释、例子、强调、纠正、边界、Q&A和有效课程安排；低置信度内容留在review plan，不写入笔记。教师补充复用同一插入协议，因此不会覆盖课件正文或学生课堂思考。
+课后已有教师ASR Markdown时调用 `lecture-asr-enricher`。它比较ASR与现有课件笔记，只保留老师新增的解释、例子、强调、纠正、边界、Q&A和有效课程安排；低置信度内容留在review plan，不写入笔记。教师补充复用同一插入协议，因此不会覆盖课件正文或学生课堂思考。ASR 属课后离线任务，默认用 `apply-note-patches.py --backend fs` 直接读写 vault 文件，不经过 Obsidian CLI。
 
 ## 解析策略与前置要求
 
@@ -145,7 +145,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 4. Adapter 把 CLI legacy content-list JSON 按 `page_idx` 转成 page-group compatibility JSON。
 5. Adapter 按页码/类型/序号重命名图片，输出 `asset-map.json` 和 `normalized-assets/`。
 6. `reconstruct-note.py`生成基础MinerU Markdown与不可变source-page markers。
-7. 可选的`slide-layout-refiner`使用支持视觉输入的模型直接查看原PDF或逐页渲染图，并直接覆盖最终Markdown，但只能修改相邻markers之间的结构。目标是完整保存信息和提高可读性，不是像素级还原；会将`\-`/装饰符号整理为真实列表，并让每级子列表使用四个ASCII空格加`- `表达层级，禁止Tab缩进。已有fallback/warning Callout会原样保留，不会被误判为用户笔记；只有`lecture-layer:`才触发停止。marker行逐字节锁定，文本token顺序和每页asset集合必须完全守恒；验证失败时自动从tmp快照恢复。
+7. 可选的`slide-layout-refiner`使用支持视觉输入的模型直接查看原PDF或逐页渲染图，并直接覆盖最终Markdown，但只能修改相邻markers之间的结构。目标是完整保存信息和提高可读性，不是像素级还原；会将`\-`/装饰符号整理为真实列表，并让每级子列表使用四个ASCII空格加`-`表达层级，禁止Tab缩进。已有fallback/warning Callout会原样保留，不会被误判为用户笔记；只有`lecture-layer:`才触发停止。marker行逐字节锁定，文本token顺序和每页asset集合必须完全守恒；验证失败时自动从tmp快照恢复。
 8. 主 Agent 通读最终采用的Markdown并建立覆盖所有H2的临时recall model。
 9. 独立`obsidian-canvas-designer`子技能由subagent执行布局、美术评分、DOM实测和重排；主Agent只消费Canvas与PASS/FAIL证据。
 
@@ -177,7 +177,7 @@ obsidian-canvas-designer/recall-skeleton.py       H2/page inventory → authorin
 obsidian-canvas-designer/canvas-aesthetic-qa.py   Axton-informed static visual score
 obsidian-canvas-designer/canvas-render-qa.py      本机 DOM → 实测高度、字体与 PASS/FAIL
 
-obsidian-live-lecture-notes/apply-note-patches.py  学生/老师callout → Obsidian原生幂等插入
+obsidian-live-lecture-notes/apply-note-patches.py  学生/老师callout → 幂等插入（fs 文件系统 / obsidian-cli 双后端）
 lecture-asr-enricher/validate-enrichment-plan.py   ASR增量计划 → 可应用teacher patch
 slide-layout-refiner/validate-layout-refinement.py  原位覆盖结果 → 逐页内容/asset守恒PASS或自动回滚
 ```

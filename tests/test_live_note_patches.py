@@ -1,4 +1,5 @@
 import importlib.util
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -94,6 +95,39 @@ class LiveNotePatchTests(unittest.TestCase):
         modified, _ = PATCHES.apply_entries(NOTE, [entry])
         self.assertIn("[!important] Lecturer emphasis", modified)
         self.assertIn("ASR: 00:31:24", modified)
+
+
+class FilesystemBackendTests(unittest.TestCase):
+    def test_fs_roundtrip_inserts_and_verifies(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp)
+            note = "COURSE101/Lectures/example/example.md"
+            destination = vault / note
+            destination.parent.mkdir(parents=True)
+            destination.write_text(NOTE, encoding="utf-8")
+            original = PATCHES.read_note(note, vault, "fs")
+            self.assertEqual(original, NOTE)
+            modified, outcomes = PATCHES.apply_entries(original, [student_entry()])
+            self.assertEqual(outcomes[0]["status"], "inserted")
+            writer = PATCHES.write_note(note, original, modified, vault, "fs")
+            self.assertEqual(writer, "filesystem-atomic")
+            self.assertEqual(destination.read_text(encoding="utf-8"), modified)
+
+    def test_fs_resolves_without_escaping_vault(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp)
+            self.assertEqual(
+                PATCHES.resolve_note_path("a/b.md", vault),
+                (vault / "a" / "b.md").resolve(),
+            )
+        with self.assertRaisesRegex(PATCHES.PatchError, "escapes"):
+            PATCHES.resolve_note_path("../outside.md", Path("/tmp"))
+
+    def test_fs_read_reports_missing_note(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp)
+            with self.assertRaisesRegex(PATCHES.PatchError, "not found"):
+                PATCHES.fs_read("missing.md", vault)
 
 
 if __name__ == "__main__":

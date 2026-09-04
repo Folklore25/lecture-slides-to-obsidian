@@ -58,4 +58,4 @@ Teacher additions use appropriate built-in callouts such as `example`, `importan
 - Reject marker syntax inside body text, duplicate patch IDs, ambiguous headings, missing `## In-class notes` fallback, absolute paths, `..`, and non-Markdown targets.
 - The mutation may add only complete lecture-layer blocks plus separator newlines. Every pre-existing source line must remain byte-for-byte and in the same order.
 
-The apply tool reads and verifies through Obsidian CLI. Normal-size notes are written with `obsidian create ... overwrite`; notes too large for a safe process argument use an atomic filesystem replacement followed by mandatory Obsidian CLI readback and SHA verification.
+The apply tool has two backends. The live-notes workflow uses `--backend obsidian-cli`: normal-size notes are written with `obsidian create ... overwrite`; notes too large for a safe process argument use an atomic filesystem replacement followed by mandatory Obsidian CLI readback and SHA verification. The post-class ASR enricher uses `--backend fs`, which reads and writes the vault file directly (atomic replace plus SHA readback) without the Obsidian CLI.

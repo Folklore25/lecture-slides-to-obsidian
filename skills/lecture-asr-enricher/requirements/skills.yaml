@@ -2,7 +2,5 @@ schema_version: 1
 required_skills:
   - name: "obsidian-markdown"
     source: "https://github.com/kepano/obsidian-skills/tree/main/skills/obsidian-markdown"
-  - name: "obsidian-cli"
-    source: "https://github.com/kepano/obsidian-skills/tree/main/skills/obsidian-cli"
   - name: "obsidian-live-lecture-notes"
     source: "../obsidian-live-lecture-notes"

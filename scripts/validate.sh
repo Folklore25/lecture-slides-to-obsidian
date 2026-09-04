@@ -190,8 +190,13 @@ if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli, obsidian-canvas
 fi
 
 if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli"' "$live_notes_skill_dir/SKILL.md" || \
-   ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli, obsidian-live-lecture-notes"' "$asr_skill_dir/SKILL.md"; then
+   ! grep -q 'required-skills: "obsidian-markdown, obsidian-live-lecture-notes"' "$asr_skill_dir/SKILL.md"; then
   printf 'supplementary skill prerequisites are missing or out of sync\n' >&2
+  exit 1
+fi
+
+if grep -q 'name: "obsidian"' "$asr_skill_dir/requirements/tools.yaml"; then
+  printf 'ASR enricher must not require the Obsidian CLI tool\n' >&2
   exit 1
 fi
 

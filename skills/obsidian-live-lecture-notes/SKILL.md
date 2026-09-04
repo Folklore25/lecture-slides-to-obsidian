@@ -24,7 +24,7 @@ Because the Obsidian terminal may be the active leaf, do not trust the active fi
 2. Choose one exact existing H2 or H3 only when the match is unique and confident.
 3. If ambiguous, route to the exact `## In-class notes` section with `routing_status: unresolved`; do not interrupt the lecture with a long clarification loop.
 4. Create one patch entry following [references/insertion-contract.md](references/insertion-contract.md).
-5. Run `scripts/apply-note-patches.py`; never perform an unconstrained whole-note rewrite.
+5. Run `scripts/apply-note-patches.py --backend obsidian-cli`; never perform an unconstrained whole-note rewrite.
 6. Reply briefly with the destination heading and captured idea. Keep analysis out of the classroom chat unless asked.
 
 ## Non-negotiable boundaries

@@ -28,7 +28,7 @@ For each candidate:
 1. identify the closest exact target H2/H3;
 2. compare against that section and existing student/teacher callouts;
 3. state one `novelty_basis` explaining what is new;
-4. retain an ASR timestamp/heading and short evidence fragment;
+4. record an ASR timestamp/heading for the inserted callout and a short evidence fragment for the staging plan;
 5. paraphrase the addition at the target note's altitude;
 6. mark confidence `high`, `medium`, or `low`.
 

@@ -29,6 +29,6 @@ Allowed `novelty_basis` values:
 
 `new-explanation`, `new-example`, `new-emphasis`, `correction`, `boundary-condition`, `question-answer`, `new-logistics`.
 
-Each applied entry must use actor `teacher`, an allowed teacher kind, exact target H2/H3, evidence, source anchor, novelty basis, and high/medium confidence. Entries with `apply: false` remain staging review items and are omitted from the insertion patch.
+Each applied entry must use actor `teacher`, an allowed teacher kind, exact target H2/H3, evidence, source anchor, novelty basis, and high/medium confidence. Only the source anchor and confidence reach the inserted callout; evidence and novelty basis are staging/review metadata and never appear in the note. Entries with `apply: false` remain staging review items and are omitted from the insertion patch.
 
 An empty `entries` array is valid only with a concrete `no_additions_reason`.
