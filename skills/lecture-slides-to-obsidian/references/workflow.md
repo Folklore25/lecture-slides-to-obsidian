@@ -12,7 +12,7 @@ Reject a source that resolves inside the destination vault. Do not copy or move 
 
 Select or confirm `lecture-notes`, `policy-document`, or `paper` using filename/user context before upload. A name such as `example-policy.pdf` should trigger a `policy-document` suggestion immediately. Validate extension and size without parsing the source locally. Infer then confirm the MinerU language enum and confirm an OCR boolean; neither field has a request default.
 
-Load `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`. Verify the Canvas subskill is discoverable, then verify encrypted token state and the Keychain wrapping key. On first setup, store the chat-provided token through `token-store.py set --token-stdin`; later runs unlock automatically without another conversational prompt.
+Load `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`. Verify the Canvas subskill is discoverable, then run `scripts/token-store.py status` from the skill directory to verify encrypted token state and the Keychain wrapping key. If it reports `configured`, reuse the stored token silently without asking. Only on first setup (status `not configured`), store the chat-provided token through `token-store.py set --token-stdin`; later runs unlock automatically without another conversational prompt.
 
 ## 3. Staging and official CLI extraction
 

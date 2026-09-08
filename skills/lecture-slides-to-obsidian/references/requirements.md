@@ -36,9 +36,9 @@ Before uploading course content:
 
 1. Inspect the available skill list for exact names `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`, then explicitly invoke all three. The Canvas subagent separately loads `json-canvas` and `obsidian-cli` as required by its own contract.
 2. Verify `obsidian version`, the workstation render profile, `mineru-open-api version`, OpenSSL, macOS Keychain, and `state/mineru-api-token.enc.json`.
-3. If encrypted state is absent, send the chat-provided token through stdin to `scripts/token-store.py set --token-stdin`. The script creates the Keychain wrapping key automatically; never place the token in command arguments.
+3. Resolve every path against the installed skill directory (the directory containing the loaded SKILL.md). Run `scripts/token-store.py status` before asking for a token: `configured` means the encrypted file and Keychain key are present, so proceed silently. Only if status reports `not configured` should you send the chat-provided token through stdin to `scripts/token-store.py set --token-stdin`. The script creates the Keychain wrapping key automatically; never place the token in command arguments.
 4. Validate the local file type and size against `requirements/services.yaml` without parsing its content locally.
-5. Load the encrypted token automatically. Do not ask for repeated consent or another secret.
+5. Load the encrypted token automatically through `token-store.py verify` (or the adapter's `load_token_auto()`) without printing it. Do not ask for repeated consent or another secret once `status` reports `configured`.
 6. If any required skill, the local renderer profile, OpenSSL, Keychain, network access, or encrypted token state is unavailable, stop and report the exact requirement. Do not inline Canvas drawing into the main workflow, use screenshot QA, store plaintext secrets, or fall back to local parsing.
 
 Run `scripts/preflight.py` and pass `--loaded-skill obsidian-markdown --loaded-skill obsidian-cli --loaded-skill obsidian-canvas-designer`; its JSON output is the machine-readable record that helper skills were loaded.

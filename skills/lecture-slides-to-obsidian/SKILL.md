@@ -19,8 +19,9 @@ This skill is a thin composition layer. The official `mineru-open-api` CLI owns 
 
 - Route by requested artifact before preflight: external source requiring extraction → full workflow; existing normalized page groups requiring Markdown → reconstruction only; complete Markdown requiring only Canvas → stop this skill and invoke `obsidian-canvas-designer` directly.
 - Explicitly invoke `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`; availability alone is not loading. Pass all three names to `preflight.py --loaded-skill` and record them in temporary QA context.
-- Skill-owned state is always under `<installed-skill-directory>/state/`. Prefer cc-switch for installation and lifecycle management; do not assume a runtime-specific home path.
+- `<installed-skill-directory>` is the directory containing this SKILL.md; every `scripts/` and `state/` path below resolves against it. Prefer cc-switch for installation and lifecycle management; do not assume a runtime-specific home path.
 - Run `scripts/preflight.py` first; ask its `questions[]` in stages rather than assuming all inputs.
+- Before asking for a MinerU token, run `scripts/token-store.py status` from the skill directory. A `configured` result means the encrypted token is already stored — unlock and use it silently; ask for a token only when status is `not configured` or `set`/`verify` fails.
 - `source_pages`: trust the adapter's normalized page-group length (`max(page_idx)+1` from official CLI JSON). Other counts are diagnostics.
 - Extraction: run `scripts/mineru-cli-adapter.py`; never reproduce the CLI's HTTP, upload, or polling logic.
 - Page marker: `<!-- source-page: N -->` immediately before page N's first included block.
@@ -33,7 +34,7 @@ This skill is a thin composition layer. The official `mineru-open-api` CLI owns 
 
 ## Prerequisite preflight
 
-Before extraction, read [requirements/skills.yaml](requirements/skills.yaml), [requirements/services.yaml](requirements/services.yaml), [requirements/tools.yaml](requirements/tools.yaml), and [references/requirements.md](references/requirements.md). Verify the note/CLI skills, Canvas designer subskill, local render profile, `mineru-open-api`, OpenSSL, macOS Keychain, and encrypted token state. If token state is absent, pass the chat-provided token to `scripts/token-store.py set --token-stdin` through stdin. Later runs unlock automatically.
+Before extraction, read [requirements/skills.yaml](requirements/skills.yaml), [requirements/services.yaml](requirements/services.yaml), [requirements/tools.yaml](requirements/tools.yaml), and [references/requirements.md](references/requirements.md). Verify the note/CLI skills, Canvas designer subskill, local render profile, `mineru-open-api`, OpenSSL, macOS Keychain, and encrypted token state. Resolve every `scripts/` and `state/` path against the directory containing this SKILL.md, and check the token with `scripts/token-store.py status`: a `configured` result means reuse the stored token silently without asking. If token state is absent, pass the chat-provided token to `scripts/token-store.py set --token-stdin` through stdin. Later runs unlock automatically.
 
 ## Core workflow
 
