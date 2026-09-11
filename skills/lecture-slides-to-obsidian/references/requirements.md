@@ -24,7 +24,7 @@ Load only when the user enables multimodal slide-layout refinement. It reads the
 
 ### `obsidian-latex-refiner`
 
-Load only when the user enables deterministic LaTeX normalization. A script rewrites MinerU math delimiters, environments, and CJK runs in place, then an independent validator enforces page-local conservation and restores the byte-exact outside-vault snapshot on any failure. It needs no vision model. If validation fails, keep or restore the base MinerU Markdown rather than guessing or hand-editing math.
+Load only when the user enables LaTeX normalization. Run the read-only `--analyze` scan first, decide which transform groups are safe, then apply them in place. A script rewrites math delimiters, environments, CJK runs, and redundant display shells; an independent validator enforces page-local conservation and restores the byte-exact outside-vault snapshot on any failure. It needs no vision model. If validation fails, keep or restore the base Markdown rather than guessing or hand-editing math.
 
 ## Required service
 

@@ -27,7 +27,8 @@ optional_skills:
     enabled_by_default: false
     requires_visual_input: true
   - name: "obsidian-latex-refiner"
-    purpose: "Deterministically normalize MinerU LaTeX into Obsidian-renderable math with page-local conservation and automatic rollback."
+    purpose: "Normalize LaTeX math in an Obsidian note so it renders in MathJax, with an agent-driven scan, page-local conservation, and automatic rollback."
     source: "../obsidian-latex-refiner"
     enabled_by_default: false
     requires_multimodal: false
+    agent_driven: true

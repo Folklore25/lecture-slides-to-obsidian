@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate a page-local LaTeX/math normalization and roll it back on failure."""
+"""Validate an in-place Obsidian math normalization and roll it back on failure."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ CALLOUT_HEADER = re.compile(r"(?m)^[ \t]*>[ \t]*\[![^\]\r\n]+\][+-]?(?:[ \t]+[^\
 CONVERSION_LAYER_MARKER = re.compile(r"(?m)^[ \t]*<!--\s*conversion-layer:[^>\r\n]+-->[ \t]*$")
 CODE_FENCE = re.compile(r"(?ms)^[ \t]*(?:\x60\x60\x60|~~~)[^\n]*\n.*?^[ \t]*(?:\x60\x60\x60|~~~)[ \t]*$")
 INLINE_CODE = re.compile(r"\x60[^\x60\n]*\x60")
-PLACEHOLDER = "\x00LATEX-VERBATIM-{}\x00"
+PLACEHOLDER = "\x00MATH-VERBATIM-{}\x00"
 CJK = re.compile(r"[\u2e80-\u9fff\u3400-\u4dbf\uf900-\ufaff\u3040-\u30ff\uac00-\ud7af]")
 
 EQUATION_ENVS = {"equation", "equation*", "displaymath", "math"}
@@ -37,6 +37,10 @@ NONUMBER = re.compile(r"\\(?:nonumber|notag)\b")
 TEXT_WRAP_CJK = re.compile(r"\\(?:text|mbox|textrm|textnormal)\s*\{([^{}]*[^\x00-\x7F][^{}]*)\}")
 ENV_TOKEN = re.compile(r"\\(?:begin|end)\{([A-Za-z*]+)\}")
 TOKEN = re.compile(r"\\[A-Za-z]+|\\.|[^\s]")
+# A redundant display shell: two adjacent \$\$ pairs separated only by newlines.
+# MinerU-derived notes hit this when a raw math payload already carried its own
+# display delimiters and the reconstruct step wrapped it a second time.
+DISPLAY_SHELL = re.compile(r"\$\$[ \t]*\n[ \t]*\$\$(?P<body>.*?)\$\$[ \t]*\n[ \t]*\$\$", re.S)
 
 
 class RefinementError(RuntimeError):
@@ -97,6 +101,16 @@ def unmask_verbatim(text: str, blocks: list[str]) -> str:
     for index, block in enumerate(blocks):
         text = text.replace(PLACEHOLDER.format(index), block)
     return text
+
+
+def collapse_redundant_display(text: str) -> tuple[str, int]:
+    count = 0
+    previous = None
+    while previous != text:
+        previous = text
+        text, replaced = DISPLAY_SHELL.subn(lambda match: "$$\n" + match.group("body").strip() + "\n$$", text)
+        count += replaced
+    return text, count
 
 
 def find_math_spans(text: str) -> list[dict]:
@@ -169,13 +183,14 @@ def find_math_spans(text: str) -> list[dict]:
 
 def text_without_math(text: str) -> str:
     masked, blocks = mask_verbatim(text)
-    spans = find_math_spans(masked)
+    collapsed, _ = collapse_redundant_display(masked)
+    spans = find_math_spans(collapsed)
     parts: list[str] = []
     cursor = 0
     for span in spans:
-        parts.append(masked[cursor:span["start"]])
+        parts.append(collapsed[cursor:span["start"]])
         cursor = span["end"]
-    parts.append(masked[cursor:])
+    parts.append(collapsed[cursor:])
     return unmask_verbatim("".join(parts), blocks)
 
 
@@ -206,6 +221,20 @@ def canonical_math(span: dict) -> tuple[str, list[str]]:
     tokens = TOKEN.findall(inner)
     display = span["kind"] == "display" or (span["kind"] == "inline" and "\n" in span["inner"])
     return ("D" if display else "I", tokens)
+
+
+def render_math(canonical: tuple[str, list[str]]) -> str:
+    return "".join(canonical[1])[:60]
+
+
+def describe_math_difference(source: list, refined: list) -> str:
+    limit = min(len(source), len(refined))
+    for index in range(limit):
+        if source[index] != refined[index]:
+            return f" (span {index + 1}: source ~{render_math(source[index])} vs refined ~{render_math(refined[index])})"
+    if len(source) != len(refined):
+        return f" (math span count {len(source)} -> {len(refined)})"
+    return ""
 
 
 def extract_assets(text: str) -> tuple[str, list[str]]:
@@ -243,13 +272,14 @@ def extract_links(text: str) -> tuple[str, list[str]]:
 
 def canonical_page(text: str) -> dict:
     masked, blocks = mask_verbatim(text)
-    spans = find_math_spans(masked)
+    collapsed, shell_count = collapse_redundant_display(masked)
+    spans = find_math_spans(collapsed)
     parts: list[str] = []
     cursor = 0
     for span in spans:
-        parts.append(masked[cursor:span["start"]])
+        parts.append(collapsed[cursor:span["start"]])
         cursor = span["end"]
-    parts.append(masked[cursor:])
+    parts.append(collapsed[cursor:])
     value = unmask_verbatim("".join(parts), blocks)
     value, assets = extract_assets(value)
     value, links = extract_links(value)
@@ -267,13 +297,15 @@ def canonical_page(text: str) -> dict:
         "math": [canonical_math(span) for span in spans],
         "assets": assets,
         "links": links,
+        "redundant_display_shells": shell_count,
     }
 
 
-def validate_refinement(snapshot: str, refined: str) -> dict:
+def validate_refinement(snapshot: str, refined: str, allow_lecture_layers: bool = False) -> dict:
     errors: list[str] = []
-    if "lecture-layer:" in snapshot or "lecture-layer:" in refined:
-        errors.append("LaTeX refinement is forbidden after student/teacher layers exist")
+    lecture_layers_present = "lecture-layer:" in snapshot or "lecture-layer:" in refined
+    if lecture_layers_present and not allow_lecture_layers:
+        errors.append("math normalization is forbidden after student/teacher layers exist; re-run with --allow-lecture-layers for a math-only pass")
 
     snapshot_frontmatter, snapshot_body = split_frontmatter(snapshot)
     refined_frontmatter, refined_body = split_frontmatter(refined)
@@ -297,10 +329,12 @@ def validate_refinement(snapshot: str, refined: str) -> dict:
         snapshot_conversion = CONVERSION_LAYER_MARKER.findall(snapshot_page)
         refined_conversion = CONVERSION_LAYER_MARKER.findall(refined_page)
         page_errors: list[str] = []
+        math_difference = ""
         if snapshot_canonical["tokens"] != refined_canonical["tokens"]:
             page_errors.append("visible non-math text changed or reordered")
         if snapshot_canonical["math"] != refined_canonical["math"]:
-            page_errors.append("math content changed, was added, removed, or reordered")
+            math_difference = describe_math_difference(snapshot_canonical["math"], refined_canonical["math"])
+            page_errors.append("math content changed, was added, removed, or reordered" + math_difference)
         if collections.Counter(snapshot_canonical["assets"]) != collections.Counter(refined_canonical["assets"]):
             page_errors.append("asset set changed on this page")
         if collections.Counter(snapshot_canonical["links"]) != collections.Counter(refined_canonical["links"]):
@@ -324,6 +358,9 @@ def validate_refinement(snapshot: str, refined: str) -> dict:
                 "changed": snapshot_page != refined_page,
                 "snapshot_math_spans": len(snapshot_canonical["math"]),
                 "refined_math_spans": len(refined_canonical["math"]),
+                "snapshot_redundant_display_shells": snapshot_canonical["redundant_display_shells"],
+                "refined_redundant_display_shells": refined_canonical["redundant_display_shells"],
+                "math_difference": math_difference,
                 "errors": page_errors,
             }
         )
@@ -331,6 +368,8 @@ def validate_refinement(snapshot: str, refined: str) -> dict:
     return {
         "schema_version": 1,
         "valid": not errors,
+        "allow_lecture_layers": allow_lecture_layers,
+        "lecture_layers_present": lecture_layers_present,
         "snapshot_sha256": sha256_text(snapshot),
         "refined_sha256": sha256_text(refined),
         "page_markers": snapshot_ids[1:],
@@ -338,6 +377,32 @@ def validate_refinement(snapshot: str, refined: str) -> dict:
         "pages": page_results,
         "errors": errors,
     }
+
+
+def summarize(result: dict) -> list[str]:
+    lines: list[str] = []
+    lines.append("valid: " + ("yes" if result.get("valid") else "no"))
+    if isinstance(result.get("transform_counts"), dict):
+        active = [f"{key}={value}" for key, value in result["transform_counts"].items() if value]
+        lines.append("transforms: " + (", ".join(active) if active else "none"))
+    if "pages_changed" in result:
+        total = len(result.get("pages", []))
+        lines.append(f"pages changed: {result.get('pages_changed')}/{total}")
+    for error in (result.get("errors") or [])[:5]:
+        lines.append("error: " + str(error))
+    extra = len(result.get("errors") or []) - 5
+    if extra > 0:
+        lines.append(f"... and {extra} more errors")
+    for item in (result.get("review_items") or [])[:8]:
+        lines.append("review: " + str(item))
+    return lines
+
+
+def print_report(result: dict, report_format: str) -> None:
+    if report_format == "text":
+        print("\n".join(summarize(result)))
+        return
+    print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 def inside(path: Path, root: Path) -> bool:
@@ -373,6 +438,8 @@ def main() -> int:
     parser.add_argument("--target", required=True, type=Path, help="Normalized Markdown note inside the vault")
     parser.add_argument("--vault-root", required=True, type=Path)
     parser.add_argument("--report", required=True, type=Path, help="Temporary validation report outside the vault")
+    parser.add_argument("--allow-lecture-layers", action="store_true", help="Allow a math-only pass on a note that already has lecture-layer blocks")
+    parser.add_argument("--report-format", choices=("json", "text"), default="json")
     args = parser.parse_args()
     snapshot_path = args.snapshot.resolve()
     target_path = args.target.resolve()
@@ -395,7 +462,7 @@ def main() -> int:
         target_bytes = target_path.read_bytes()
         snapshot = snapshot_bytes.decode("utf-8")
         refined = target_bytes.decode("utf-8")
-        result = validate_refinement(snapshot, refined)
+        result = validate_refinement(snapshot, refined, allow_lecture_layers=args.allow_lecture_layers)
         result["snapshot"] = str(snapshot_path)
         result["target"] = str(target_path)
         result["report"] = str(report_path)
@@ -405,7 +472,7 @@ def main() -> int:
             result["restored"] = True
             result["restored_sha256"] = hashlib.sha256(target_path.read_bytes()).hexdigest()
         write_json_atomic(report_path, result)
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        print_report(result, args.report_format)
         return 0 if result["valid"] else 1
     except HANDLED_ERRORS as exc:
         restored = False

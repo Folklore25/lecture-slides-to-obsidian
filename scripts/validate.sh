@@ -97,6 +97,7 @@ references/rendering-contract.md
 requirements/skills.yaml
 requirements/tools.yaml
 scripts/normalize-latex.py
+scripts/self-check.py
 scripts/validate-latex-refinement.py
 templates/latex-refinement-task.md'
 
@@ -180,6 +181,8 @@ fi
 
 if grep -R -n -E '\[TODO|TODO:|FIXME' "$repo_dir" \
   --exclude-dir=.git \
+  --exclude-dir=__pycache__ \
+  --exclude-dir=.pi \
   --exclude=validate.sh >/dev/null 2>&1; then
   printf 'unfinished placeholder found\n' >&2
   exit 1
@@ -196,13 +199,13 @@ if grep -R -n '/Users/\|/home/' "$skill_dir/config" "$canvas_skill_dir/config" "
 fi
 
 if grep -R -n -E 'Claude Code|Codex|Cursor|Coding Agent|(^|[^[:alnum:]])Pi([^[:alnum:]]|$)' \
-  --exclude=validate.sh --exclude-dir=.git "$repo_dir" >/dev/null 2>&1; then
+  --exclude=validate.sh --exclude-dir=.git --exclude-dir=__pycache__ --exclude-dir=.pi "$repo_dir" >/dev/null 2>&1; then
   printf 'runtime-specific Agent declaration found; keep the skill generic and recommend cc-switch\n' >&2
   exit 1
 fi
 
 if grep -R -n '~/.config/lecture-slides-to-obsidian\|XDG_CONFIG_HOME' "$skill_dir" \
-  --exclude=README.md >/dev/null 2>&1; then
+  --exclude=README.md --exclude-dir=__pycache__ >/dev/null 2>&1; then
   printf 'external registry path found; runtime state must stay inside the skill\n' >&2
   exit 1
 fi
@@ -246,7 +249,7 @@ if ! grep -q 'name: "obsidian-canvas-designer"' "$skill_dir/requirements/skills.
 fi
 
 if grep -R -n 'source_slides\|copy_source_into_course: true\|<course-folder>/Slides' \
-  "$skill_dir" "$repo_dir/README.md" >/dev/null 2>&1; then
+  --exclude-dir=__pycache__ "$skill_dir" "$repo_dir/README.md" >/dev/null 2>&1; then
   printf 'source-original-in-vault contract found\n' >&2
   exit 1
 fi
@@ -314,6 +317,7 @@ if [ ! -x "$live_notes_skill_dir/scripts/apply-note-patches.py" ] || \
    [ ! -x "$asr_skill_dir/scripts/validate-enrichment-plan.py" ] || \
    [ ! -x "$layout_skill_dir/scripts/validate-layout-refinement.py" ] || \
    [ ! -x "$latex_skill_dir/scripts/normalize-latex.py" ] || \
+   [ ! -x "$latex_skill_dir/scripts/self-check.py" ] || \
    [ ! -x "$latex_skill_dir/scripts/validate-latex-refinement.py" ]; then
   printf 'supplementary skill scripts must be executable\n' >&2
   exit 1

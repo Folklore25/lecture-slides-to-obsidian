@@ -1,16 +1,16 @@
-Run `$obsidian-latex-refiner` deterministically; no vision model is required.
+Use `$obsidian-latex-refiner` on this note. No vision model is required; the transform is content-conserving and source-agnostic.
 
 Inputs:
 
-- target Markdown: <absolute-final-markdown-path-in-vault>
-- vault root: <absolute-vault-root>
+- target Markdown: <absolute-note-path>
 - run directory: <absolute-run-directory-outside-vault>
 
 Steps:
 
-1. Prove the run directory resolves outside the vault.
-2. Run `python3 <skill-dir>/scripts/normalize-latex.py --target <target> --vault-root <vault-root> --snapshot <run-dir>/before.md --report <run-dir>/latex-refinement-report.json`.
-3. If the report `valid` is false, the target has already been restored from `<run-dir>/before.md`; do not retry by hand and do not edit math manually.
-4. If `valid` is true, return the target path, the report path, `valid`, `pages_changed`, `transform_counts`, and `review_items`.
+1. Scan read-only: `python3 <skill-dir>/scripts/normalize-latex.py --target <target> --analyze --report <run-dir>/analysis.json`.
+2. Read `recommended_transforms` and `review_items`; choose `--only` groups if a group is unsafe for this document.
+3. Optionally preview: add `--dry-run`.
+4. Apply: `python3 <skill-dir>/scripts/normalize-latex.py --target <target> --snapshot <run-dir>/before.md --report <run-dir>/latex-refinement-report.json [--only ...]`.
+5. Return the report path, `valid`, `pages_changed`, `transform_counts`, `review_items`, and `refined_sha256`. Confirm the target's on-disk hash equals `refined_sha256`.
 
-Do not create a second Markdown file, backup, report, or dot-prefixed path inside the vault. Do not change visible text, math payloads, page markers, links, assets, or Callouts.
+If the report is not valid, the note has already been restored from `before.md`; do not retry by hand and do not edit math manually. Do not create a second Markdown file, backup, report, or dot-prefixed path inside the vault.

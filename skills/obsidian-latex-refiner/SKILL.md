@@ -1,61 +1,51 @@
 ---
 name: obsidian-latex-refiner
-description: Deterministically normalize MinerU-emitted LaTeX in an Obsidian course note so every equation renders with Obsidian's MathJax. Use after extraction or reconstruction and before classroom notes; a script rewrites math delimiters, environments, and CJK runs in place, then a validator restores the snapshot if any conservation gate fails.
+description: Fix LaTeX math in an Obsidian note so every equation renders with Obsidian's MathJax. Works on any source (MinerU, LaTeXML, pandoc, LLM output, or hand-written). The agent first scans the note read-only, decides which normalizations are safe, then applies them in place while an independent validator proves content conservation and restores the snapshot on any failure.
 metadata:
   required-skills: "obsidian-markdown"
   requires-multimodal: "false"
   deterministic: "true"
+  agent-driven: "true"
 ---
 
 # Obsidian LaTeX Refiner
 
-Make MinerU LaTeX render in Obsidian without changing what the document says. This skill is deterministic: `scripts/normalize-latex.py` rewrites math syntax, and `scripts/validate-latex-refinement.py` independently proves that visible content is conserved. No vision model is required.
+Make equations render in Obsidian without changing what the document says. The transform is content-conserving and source-agnostic: it normalizes math syntax only.
 
-Delimiters, environments, and non-rendering commands change. Visible text, math payloads, page order, links, assets, and Callouts do not.
-
-Each `<!-- source-page: N -->` marker is an immutable boundary. Normalization is page-local: a math span may not cross a marker, and nothing may move between pages.
-
-## Inputs
-
-- target MinerU-derived Markdown in its final vault location;
-- byte-exact `before.md` snapshot and `latex-refinement-report.json` under the system temporary directory or the installed skill directory, never inside the vault;
-- optional `--no-cjk` when the author prefers raw CJK inside math.
-
-Run only before classroom/student/teacher layers exist. If the Markdown contains `lecture-layer:` markers, or the user identifies later additions, stop. A pre-existing Callout is a conversion artifact, not user authorship; do not ask about it.
+This skill is **agent-driven**. Do not run the fix blindly. Scan the note read-only, read the reported issues, decide which transform groups are safe for this document, then apply them. A separate validator independently proves conservation and restores the byte-exact snapshot on any failure.
 
 ## Workflow
 
-1. Confirm the base Markdown is already written to its final path and no `lecture-layer:` marker exists.
-2. Create a uniquely named run directory with the platform temporary-directory API; a non-hidden `tmp/` directory inside the installed skill is the fallback. Prove it resolves outside the vault.
-3. Run `scripts/normalize-latex.py --target <vault-note.md> --vault-root <vault-root> --snapshot <run-dir>/before.md --report <run-dir>/latex-refinement-report.json`.
-4. The script snapshots the target, normalizes math, runs conservation validation, and automatically restores the snapshot on any failure. Do not ask for approval before that rollback.
-5. Read the report. If `valid` is false, keep the restored base Markdown and report the failure. On success, keep the overwritten target and the report until final package validation.
-6. Delete the snapshot, report, and empty run directory before completion.
+1. **Scan (read-only).** Run `scripts/normalize-latex.py --target <note> --analyze [--report <run-dir>/analysis.json]`. It changes nothing and reports per page the math spans, delimiter styles, environments, and issues such as `redundant_display_shell`, `legacy_inline_delimiter`, `raw_cjk_in_math`, `unbalanced_dollar`, and `document_latex_*`, plus `recommended_transforms`.
+2. **Decide.** Read the analysis and choose the transform groups with `--only`, or accept the recommendation. Handle `review_items` (document-level LaTeX such as `\begin{table}`, `\includegraphics`, `\href`) manually; the script never guesses at those.
+3. **Preview when unsure.** Add `--dry-run` to write the proposed Markdown next to the snapshot without touching the note.
+4. **Apply.** Run `scripts/normalize-latex.py --target <note> --snapshot <run-dir>/before.md --report <run-dir>/latex-refinement-report.json [--only ...]`. The script writes the byte-exact snapshot, normalizes math, validates conservation, and restores the snapshot on any failure.
+5. **Verify.** Read the report, or use `--report-format text` for a human summary. When `valid` is false the note has already been restored; report the failure and do not hand-edit. When it is true, keep the report until final package validation.
+6. **Confirm on disk.** After the script exits, recompute the note's `sha256` and compare it to `refined_sha256` in the report. A different hash means another process (Obsidian auto-save, a sync client, a file watcher) rewrote the file after the script returned; copy `<run-dir>/before.md` back and retry on a quiet vault.
+7. Delete the snapshot, analysis, and report after final validation.
 
-Never hand-edit math syntax instead of the script without re-running `scripts/validate-latex-refinement.py`. Treat its report as mandatory evidence.
+## Transform groups
 
-## Allowed transformations
+| Group | Changes |
+| --- | --- |
+| `shell` | collapse a doubled display fence (a `$$` line immediately followed by another `$$`) into one |
+| `delimiters` | `\(...\)` and `\begin{math}` to inline math; `\[...\]` and `\begin{displaymath}` to display math |
+| `environments` | unwrap `equation`, rename `align`, `eqnarray`, `flalign`, `alignat`, `split` to `aligned`, `gather` and `multline` to `gathered`, wrap bare matrix environments |
+| `labels` | strip non-rendering `\label{}`, `\nonumber`, `\notag` |
+| `cjk` | wrap a raw CJK run inside math in a text command |
+| `multiline-inline` | promote a multiline inline span to display math |
 
-- `\\(...\\)` and `\begin{math}...\end{math}` to inline `$...$`;
-- `\\[...\\]`, `\begin{displaymath}`, and `\begin{equation}...\end{equation}` to display `$$...$$`;
-- `align`, `align*`, `eqnarray`, `flalign`, `alignat`, and `split` to `aligned`, and `gather` and `multline` to `gathered`;
-- strip non-rendering `\label{...}`, `\nonumber`, and `\notag`;
-- wrap a raw CJK run inside math in a text command for upright rendering;
-- promote a multiline inline span to display math.
+## Boundaries
 
-## Forbidden transformations
+Each `<!-- source-page: N -->` marker is immutable. Normalization is page-local: a math span may not cross a marker, and nothing may move between pages.
 
-- changing, correcting, translating, summarizing, or reordering any visible text or math payload;
-- adding, removing, or renumbering source-page markers;
-- moving text, assets, or links across a page boundary;
-- creating, removing, retitling, or reordering Callouts or `conversion-layer:` markers;
-- inserting raw HTML, Mermaid, or plugin-specific syntax;
-- copying the source PDF into the vault or creating any dot-prefixed path in the vault;
-- refining a note after student/teacher additions exist.
+By default the note must not contain `lecture-layer:` blocks, because an in-place rewrite must not touch classroom additions. Pass `--allow-lecture-layers` for a math-only pass on such a note; conservation is still enforced, so a transform that touched classroom text would still fail and roll back. A pre-existing Callout is a conversion artifact, not user authorship; only explicit `lecture-layer:` provenance triggers this rule.
+
+Never change visible text, math payloads, page markers, links, assets, or Callouts. Never insert raw HTML, Mermaid, or plugin-specific syntax. Never copy the source PDF into the vault or create a dot-prefixed path in the vault.
 
 ## Resources
 
-- Read [references/latex-normalization.md](references/latex-normalization.md) for the exact mapping and review cases.
+- Read [references/latex-normalization.md](references/latex-normalization.md) for the full mapping and review cases.
 - Read [references/rendering-contract.md](references/rendering-contract.md) before overwriting the target.
+- Run `scripts/self-check.py` to smoke-test the bundled fixtures on this machine without touching any vault.
 - Use [templates/latex-refinement-task.md](templates/latex-refinement-task.md) when delegating the run to a subagent.
-- Treat the validator report as mandatory evidence, not an optional lint result.

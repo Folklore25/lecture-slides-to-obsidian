@@ -183,7 +183,8 @@ obsidian-canvas-designer/canvas-render-qa.py      本机 DOM → 实测高度、
 obsidian-live-lecture-notes/apply-note-patches.py  学生/老师callout → 幂等插入（fs 文件系统 / obsidian-cli 双后端）
 lecture-asr-enricher/validate-enrichment-plan.py   ASR增量计划 → 可应用teacher patch
 slide-layout-refiner/validate-layout-refinement.py  原位覆盖结果 → 逐页内容/asset守恒PASS或自动回滚
-obsidian-latex-refiner/normalize-latex.py          MinerU LaTeX → Obsidian可渲染数学语法（原位覆盖）
+obsidian-latex-refiner/normalize-latex.py          LaTeX → Obsidian可渲染数学语法（--analyze只读预扫，原位覆盖，--dry-run预览）
+obsidian-latex-refiner/self-check.py               内置fixtures冒烟测试（不接触vault）
 obsidian-latex-refiner/validate-latex-refinement.py 数学规范化结果 → 非数学文本/数学载荷/asset守恒PASS或自动回滚
 ```
 
