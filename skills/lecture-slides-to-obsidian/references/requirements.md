@@ -22,6 +22,10 @@ Delegate all Canvas layout, styling, static aesthetic scoring, local DOM measure
 
 Load only when the user enables multimodal slide-layout refinement. It reads the original PDF or rendered page images visually and directly overwrites the one final Markdown note; it may modify syntax and same-page asset placement only. A byte-exact rollback snapshot and report live under system tmp or the installed skill directory, outside the vault. If visual input or validation is unavailable, keep or restore the base MinerU Markdown rather than guessing.
 
+### `obsidian-latex-refiner`
+
+Load only when the user enables deterministic LaTeX normalization. A script rewrites MinerU math delimiters, environments, and CJK runs in place, then an independent validator enforces page-local conservation and restores the byte-exact outside-vault snapshot on any failure. It needs no vision model. If validation fails, keep or restore the base MinerU Markdown rather than guessing or hand-editing math.
+
 ## Required service
 
 Use only authenticated precision extraction through the official `mineru-open-api` CLI. Do not use the unauthenticated flash mode, direct HTTP, a local MinerU runtime, or a third-party wrapper.
@@ -34,7 +38,7 @@ Obsidian CLI, `mineru-open-api`, OpenSSL with `aes-256-cbc`, and macOS Keychain'
 
 Before uploading course content:
 
-1. Inspect the available skill list for exact names `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`, then explicitly invoke all three. The Canvas subagent separately loads `json-canvas` and `obsidian-cli` as required by its own contract.
+1. Inspect the available skill list for exact names `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`, then explicitly invoke all three. The Canvas subagent separately loads `json-canvas` and `obsidian-cli` as required by its own contract. When optional LaTeX normalization is enabled, also invoke `obsidian-latex-refiner`.
 2. Verify `obsidian version`, the workstation render profile, `mineru-open-api version`, OpenSSL, macOS Keychain, and `state/mineru-api-token.enc.json`.
 3. Resolve every path against the installed skill directory (the directory containing the loaded SKILL.md). Run `scripts/token-store.py status` before asking for a token: `configured` means the encrypted file and Keychain key are present, so proceed silently. Only if status reports `not configured` should you send the chat-provided token through stdin to `scripts/token-store.py set --token-stdin`. The script creates the Keychain wrapping key automatically; never place the token in command arguments.
 4. Validate the local file type and size against `requirements/services.yaml` without parsing its content locally.

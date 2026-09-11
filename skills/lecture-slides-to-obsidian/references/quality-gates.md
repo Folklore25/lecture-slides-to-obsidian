@@ -27,6 +27,7 @@ A conversion is complete only when required gates pass or the report marks an ex
 - Figures, tables, equations, and fallback pages are counted, including zeros.
 - Final visual assets follow the deterministic `page-PPP-kind-NN.ext` contract and match staging `asset-map.json`.
 - When multimodal layout refinement is enabled, it overwrites the one final Markdown path and its report passes frontmatter, immutable marker-line, page-local token order, link, and per-page asset conservation. Failure automatically restores the outside-vault snapshot. When disabled, record `DISABLED`; when rolled back, record `REJECTED`.
+- When deterministic LaTeX normalization is enabled, it overwrites the one final Markdown path and its report passes page-local conservation of visible non-math text, canonical math payloads, links, and per-page assets. Failure automatically restores the outside-vault snapshot. When both refinements run, their reports form one snapshot-to-refined chain ending at the delivered Markdown. Record `DISABLED` when off and `REJECTED` when rolled back.
 
 ## Pixel-level visual comparison — optional
 

@@ -146,5 +146,36 @@ class PreflightTests(unittest.TestCase):
             self.assertTrue(any("visual input" in item for item in result["errors"]))
 
 
+    def test_optional_latex_refinement_requires_loaded_skill(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source, vault, token = self.make_paths(Path(temp))
+            _, result = run_preflight([
+                source, "--vault-root", vault, "--course", "COURSE101",
+                "--profile", "lecture-notes", "--language", "en",
+                "--is-ocr", "false", "--token-file", token,
+                "--loaded-skill", "obsidian-markdown",
+                "--loaded-skill", "obsidian-cli",
+                "--loaded-skill", "obsidian-canvas-designer",
+                "--latex-refinement",
+            ])
+            self.assertTrue(any("obsidian-latex-refiner" in item for item in result["errors"]))
+
+    def test_optional_latex_refinement_accepts_loaded_skill(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source, vault, token = self.make_paths(Path(temp))
+            code, result = run_preflight([
+                source, "--vault-root", vault, "--course", "COURSE101",
+                "--profile", "lecture-notes", "--language", "en",
+                "--is-ocr", "false", "--token-file", token,
+                "--loaded-skill", "obsidian-markdown",
+                "--loaded-skill", "obsidian-cli",
+                "--loaded-skill", "obsidian-canvas-designer",
+                "--loaded-skill", "obsidian-latex-refiner",
+                "--latex-refinement",
+            ])
+            self.assertEqual(code, 0, result["errors"])
+            self.assertTrue(result["checks"]["latex_refinement"])
+
+
 if __name__ == "__main__":
     unittest.main()

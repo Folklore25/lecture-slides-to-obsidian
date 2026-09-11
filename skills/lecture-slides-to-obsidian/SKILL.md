@@ -3,7 +3,7 @@ name: lecture-slides-to-obsidian
 description: Compose the official MinerU Open API CLI with Obsidian skills to convert external course documents into complete Markdown, derived assets, and a delegated knowledge-recall Canvas. Use for extraction or Markdown reconstruction; when complete Markdown already exists and only Canvas is requested, invoke obsidian-canvas-designer directly instead.
 metadata:
   required-skills: "obsidian-markdown, obsidian-cli, obsidian-canvas-designer"
-  optional-skills: "slide-layout-refiner"
+  optional-skills: "slide-layout-refiner, obsidian-latex-refiner"
   required-services: "MinerU Precision API via official mineru-open-api CLI"
 ---
 
@@ -25,6 +25,7 @@ This skill is a thin composition layer. The official `mineru-open-api` CLI owns 
 - `source_pages`: trust the adapter's normalized page-group length (`max(page_idx)+1` from official CLI JSON). Other counts are diagnostics.
 - Extraction: run `scripts/mineru-cli-adapter.py`; never reproduce the CLI's HTTP, upload, or polling logic.
 - Page marker: `<!-- source-page: N -->` immediately before page N's first included block.
+- Optional LaTeX normalization is disabled by default. When enabled, run `obsidian-latex-refiner` deterministically after the base note is written so MinerU math renders in Obsidian; it overwrites the same note, keeps every `source-page` boundary, and restores an outside-vault snapshot if conservation fails.
 - Optional slide-layout refinement is disabled by default. When enabled, first write the base note to its final path, then delegate the original PDF plus that note to `slide-layout-refiner` with a model that supports visual input. It directly overwrites the same note, preserves every source-page boundary, and rolls back from an outside-vault snapshot if validation fails.
 - Canvas: delegate the complete drawing task to `obsidian-canvas-designer`; the main Agent supplies the note, semantic model, assets, paths, and overwrite boundary, then consumes only its artifacts and PASS/FAIL evidence.
 - Multi-file Canvas rule: count unique Canvas work items before delegation. For two or more files, announce the batch plan, create one Canvas subagent task per file, and never combine multiple notes in one drawing subagent. Follow [references/canvas-batch-delegation.md](references/canvas-batch-delegation.md).
@@ -45,7 +46,7 @@ Before extraction, read [requirements/skills.yaml](requirements/skills.yaml), [r
 5. Work in a uniquely named system temporary directory, falling back to a non-hidden `tmp/` directory inside the installed skill. Keep the source unchanged and keep official CLI outputs separate from the Obsidian output. Never create staging, cache, backup, report, or other dot-prefixed paths in the vault.
 6. Run `scripts/mineru-cli-adapter.py`; it injects the Keychain token through `MINERU_TOKEN`, calls official precision extraction with `md,json`, and produces a page-group compatibility file.
 7. Reconstruct pages with `scripts/reconstruct-note.py` from the adapter's normalized page groups. Never locate page boundaries with unscoped Markdown string anchors. Read [references/mineru-normalization.md](references/mineru-normalization.md).
-8. Write the base Markdown to its final path. If optional visual-layout refinement is enabled, load `slide-layout-refiner`, snapshot the note outside the vault, and delegate the source PDF plus that target path to a multimodal subagent. The subagent directly overwrites the target. Validate the overwrite; on failure the validator restores the snapshot automatically. Never cross or alter source-page markers.
+8. Write the base Markdown to its final path. If optional LaTeX normalization is enabled, load `obsidian-latex-refiner` and run `normalize-latex.py` against that note with an outside-vault snapshot and report; it rewrites math syntax in place and restores the snapshot on any conservation failure. Then, if optional visual-layout refinement is enabled, snapshot the note outside the vault, load `slide-layout-refiner`, and delegate the source PDF plus that target path to a multimodal subagent. The subagent directly overwrites the target. Validate the overwrite; on failure the validator restores the snapshot automatically. Never cross or alter source-page markers.
 9. Write the complete Markdown and assets using [references/output-contract.md](references/output-contract.md) and [references/obsidian-style.md](references/obsidian-style.md).
 10. Read each complete note and allocate one isolated staging/output tuple per Canvas. Run `scripts/plan-canvas-batch.py`. With one item, direct execution or one subagent is allowed; with two or more, create one subagent task per item. Parallelize authoring/build/aesthetic within available capacity, then serialize real Obsidian DOM work through one renderer slot. Require aesthetic, measurement, and final render-check artifacts per file.
 11. Render temporary QA with `scripts/fill-report.py`, run [references/validation.md](references/validation.md) over the Canvas subagent's returned files, extract the facts needed for the final response, delete all QA state on success, then send the concise summary. Never place QA files in the Obsidian vault.
@@ -75,6 +76,7 @@ Before extraction, read [requirements/skills.yaml](requirements/skills.yaml), [r
 - Read [references/mineru-normalization.md](references/mineru-normalization.md) before reconstructing pages or headings.
 - Read [references/asset-naming.md](references/asset-naming.md) before copying, generating, linking, or validating visual assets.
 - Load [../slide-layout-refiner/SKILL.md](../slide-layout-refiner/SKILL.md) only when optional multimodal slide-layout refinement is enabled.
+- Load [../obsidian-latex-refiner/SKILL.md](../obsidian-latex-refiner/SKILL.md) only when optional deterministic LaTeX normalization is enabled.
 - Load [../obsidian-canvas-designer/SKILL.md](../obsidian-canvas-designer/SKILL.md) and delegate all Canvas creation or visual refinement to that skill.
 - Read [references/canvas-batch-delegation.md](references/canvas-batch-delegation.md) whenever two or more Canvas work items are present.
 - Read [references/workflow.md](references/workflow.md) for the staged conversion process and failure handling.

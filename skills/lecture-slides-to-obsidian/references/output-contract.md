@@ -32,6 +32,8 @@ When a knowledge Canvas is requested, every concept source section must expose a
 
 When optional multimodal layout refinement is enabled, `source-page` marker lines remain byte-identical and content may be reformatted only inside its original page segment. Final visible text tokens and their order must equal the base MinerU Markdown; assets may move only within their original page.
 
+When optional LaTeX normalization is enabled, it rewrites only math syntax: delimiters, environments, and CJK runs inside math. Visible non-math text, links, assets, Callouts, and every `source-page` marker line stay unchanged, and the outside-vault snapshot is restored automatically on any conservation failure.
+
 Required top-level properties:
 
 ```yaml

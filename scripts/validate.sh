@@ -7,6 +7,7 @@ canvas_skill_dir="$repo_dir/skills/obsidian-canvas-designer"
 live_notes_skill_dir="$repo_dir/skills/obsidian-live-lecture-notes"
 asr_skill_dir="$repo_dir/skills/lecture-asr-enricher"
 layout_skill_dir="$repo_dir/skills/slide-layout-refiner"
+latex_skill_dir="$repo_dir/skills/obsidian-latex-refiner"
 
 main_required_files='SKILL.md
 agents/openai.yaml
@@ -89,6 +90,16 @@ requirements/tools.yaml
 scripts/validate-layout-refinement.py
 templates/multimodal-layout-task.md'
 
+latex_required_files='SKILL.md
+agents/openai.yaml
+references/latex-normalization.md
+references/rendering-contract.md
+requirements/skills.yaml
+requirements/tools.yaml
+scripts/normalize-latex.py
+scripts/validate-latex-refinement.py
+templates/latex-refinement-task.md'
+
 printf '%s\n' "$main_required_files" | while IFS= read -r relative_path; do
   if [ ! -f "$skill_dir/$relative_path" ]; then
     printf 'main skill missing: %s\n' "$relative_path" >&2
@@ -124,6 +135,13 @@ printf '%s\n' "$layout_required_files" | while IFS= read -r relative_path; do
   fi
 done
 
+printf '%s\n' "$latex_required_files" | while IFS= read -r relative_path; do
+  if [ ! -f "$latex_skill_dir/$relative_path" ]; then
+    printf 'LaTeX refiner skill missing: %s\n' "$relative_path" >&2
+    exit 1
+  fi
+done
+
 if ! grep -q '^name: lecture-slides-to-obsidian$' "$skill_dir/SKILL.md"; then
   printf 'invalid or missing skill name\n' >&2
   exit 1
@@ -151,6 +169,12 @@ fi
 if ! grep -q '^name: slide-layout-refiner$' "$layout_skill_dir/SKILL.md" || \
    ! grep -q '^description: .\+' "$layout_skill_dir/SKILL.md"; then
   printf 'invalid slide layout refiner metadata\n' >&2
+  exit 1
+fi
+
+if ! grep -q '^name: obsidian-latex-refiner$' "$latex_skill_dir/SKILL.md" || \
+   ! grep -q '^description: .\+' "$latex_skill_dir/SKILL.md"; then
+  printf 'invalid LaTeX refiner metadata\n' >&2
   exit 1
 fi
 
@@ -200,10 +224,17 @@ if grep -q 'name: "obsidian"' "$asr_skill_dir/requirements/tools.yaml"; then
   exit 1
 fi
 
-if ! grep -q 'optional-skills: "slide-layout-refiner"' "$skill_dir/SKILL.md" || \
+if ! grep -q 'optional-skills: "slide-layout-refiner, obsidian-latex-refiner"' "$skill_dir/SKILL.md" || \
    ! grep -q 'requires-visual-input: "true"' "$layout_skill_dir/SKILL.md" || \
    ! grep -q 'enabled_by_default: false' "$skill_dir/requirements/skills.yaml"; then
   printf 'optional multimodal layout refinement contract is missing\n' >&2
+  exit 1
+fi
+
+if ! grep -q 'requires-multimodal: "false"' "$latex_skill_dir/SKILL.md" || \
+   ! grep -q 'deterministic: "true"' "$latex_skill_dir/SKILL.md" || \
+   ! grep -q 'latex_refinement_report_name: "latex-refinement-report.json"' "$skill_dir/config/pipeline.example.yaml"; then
+  printf 'deterministic LaTeX refinement contract is missing\n' >&2
   exit 1
 fi
 
@@ -281,7 +312,9 @@ fi
 
 if [ ! -x "$live_notes_skill_dir/scripts/apply-note-patches.py" ] || \
    [ ! -x "$asr_skill_dir/scripts/validate-enrichment-plan.py" ] || \
-   [ ! -x "$layout_skill_dir/scripts/validate-layout-refinement.py" ]; then
+   [ ! -x "$layout_skill_dir/scripts/validate-layout-refinement.py" ] || \
+   [ ! -x "$latex_skill_dir/scripts/normalize-latex.py" ] || \
+   [ ! -x "$latex_skill_dir/scripts/validate-latex-refinement.py" ]; then
   printf 'supplementary skill scripts must be executable\n' >&2
   exit 1
 fi

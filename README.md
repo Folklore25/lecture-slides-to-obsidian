@@ -2,7 +2,7 @@
 
 一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 PDF、PPT/PPTX、政策文档和论文，通过 MinerU 官方 CLI 整理成适合 Obsidian 阅读、连接和课堂补充的派生资料。
 
-当前实现采用五技能组合：MinerU官方CLI与主技能负责课前转换，可选layout refiner整理每张slide内部版式，Canvas子技能负责视觉产物，live-notes技能负责课堂即时思考，ASR enricher负责课后教师上下文增量。
+当前实现采用六技能组合：MinerU官方CLI与主技能负责课前转换，可选layout refiner整理每张slide内部版式，可选LaTeX refiner把MinerU公式规范成Obsidian可渲染的数学语法，Canvas子技能负责视觉产物，live-notes技能负责课堂即时思考，ASR enricher负责课后教师上下文增量。
 
 ## 设计目标
 
@@ -10,6 +10,7 @@
 - 文字、层级、列表、公式和表格尽量结构化。
 - 图表、复杂排版、手写标注和低置信度页面保留视觉兜底。
 - 可选使用支持视觉输入的模型逐页对照原PDF，只整理每个`source-page`边界内部的版式；默认关闭，内容与顺序守恒验证失败时保留MinerU原稿。
+- 可选用确定性脚本把MinerU的`\[...\]`、`\begin{equation}`、`align`等LaTeX规范成Obsidian MathJax可渲染的`$...$`/`$$...$$`与`aligned`/`gathered`，并给数学环境内的中文加`\text{}`；只改数学语法，非数学文本、链接、页面资产和marker保持不变，守恒验证失败自动回滚。
 - 最终视觉资产统一命名为 `page-PPP-kind-NN.ext`，例如 `page-004-figure-01.png`。
 - 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。
 - 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和知识回忆 Canvas。report、snapshot、recall model、aesthetic/render checks 只存在于系统 tmp 或技能安装目录的 `tmp/`，验证完成即删除；不会在 vault 中创建任何点号开头的工作目录。
@@ -43,6 +44,8 @@ lecture-slides-to-obsidian/
 │   │   └── ...课堂即时想法路由与非破坏式插入
 │   ├── slide-layout-refiner/
 │   │   └── ...可选多模态逐页版式整理与内容守恒验证
+│   ├── obsidian-latex-refiner/
+│   │   └── ...可选确定性LaTeX规范化、守恒校验与自动回滚
 │   └── lecture-asr-enricher/
 │       └── ...课后ASR增量提取、证据计划与老师补充
 └── tests/
@@ -165,7 +168,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 ## 本地验证
 
-主技能提供三个流程入口，Canvas子技能提供四个入口，课堂补充技能各提供一个确定性入口，可选layout refiner提供一个守恒validator：
+主技能提供三个流程入口，Canvas子技能提供四个入口，课堂补充技能各提供一个确定性入口，可选layout refiner与LaTeX refiner各提供确定性入口：
 
 ```text
 preflight.py          分段收集/验证 vault、course、profile、language、OCR、helper skills、token state
@@ -180,6 +183,8 @@ obsidian-canvas-designer/canvas-render-qa.py      本机 DOM → 实测高度、
 obsidian-live-lecture-notes/apply-note-patches.py  学生/老师callout → 幂等插入（fs 文件系统 / obsidian-cli 双后端）
 lecture-asr-enricher/validate-enrichment-plan.py   ASR增量计划 → 可应用teacher patch
 slide-layout-refiner/validate-layout-refinement.py  原位覆盖结果 → 逐页内容/asset守恒PASS或自动回滚
+obsidian-latex-refiner/normalize-latex.py          MinerU LaTeX → Obsidian可渲染数学语法（原位覆盖）
+obsidian-latex-refiner/validate-latex-refinement.py 数学规范化结果 → 非数学文本/数学载荷/asset守恒PASS或自动回滚
 ```
 
 Canvas 必须执行本机两遍渲染：

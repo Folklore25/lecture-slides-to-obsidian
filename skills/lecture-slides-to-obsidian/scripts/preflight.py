@@ -56,6 +56,7 @@ def main() -> int:
     parser.add_argument("--loaded-skill", action="append", default=[])
     parser.add_argument("--visual-layout-refinement", action="store_true")
     parser.add_argument("--layout-visual-input", choices=("true", "false"))
+    parser.add_argument("--latex-refinement", action="store_true")
     parser.add_argument("--fixture-mode", action="store_true")
     parser.add_argument(
         "--token-file",
@@ -117,7 +118,7 @@ def main() -> int:
     if missing_skills:
         errors.append("helper skills not loaded through the Skill tool: " + ", ".join(missing_skills))
     checks["loaded_helper_skills"] = sorted(loaded & REQUIRED_SKILLS)
-    checks["loaded_optional_skills"] = sorted(loaded & {"slide-layout-refiner"})
+    checks["loaded_optional_skills"] = sorted(loaded & {"slide-layout-refiner", "obsidian-latex-refiner"})
     checks["visual_layout_refinement"] = args.visual_layout_refinement
     if args.visual_layout_refinement:
         if "slide-layout-refiner" not in loaded:
@@ -131,6 +132,10 @@ def main() -> int:
             errors.append("visual layout refinement requires a model with visual input")
         else:
             checks["layout_visual_input"] = True
+
+    checks["latex_refinement"] = args.latex_refinement
+    if args.latex_refinement and "obsidian-latex-refiner" not in loaded:
+        errors.append("optional obsidian-latex-refiner skill was enabled but not loaded")
 
     obsidian_cli = shutil.which("obsidian")
     if not args.fixture_mode and obsidian_cli is None:

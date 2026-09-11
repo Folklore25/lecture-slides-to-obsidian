@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian LaTeX Refiner"
+  short_description: "Normalize MinerU LaTeX so equations render in Obsidian"
+  default_prompt: "Use $obsidian-latex-refiner to normalize this note's MinerU LaTeX so every equation renders correctly in Obsidian."

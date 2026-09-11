@@ -32,6 +32,7 @@ staging:
   create_dot_prefixed_paths_in_vault: false
   report_name: "conversion-report.md"
   layout_refinement_report_name: "layout-refinement-report.json"
+  latex_refinement_report_name: "latex-refinement-report.json"
   recall_model_name: "recall-model.json"
   canvas_aesthetic_check_name: "canvas-aesthetic-check.json"
   canvas_render_metrics_name: "canvas-render-metrics.json"
@@ -82,6 +83,15 @@ conversion:
       - "original-pdf"
       - "rendered-page-images"
     source_format: "pdf"
+    scope: "inside-source-page-markers-only"
+    write_mode: "overwrite-final-markdown"
+    snapshot_location: "staging-outside-vault"
+    on_failure: "restore-snapshot-without-confirmation"
+  latex_refinement:
+    enabled: false
+    skill: "obsidian-latex-refiner"
+    deterministic: true
+    requires_multimodal: false
     scope: "inside-source-page-markers-only"
     write_mode: "overwrite-final-markdown"
     snapshot_location: "staging-outside-vault"

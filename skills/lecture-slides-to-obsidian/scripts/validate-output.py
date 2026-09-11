@@ -79,6 +79,13 @@ def local_target(raw: str) -> str | None:
     return target
 
 
+def to_int(value: str, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def validate_markdown(path: Path, folder: Path, vault_root: Path | None) -> list[str]:
     errors: list[str] = []
     text = path.read_text(encoding="utf-8")
@@ -109,7 +116,7 @@ def validate_markdown(path: Path, folder: Path, vault_root: Path | None) -> list
     if h1_count != 1:
         errors.append(f"expected exactly one H1, found {h1_count}")
 
-    markers = [int(value) for value in MARKER.findall(body)]
+    markers = [to_int(value) for value in MARKER.findall(body)]
     if not markers:
         errors.append("no source-page markers found")
     if markers != sorted(markers):
@@ -178,7 +185,7 @@ def validate_canvas(path: Path, folder: Path, vault_root: Path | None) -> list[s
         for line in note_text.splitlines():
             marker = re.fullmatch(r"<!--\s*source-page:\s*(\d+)\s*-->", line.strip())
             if marker:
-                current_page = int(marker.group(1))
+                current_page = to_int(marker.group(1))
                 continue
             heading = re.fullmatch(r"##\s+(.+?)\s*", line)
             if heading and current_page is not None:
@@ -227,7 +234,7 @@ def validate_canvas(path: Path, folder: Path, vault_root: Path | None) -> list[s
                         errors.append(f"concept node {node_id} is missing a compact source-heading/page link")
                     elif source_link.group(1) not in note_h2:
                         errors.append(f"concept node {node_id} links an unknown source heading: {source_link.group(1)}")
-                    source_page = int(source_link.group(2)) if source_link else None
+                    source_page = to_int(source_link.group(2)) if source_link else None
                     if source_page is not None and not 1 <= source_page <= note_page_count:
                         errors.append(f"concept node {node_id} source page is outside 1..{note_page_count}")
                     elif source_link and source_link.group(1) in note_h2_pages and source_page not in note_h2_pages[source_link.group(1)]:
@@ -378,9 +385,9 @@ def validate_assets(assets: Path, markdown_path: Path) -> list[str]:
         if not match:
             errors.append(f"visual asset filename violates page-PPP-kind-NN.ext: {path.name}")
             continue
-        page = int(match.group(1))
+        page = to_int(match.group(1))
         kind = match.group(2)
-        index = int(match.group(3))
+        index = to_int(match.group(3))
         if page < 1 or page > page_count:
             errors.append(f"asset page outside 1..{page_count}: {path.name}")
         sequences.setdefault((page, kind), []).append(index)
@@ -394,6 +401,23 @@ def validate_assets(assets: Path, markdown_path: Path) -> list[str]:
     return errors
 
 
+def validate_refinement_chain(reports: list[dict], delivered_sha256: str) -> list[str]:
+    errors: list[str] = []
+    if not reports:
+        return errors
+    terminals = [report for report in reports if report.get("refined_sha256") == delivered_sha256]
+    if len(terminals) != 1:
+        errors.append("refinement report does not match the delivered Markdown")
+        return errors
+    terminal = terminals[0]
+    for report in reports:
+        if report is terminal:
+            continue
+        if report.get("refined_sha256") != terminal.get("snapshot_sha256"):
+            errors.append("refinement reports do not form a single snapshot-to-refined chain")
+    return errors
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("document_folder", type=Path)
@@ -402,6 +426,7 @@ def main() -> int:
     parser.add_argument("--report", required=True, type=Path, help="Temporary QA report outside the vault")
     parser.add_argument("--recall-model", type=Path, help="Temporary Agent-authored recall model outside the vault")
     parser.add_argument("--layout-refinement-report", type=Path, help="Optional validated multimodal layout report")
+    parser.add_argument("--latex-refinement-report", type=Path, help="Optional validated LaTeX normalization report")
     parser.add_argument("--aesthetic-check", type=Path, help="Static Canvas aesthetic check outside the vault")
     parser.add_argument("--render-metrics", type=Path, help="First-pass Obsidian DOM measurements outside the vault")
     parser.add_argument("--render-check", type=Path, help="Final Obsidian DOM readability check outside the vault")
@@ -420,6 +445,8 @@ def main() -> int:
     recall_model = recall_model_input.resolve() if recall_model_input else None
     layout_report_input = args.layout_refinement_report
     layout_report = layout_report_input.resolve() if layout_report_input else None
+    latex_report_input = args.latex_refinement_report
+    latex_report = latex_report_input.resolve() if latex_report_input else None
     aesthetic_check_input = args.aesthetic_check
     aesthetic_check = aesthetic_check_input.resolve() if aesthetic_check_input else None
     render_metrics_input = args.render_metrics
@@ -430,6 +457,7 @@ def main() -> int:
     render_check_data: dict | None = None
     aesthetic_check_data: dict | None = None
     layout_report_data: dict | None = None
+    latex_report_data: dict | None = None
     errors: list[str] = []
 
     if vault_root is None and not args.fixture_mode:
@@ -456,6 +484,10 @@ def main() -> int:
         errors.append("temporary layout refinement report must not be a symlink")
     if layout_report is not None and layout_report.name != "layout-refinement-report.json":
         errors.append("temporary layout refinement report filename must be layout-refinement-report.json")
+    if latex_report_input is not None and latex_report_input.is_symlink():
+        errors.append("temporary LaTeX refinement report must not be a symlink")
+    if latex_report is not None and latex_report.name != "latex-refinement-report.json":
+        errors.append("temporary LaTeX refinement report filename must be latex-refinement-report.json")
     if aesthetic_check_input is not None and aesthetic_check_input.is_symlink():
         errors.append("temporary aesthetic check must not be a symlink")
     if aesthetic_check is not None and aesthetic_check.name != "canvas-aesthetic-check.json":
@@ -479,6 +511,8 @@ def main() -> int:
         errors.append("temporary recall model must be outside the document folder and vault")
     if layout_report is not None and (inside(layout_report, folder) or (vault_root and inside(layout_report, vault_root))):
         errors.append("temporary layout refinement report must be outside the document folder and vault")
+    if latex_report is not None and (inside(latex_report, folder) or (vault_root and inside(latex_report, vault_root))):
+        errors.append("temporary LaTeX refinement report must be outside the document folder and vault")
     if aesthetic_check is not None and (inside(aesthetic_check, folder) or (vault_root and inside(aesthetic_check, vault_root))):
         errors.append("temporary aesthetic check must be outside the document folder and vault")
     for resolved, label in ((render_metrics, "render metrics"), (render_check, "render check")):
@@ -507,6 +541,19 @@ def main() -> int:
                 layout_report_data = data
             except (json.JSONDecodeError, UnicodeDecodeError) as exc:
                 errors.append(f"invalid temporary layout refinement report JSON: {exc}")
+    if latex_report is not None:
+        if not latex_report.is_file():
+            errors.append("temporary LaTeX refinement report is missing")
+        else:
+            try:
+                data = json.loads(latex_report.read_text(encoding="utf-8"))
+                if not isinstance(data, dict) or data.get("schema_version") != 1:
+                    errors.append("temporary LaTeX refinement report must use schema_version 1")
+                elif not data.get("valid"):
+                    errors.append("optional LaTeX refinement did not pass")
+                latex_report_data = data
+            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                errors.append(f"invalid temporary LaTeX refinement report JSON: {exc}")
     if aesthetic_check is not None:
         if not aesthetic_check.is_file():
             errors.append("temporary aesthetic check is missing")
@@ -574,8 +621,8 @@ def main() -> int:
 
         if len(markdown_files) == 1:
             errors += validate_markdown(markdown_files[0], folder, vault_root)
-            if layout_report_data is not None and layout_report_data.get("refined_sha256") != sha256_file(markdown_files[0]):
-                errors.append("layout refinement report does not match the delivered Markdown")
+            reports = [report for report in (layout_report_data, latex_report_data) if report is not None]
+            errors += validate_refinement_chain(reports, sha256_file(markdown_files[0]))
         if len(canvas_files) == 1:
             errors += validate_canvas(canvas_files[0], folder, vault_root)
             canvas_hash = sha256_file(canvas_files[0])
@@ -593,6 +640,7 @@ def main() -> int:
     report_deleted = False
     recall_model_deleted = False
     layout_report_deleted = False
+    latex_report_deleted = False
     aesthetic_check_deleted = False
     render_metrics_deleted = False
     render_check_deleted = False
@@ -605,6 +653,9 @@ def main() -> int:
         if layout_report is not None:
             layout_report.unlink()
             layout_report_deleted = True
+        if latex_report is not None:
+            latex_report.unlink()
+            latex_report_deleted = True
         if aesthetic_check is not None:
             aesthetic_check.unlink()
             aesthetic_check_deleted = True
@@ -622,6 +673,7 @@ def main() -> int:
         "temporary_recall_model": str(recall_model) if recall_model else None,
         "recall_model_deleted": recall_model_deleted,
         "layout_refinement_report_deleted": layout_report_deleted,
+        "latex_refinement_report_deleted": latex_report_deleted,
         "aesthetic_check_deleted": aesthetic_check_deleted,
         "render_metrics_deleted": render_metrics_deleted,
         "render_check_deleted": render_check_deleted,

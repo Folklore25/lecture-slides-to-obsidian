@@ -22,6 +22,10 @@ Create a uniquely named run directory under the system temporary directory; if u
 
 Prefer page-grouped `content_list_v2.json`. Otherwise group legacy blocks by `page_idx`. Apply [mineru-normalization.md](mineru-normalization.md): no global repeated anchor search, no blanket heading regex, explicit auxiliary-block inventory, and precise marker semantics.
 
+### Optional LaTeX normalization
+
+Disabled by default. After the base Markdown reaches its final vault path, load `obsidian-latex-refiner` and run `scripts/normalize-latex.py --target <note> --vault-root <root> --snapshot <run-dir>/before.md --report <run-dir>/latex-refinement-report.json`. The script rewrites only math syntax inside each immutable `<!-- source-page: N -->` segment, runs conservation validation, and restores the snapshot automatically on any failure. It needs no vision model. Delete the snapshot and report after final validation.
+
 ### Optional multimodal layout refinement
 
 Disabled by default. First write the base Markdown to its final vault path. When enabled, make a byte-exact snapshot in the outside-vault run directory and delegate the original PDF plus the final Markdown path to `slide-layout-refiner` using a model that supports visual input. The model must inspect the PDF directly or inspect rendered page images. The refiner directly overwrites that file and may change structure only inside each immutable `<!-- source-page: N -->` segment. Pre-existing conversion/fallback Callouts are preserved and do not trigger a user question; only `lecture-layer:` or explicitly known later additions stop refinement. Deterministic validation compares the overwrite with the snapshot. On any failure it restores the snapshot automatically; no second Markdown version is retained.
