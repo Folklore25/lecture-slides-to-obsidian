@@ -43,6 +43,8 @@ class PreflightTests(unittest.TestCase):
                 "--loaded-skill", "obsidian-markdown",
                 "--loaded-skill", "obsidian-canvas-designer",
                 "--loaded-skill", "obsidian-cli",
+                "--loaded-skill", "slide-layout-refiner",
+                "--layout-visual-input", "true",
             ])
             self.assertEqual(code, 0)
             self.assertTrue(result["ok"])
@@ -156,6 +158,7 @@ class PreflightTests(unittest.TestCase):
                 "--loaded-skill", "obsidian-markdown",
                 "--loaded-skill", "obsidian-cli",
                 "--loaded-skill", "obsidian-canvas-designer",
+                "--no-visual-layout-refinement",
                 "--latex-refinement",
             ])
             self.assertTrue(any("obsidian-latex-refiner" in item for item in result["errors"]))
@@ -171,10 +174,61 @@ class PreflightTests(unittest.TestCase):
                 "--loaded-skill", "obsidian-cli",
                 "--loaded-skill", "obsidian-canvas-designer",
                 "--loaded-skill", "obsidian-latex-refiner",
+                "--no-visual-layout-refinement",
                 "--latex-refinement",
             ])
             self.assertEqual(code, 0, result["errors"])
             self.assertTrue(result["checks"]["latex_refinement"])
+
+
+    def test_layout_refinement_is_enabled_by_default(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source, vault, token = self.make_paths(Path(temp))
+            _, result = run_preflight([
+                source, "--vault-root", vault, "--course", "COURSE101",
+                "--profile", "lecture-notes", "--language", "en",
+                "--is-ocr", "false", "--token-file", token,
+                "--loaded-skill", "obsidian-markdown",
+                "--loaded-skill", "obsidian-cli",
+                "--loaded-skill", "obsidian-canvas-designer",
+            ])
+            self.assertTrue(result["checks"]["visual_layout_refinement"])
+            self.assertEqual(result["checks"]["visual_layout_refinement_source"], "default")
+            self.assertTrue(any("slide-layout-refiner is enabled by default" in item for item in result["errors"]))
+            self.assertTrue(any(item["id"] == "layout_visual_input" for item in result["questions"]))
+
+    def test_no_visual_layout_refinement_disables_it(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source, vault, token = self.make_paths(Path(temp))
+            code, result = run_preflight([
+                source, "--vault-root", vault, "--course", "COURSE101",
+                "--profile", "lecture-notes", "--language", "en",
+                "--is-ocr", "false", "--token-file", token,
+                "--loaded-skill", "obsidian-markdown",
+                "--loaded-skill", "obsidian-cli",
+                "--loaded-skill", "obsidian-canvas-designer",
+                "--no-visual-layout-refinement",
+            ])
+            self.assertEqual(code, 0, result["errors"])
+            self.assertFalse(result["checks"]["visual_layout_refinement"])
+            self.assertEqual(result["checks"]["visual_layout_refinement_source"], "flag")
+
+    def test_default_layout_refinement_skips_without_visual_input(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source, vault, token = self.make_paths(Path(temp))
+            code, result = run_preflight([
+                source, "--vault-root", vault, "--course", "COURSE101",
+                "--profile", "lecture-notes", "--language", "en",
+                "--is-ocr", "false", "--token-file", token,
+                "--loaded-skill", "obsidian-markdown",
+                "--loaded-skill", "obsidian-cli",
+                "--loaded-skill", "obsidian-canvas-designer",
+                "--loaded-skill", "slide-layout-refiner",
+                "--layout-visual-input", "false",
+            ])
+            self.assertEqual(code, 0, result["errors"])
+            self.assertFalse(result["checks"]["visual_layout_refinement"])
+            self.assertEqual(result["checks"]["visual_layout_refinement_skip"], "visual-input-unavailable")
 
 
 if __name__ == "__main__":

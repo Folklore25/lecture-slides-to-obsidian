@@ -9,7 +9,7 @@ metadata:
 
 # Slide Layout Refiner
 
-Restore readable slide structure after MinerU extraction without changing what the source says. The priority is complete information preservation and reading clarity, not pixel-perfect reconstruction. This skill is optional and disabled by default.
+Restore readable slide structure after MinerU extraction without changing what the source says. The priority is complete information preservation and reading clarity, not pixel-perfect reconstruction. This skill needs a model with visual input and is enabled by default in the lecture conversion workflow; the orchestrator disables it with `--no-visual-layout-refinement` or skips it when the model cannot view the PDF.
 
 Each `<!-- source-page: N -->` marker is an immutable slide boundary. Optimize only the content between two adjacent markers; never merge, split, move, regenerate, or restyle the markers themselves.
 
@@ -41,7 +41,7 @@ When the snapshot already contains Callouts, continue automatically and preserve
 - identify the true slide title from the PDF and adjust heading levels;
 - demote MinerU's fragmented pseudo-H2 blocks to H3, paragraph, list, or table structure;
 - convert decorative bullet glyphs such as `▶`, `►`, `▪`, or `•` into Markdown lists;
-- convert MinerU's line-leading escaped `\-` into real `-` list items; for genuine nested hierarchy, indent each child level with exactly four ASCII spaces before `- ` and never use a Tab character;
+- convert MinerU's line-leading escaped `\-` into real `-` list items; for genuine nested hierarchy, indent each child level with exactly four ASCII spaces before `-` and never use a Tab character;
 - join visually continuous lines into paragraphs without changing token order;
 - represent faithful hierarchy/grouping with native headings, nested/ordered lists, tables, blockquotes, emphasis, highlights, embeds, and whitespace;
 - move or resize an existing asset embed within its original source page so it sits beside the content it explains.

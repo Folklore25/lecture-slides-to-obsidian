@@ -54,7 +54,8 @@ def main() -> int:
     parser.add_argument("--language")
     parser.add_argument("--is-ocr", choices=("true", "false"))
     parser.add_argument("--loaded-skill", action="append", default=[])
-    parser.add_argument("--visual-layout-refinement", action="store_true")
+    parser.add_argument("--visual-layout-refinement", dest="layout_refinement_on", action="store_true")
+    parser.add_argument("--no-visual-layout-refinement", dest="layout_refinement_off", action="store_true")
     parser.add_argument("--layout-visual-input", choices=("true", "false"))
     parser.add_argument("--latex-refinement", action="store_true")
     parser.add_argument("--fixture-mode", action="store_true")
@@ -119,17 +120,27 @@ def main() -> int:
         errors.append("helper skills not loaded through the Skill tool: " + ", ".join(missing_skills))
     checks["loaded_helper_skills"] = sorted(loaded & REQUIRED_SKILLS)
     checks["loaded_optional_skills"] = sorted(loaded & {"slide-layout-refiner", "obsidian-latex-refiner"})
-    checks["visual_layout_refinement"] = args.visual_layout_refinement
-    if args.visual_layout_refinement:
+    layout_explicit_on = args.layout_refinement_on
+    layout_disabled = args.layout_refinement_off
+    if layout_explicit_on and layout_disabled:
+        errors.append("--visual-layout-refinement and --no-visual-layout-refinement are mutually exclusive")
+    layout_refinement_enabled = not layout_disabled
+    checks["visual_layout_refinement"] = layout_refinement_enabled
+    checks["visual_layout_refinement_source"] = "flag" if (layout_explicit_on or layout_disabled) else "default"
+    if layout_refinement_enabled:
         if "slide-layout-refiner" not in loaded:
-            errors.append("optional slide-layout-refiner skill was enabled but not loaded")
+            errors.append("slide-layout-refiner is enabled by default; load it or pass --no-visual-layout-refinement")
         if args.layout_visual_input is None:
             questions.append({
                 "id": "layout_visual_input",
                 "prompt": "当前所选模型是否支持直接查看原PDF或逐页渲染图？请明确回答 true 或 false。",
             })
         elif args.layout_visual_input == "false":
-            errors.append("visual layout refinement requires a model with visual input")
+            if layout_explicit_on:
+                errors.append("visual layout refinement requires a model with visual input")
+            else:
+                checks["visual_layout_refinement"] = False
+                checks["visual_layout_refinement_skip"] = "visual-input-unavailable"
         else:
             checks["layout_visual_input"] = True
 

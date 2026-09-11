@@ -75,7 +75,7 @@ conversion:
   equation_policy: "preserve-and-flag"
   table_policy: "markdown-or-image"
   visual_layout_refinement:
-    enabled: false
+    enabled: true
     skill: "slide-layout-refiner"
     requires_multimodal: true
     requires_visual_input: true

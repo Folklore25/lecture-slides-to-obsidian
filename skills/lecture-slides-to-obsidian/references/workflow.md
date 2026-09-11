@@ -28,7 +28,7 @@ Disabled by default. After the base Markdown reaches its final vault path, load 
 
 ### Optional multimodal layout refinement
 
-Disabled by default. First write the base Markdown to its final vault path. When enabled, make a byte-exact snapshot in the outside-vault run directory and delegate the original PDF plus the final Markdown path to `slide-layout-refiner` using a model that supports visual input. The model must inspect the PDF directly or inspect rendered page images. The refiner directly overwrites that file and may change structure only inside each immutable `<!-- source-page: N -->` segment. Pre-existing conversion/fallback Callouts are preserved and do not trigger a user question; only `lecture-layer:` or explicitly known later additions stop refinement. Deterministic validation compares the overwrite with the snapshot. On any failure it restores the snapshot automatically; no second Markdown version is retained.
+Enabled by default. First write the base Markdown to its final vault path. Then make a byte-exact snapshot in the outside-vault run directory and delegate the original PDF plus the final Markdown path to `slide-layout-refiner` using a model that supports visual input. The model must inspect the PDF directly or inspect rendered page images. The refiner directly overwrites that file and may change structure only inside each immutable `<!-- source-page: N -->` segment. Pre-existing conversion/fallback Callouts are preserved and do not trigger a user question; only `lecture-layer:` or explicitly known later additions stop refinement. Deterministic validation compares the overwrite with the snapshot. On any failure it restores the snapshot automatically; no second Markdown version is retained.
 
 ## 5. Derived artifact generation
 

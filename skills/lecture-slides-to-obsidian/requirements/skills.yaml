@@ -24,7 +24,7 @@ optional_skills:
   - name: "slide-layout-refiner"
     purpose: "Use a multimodal model to restore page-local slide hierarchy and asset placement without changing content or source-page separation."
     source: "../slide-layout-refiner"
-    enabled_by_default: false
+    enabled_by_default: true
     requires_visual_input: true
   - name: "obsidian-latex-refiner"
     purpose: "Normalize LaTeX math in an Obsidian note so it renders in MathJax, with an agent-driven scan, page-local conservation, and automatic rollback."

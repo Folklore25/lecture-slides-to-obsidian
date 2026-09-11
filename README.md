@@ -2,14 +2,14 @@
 
 一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 PDF、PPT/PPTX、政策文档和论文，通过 MinerU 官方 CLI 整理成适合 Obsidian 阅读、连接和课堂补充的派生资料。
 
-当前实现采用六技能组合：MinerU官方CLI与主技能负责课前转换，可选layout refiner整理每张slide内部版式，可选LaTeX refiner把MinerU公式规范成Obsidian可渲染的数学语法，Canvas子技能负责视觉产物，live-notes技能负责课堂即时思考，ASR enricher负责课后教师上下文增量。
+当前实现采用六技能组合：MinerU官方CLI与主技能负责课前转换，layout refiner（默认开启）整理每张slide内部版式，可选LaTeX refiner把MinerU公式规范成Obsidian可渲染的数学语法，Canvas子技能负责视觉产物，live-notes技能负责课堂即时思考，ASR enricher负责课后教师上下文增量。
 
 ## 设计目标
 
 - 追求 semantic fidelity，而不是宣称 PDF → Markdown “无损”。
 - 文字、层级、列表、公式和表格尽量结构化。
 - 图表、复杂排版、手写标注和低置信度页面保留视觉兜底。
-- 可选使用支持视觉输入的模型逐页对照原PDF，只整理每个`source-page`边界内部的版式；默认关闭，内容与顺序守恒验证失败时保留MinerU原稿。
+- 默认使用支持视觉输入的模型逐页对照原PDF，只整理每个`source-page`边界内部的版式；可用`--no-visual-layout-refinement`关闭，模型不支持读图时自动跳过，内容与顺序守恒验证失败时保留MinerU原稿。
 - 可选用确定性脚本把MinerU的`\[...\]`、`\begin{equation}`、`align`等LaTeX规范成Obsidian MathJax可渲染的`$...$`/`$$...$$`与`aligned`/`gathered`，并给数学环境内的中文加`\text{}`；只改数学语法，非数学文本、链接、页面资产和marker保持不变，守恒验证失败自动回滚。
 - 最终视觉资产统一命名为 `page-PPP-kind-NN.ext`，例如 `page-004-figure-01.png`。
 - 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。

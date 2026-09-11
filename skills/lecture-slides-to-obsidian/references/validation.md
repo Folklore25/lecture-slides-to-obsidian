@@ -6,7 +6,7 @@ Run this before declaring completion:
 scripts/validate-output.py <document-folder> --vault-root <vault-root> --report <staging>/conversion-report.md --recall-model <staging>/recall-model.json --latex-refinement-report <staging>/latex-refinement-report.json --aesthetic-check <staging>/canvas-aesthetic-check.json --render-metrics <staging>/canvas-render-metrics.json --render-check <staging>/canvas-render-check.json --delete-qa-on-success
 ```
 
-When optional multimodal layout refinement is enabled and its in-place overwrite passes, also pass `--layout-refinement-report <tmp>/layout-refinement-report.json`. Omit it when the feature is disabled or the overwrite was rolled back. The report and its pre-edit snapshot must be outside the vault.
+When slide-layout refinement runs and its in-place overwrite passes, also pass `--layout-refinement-report <tmp>/layout-refinement-report.json`. Omit it when the feature is disabled, skipped for lack of visual input, or rolled back. The report and its pre-edit snapshot must be outside the vault.
 
 When optional deterministic LaTeX normalization is enabled and its in-place overwrite passes, also pass `--latex-refinement-report <tmp>/latex-refinement-report.json`. Omit it when the feature is disabled or the overwrite was rolled back. Its snapshot and report must be outside the vault. When both refinement reports are supplied, they must form a single snapshot-to-refined chain whose final refined hash equals the delivered Markdown.
 

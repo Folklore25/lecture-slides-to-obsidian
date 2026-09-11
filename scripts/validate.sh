@@ -102,249 +102,250 @@ scripts/validate-latex-refinement.py
 templates/latex-refinement-task.md'
 
 printf '%s\n' "$main_required_files" | while IFS= read -r relative_path; do
-  if [ ! -f "$skill_dir/$relative_path" ]; then
-    printf 'main skill missing: %s\n' "$relative_path" >&2
-    exit 1
-  fi
+ if [ ! -f "$skill_dir/$relative_path" ]; then
+  printf 'main skill missing: %s\n' "$relative_path" >&2
+  exit 1
+ fi
 done
 
 printf '%s\n' "$canvas_required_files" | while IFS= read -r relative_path; do
-  if [ ! -f "$canvas_skill_dir/$relative_path" ]; then
-    printf 'Canvas skill missing: %s\n' "$relative_path" >&2
-    exit 1
-  fi
+ if [ ! -f "$canvas_skill_dir/$relative_path" ]; then
+  printf 'Canvas skill missing: %s\n' "$relative_path" >&2
+  exit 1
+ fi
 done
 
 printf '%s\n' "$live_notes_required_files" | while IFS= read -r relative_path; do
-  if [ ! -f "$live_notes_skill_dir/$relative_path" ]; then
-    printf 'live-notes skill missing: %s\n' "$relative_path" >&2
-    exit 1
-  fi
+ if [ ! -f "$live_notes_skill_dir/$relative_path" ]; then
+  printf 'live-notes skill missing: %s\n' "$relative_path" >&2
+  exit 1
+ fi
 done
 
 printf '%s\n' "$asr_required_files" | while IFS= read -r relative_path; do
-  if [ ! -f "$asr_skill_dir/$relative_path" ]; then
-    printf 'ASR enricher skill missing: %s\n' "$relative_path" >&2
-    exit 1
-  fi
+ if [ ! -f "$asr_skill_dir/$relative_path" ]; then
+  printf 'ASR enricher skill missing: %s\n' "$relative_path" >&2
+  exit 1
+ fi
 done
 
 printf '%s\n' "$layout_required_files" | while IFS= read -r relative_path; do
-  if [ ! -f "$layout_skill_dir/$relative_path" ]; then
-    printf 'layout refiner skill missing: %s\n' "$relative_path" >&2
-    exit 1
-  fi
+ if [ ! -f "$layout_skill_dir/$relative_path" ]; then
+  printf 'layout refiner skill missing: %s\n' "$relative_path" >&2
+  exit 1
+ fi
 done
 
 printf '%s\n' "$latex_required_files" | while IFS= read -r relative_path; do
-  if [ ! -f "$latex_skill_dir/$relative_path" ]; then
-    printf 'LaTeX refiner skill missing: %s\n' "$relative_path" >&2
-    exit 1
-  fi
+ if [ ! -f "$latex_skill_dir/$relative_path" ]; then
+  printf 'LaTeX refiner skill missing: %s\n' "$relative_path" >&2
+  exit 1
+ fi
 done
 
 if ! grep -q '^name: lecture-slides-to-obsidian$' "$skill_dir/SKILL.md"; then
-  printf 'invalid or missing skill name\n' >&2
-  exit 1
+ printf 'invalid or missing skill name\n' >&2
+ exit 1
 fi
 
 if ! grep -q '^description: .\+' "$skill_dir/SKILL.md"; then
-  printf 'missing skill description\n' >&2
-  exit 1
+ printf 'missing skill description\n' >&2
+ exit 1
 fi
 
-if ! grep -q '^name: obsidian-canvas-designer$' "$canvas_skill_dir/SKILL.md" || \
-   ! grep -q '^description: .\+' "$canvas_skill_dir/SKILL.md"; then
-  printf 'invalid Canvas subskill metadata\n' >&2
-  exit 1
+if ! grep -q '^name: obsidian-canvas-designer$' "$canvas_skill_dir/SKILL.md" ||
+ ! grep -q '^description: .\+' "$canvas_skill_dir/SKILL.md"; then
+ printf 'invalid Canvas subskill metadata\n' >&2
+ exit 1
 fi
 
-if ! grep -q '^name: obsidian-live-lecture-notes$' "$live_notes_skill_dir/SKILL.md" || \
-   ! grep -q '^description: .\+' "$live_notes_skill_dir/SKILL.md" || \
-   ! grep -q '^name: lecture-asr-enricher$' "$asr_skill_dir/SKILL.md" || \
-   ! grep -q '^description: .\+' "$asr_skill_dir/SKILL.md"; then
-  printf 'invalid supplementary skill metadata\n' >&2
-  exit 1
+if ! grep -q '^name: obsidian-live-lecture-notes$' "$live_notes_skill_dir/SKILL.md" ||
+ ! grep -q '^description: .\+' "$live_notes_skill_dir/SKILL.md" ||
+ ! grep -q '^name: lecture-asr-enricher$' "$asr_skill_dir/SKILL.md" ||
+ ! grep -q '^description: .\+' "$asr_skill_dir/SKILL.md"; then
+ printf 'invalid supplementary skill metadata\n' >&2
+ exit 1
 fi
 
-if ! grep -q '^name: slide-layout-refiner$' "$layout_skill_dir/SKILL.md" || \
-   ! grep -q '^description: .\+' "$layout_skill_dir/SKILL.md"; then
-  printf 'invalid slide layout refiner metadata\n' >&2
-  exit 1
+if ! grep -q '^name: slide-layout-refiner$' "$layout_skill_dir/SKILL.md" ||
+ ! grep -q '^description: .\+' "$layout_skill_dir/SKILL.md"; then
+ printf 'invalid slide layout refiner metadata\n' >&2
+ exit 1
 fi
 
-if ! grep -q '^name: obsidian-latex-refiner$' "$latex_skill_dir/SKILL.md" || \
-   ! grep -q '^description: .\+' "$latex_skill_dir/SKILL.md"; then
-  printf 'invalid LaTeX refiner metadata\n' >&2
-  exit 1
+if ! grep -q '^name: obsidian-latex-refiner$' "$latex_skill_dir/SKILL.md" ||
+ ! grep -q '^description: .\+' "$latex_skill_dir/SKILL.md"; then
+ printf 'invalid LaTeX refiner metadata\n' >&2
+ exit 1
 fi
 
 if grep -R -n -E '\[TODO|TODO:|FIXME' "$repo_dir" \
-  --exclude-dir=.git \
-  --exclude-dir=__pycache__ \
-  --exclude-dir=.pi \
-  --exclude=validate.sh >/dev/null 2>&1; then
-  printf 'unfinished placeholder found\n' >&2
-  exit 1
+ --exclude-dir=.git \
+ --exclude-dir=__pycache__ \
+ --exclude-dir=.pi \
+ --exclude=validate.sh >/dev/null 2>&1; then
+ printf 'unfinished placeholder found\n' >&2
+ exit 1
 fi
 
 if find "$repo_dir/tests/fixtures/private" -type f ! -name README.md -print 2>/dev/null | grep -q .; then
-  printf 'private fixture found; keep it outside version control\n' >&2
-  exit 1
+ printf 'private fixture found; keep it outside version control\n' >&2
+ exit 1
 fi
 
 if grep -R -n '/Users/\|/home/' "$skill_dir/config" "$canvas_skill_dir/config" "$repo_dir/tests/cases" >/dev/null 2>&1; then
-  printf 'machine-specific path found in committed examples\n' >&2
-  exit 1
+ printf 'machine-specific path found in committed examples\n' >&2
+ exit 1
 fi
 
 if grep -R -n -E 'Claude Code|Codex|Cursor|Coding Agent|(^|[^[:alnum:]])Pi([^[:alnum:]]|$)' \
-  --exclude=validate.sh --exclude-dir=.git --exclude-dir=__pycache__ --exclude-dir=.pi "$repo_dir" >/dev/null 2>&1; then
-  printf 'runtime-specific Agent declaration found; keep the skill generic and recommend cc-switch\n' >&2
-  exit 1
+ --exclude=validate.sh --exclude-dir=.git --exclude-dir=__pycache__ --exclude-dir=.pi "$repo_dir" >/dev/null 2>&1; then
+ printf 'runtime-specific Agent declaration found; keep the skill generic and recommend cc-switch\n' >&2
+ exit 1
 fi
 
 if grep -R -n '~/.config/lecture-slides-to-obsidian\|XDG_CONFIG_HOME' "$skill_dir" \
-  --exclude=README.md --exclude-dir=__pycache__ >/dev/null 2>&1; then
-  printf 'external registry path found; runtime state must stay inside the skill\n' >&2
-  exit 1
+ --exclude=README.md --exclude-dir=__pycache__ >/dev/null 2>&1; then
+ printf 'external registry path found; runtime state must stay inside the skill\n' >&2
+ exit 1
 fi
 
-if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli, obsidian-canvas-designer"' "$skill_dir/SKILL.md" || \
-   ! grep -q 'required-skills: "json-canvas, obsidian-cli"' "$canvas_skill_dir/SKILL.md"; then
-  printf 'skill prerequisite metadata is missing or out of sync\n' >&2
-  exit 1
+if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli, obsidian-canvas-designer"' "$skill_dir/SKILL.md" ||
+ ! grep -q 'required-skills: "json-canvas, obsidian-cli"' "$canvas_skill_dir/SKILL.md"; then
+ printf 'skill prerequisite metadata is missing or out of sync\n' >&2
+ exit 1
 fi
 
-if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli"' "$live_notes_skill_dir/SKILL.md" || \
-   ! grep -q 'required-skills: "obsidian-markdown, obsidian-live-lecture-notes"' "$asr_skill_dir/SKILL.md"; then
-  printf 'supplementary skill prerequisites are missing or out of sync\n' >&2
-  exit 1
+if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli"' "$live_notes_skill_dir/SKILL.md" ||
+ ! grep -q 'required-skills: "obsidian-markdown, obsidian-live-lecture-notes"' "$asr_skill_dir/SKILL.md"; then
+ printf 'supplementary skill prerequisites are missing or out of sync\n' >&2
+ exit 1
 fi
 
 if grep -q 'name: "obsidian"' "$asr_skill_dir/requirements/tools.yaml"; then
-  printf 'ASR enricher must not require the Obsidian CLI tool\n' >&2
-  exit 1
+ printf 'ASR enricher must not require the Obsidian CLI tool\n' >&2
+ exit 1
 fi
 
-if ! grep -q 'optional-skills: "slide-layout-refiner, obsidian-latex-refiner"' "$skill_dir/SKILL.md" || \
-   ! grep -q 'requires-visual-input: "true"' "$layout_skill_dir/SKILL.md" || \
-   ! grep -q 'enabled_by_default: false' "$skill_dir/requirements/skills.yaml"; then
-  printf 'optional multimodal layout refinement contract is missing\n' >&2
-  exit 1
+if ! grep -q 'optional-skills: "slide-layout-refiner, obsidian-latex-refiner"' "$skill_dir/SKILL.md" ||
+ ! grep -q 'requires-visual-input: "true"' "$layout_skill_dir/SKILL.md" ||
+ ! grep -A4 'name: "slide-layout-refiner"' "$skill_dir/requirements/skills.yaml" | grep -q 'enabled_by_default: true'; then
+ printf 'optional multimodal layout refinement contract is missing\n' >&2
+ exit 1
 fi
 
-if ! grep -q 'requires-multimodal: "false"' "$latex_skill_dir/SKILL.md" || \
-   ! grep -q 'deterministic: "true"' "$latex_skill_dir/SKILL.md" || \
-   ! grep -q 'latex_refinement_report_name: "latex-refinement-report.json"' "$skill_dir/config/pipeline.example.yaml"; then
-  printf 'deterministic LaTeX refinement contract is missing\n' >&2
-  exit 1
+if ! grep -q 'requires-multimodal: "false"' "$latex_skill_dir/SKILL.md" ||
+ ! grep -q 'deterministic: "true"' "$latex_skill_dir/SKILL.md" ||
+ ! grep -A4 'name: "obsidian-latex-refiner"' "$skill_dir/requirements/skills.yaml" | grep -q 'enabled_by_default: false' ||
+ ! grep -q 'latex_refinement_report_name: "latex-refinement-report.json"' "$skill_dir/config/pipeline.example.yaml"; then
+ printf 'deterministic LaTeX refinement contract is missing\n' >&2
+ exit 1
 fi
 
-if ! grep -q 'name: "obsidian-canvas-designer"' "$skill_dir/requirements/skills.yaml" || \
-   ! grep -q 'design_reference:' "$canvas_skill_dir/requirements/skills.yaml" || \
-   ! grep -q 'name: "obsidian"' "$skill_dir/requirements/tools.yaml"; then
-  printf 'Canvas delegation or Axton design prerequisites are missing\n' >&2
-  exit 1
+if ! grep -q 'name: "obsidian-canvas-designer"' "$skill_dir/requirements/skills.yaml" ||
+ ! grep -q 'design_reference:' "$canvas_skill_dir/requirements/skills.yaml" ||
+ ! grep -q 'name: "obsidian"' "$skill_dir/requirements/tools.yaml"; then
+ printf 'Canvas delegation or Axton design prerequisites are missing\n' >&2
+ exit 1
 fi
 
 if grep -R -n 'source_slides\|copy_source_into_course: true\|<course-folder>/Slides' \
-  --exclude-dir=__pycache__ "$skill_dir" "$repo_dir/README.md" >/dev/null 2>&1; then
-  printf 'source-original-in-vault contract found\n' >&2
-  exit 1
+ --exclude-dir=__pycache__ "$skill_dir" "$repo_dir/README.md" >/dev/null 2>&1; then
+ printf 'source-original-in-vault contract found\n' >&2
+ exit 1
 fi
 
 if ! grep -q 'required-services: "MinerU Precision API via official mineru-open-api CLI"' "$skill_dir/SKILL.md"; then
-  printf 'service prerequisite metadata is missing or out of sync\n' >&2
-  exit 1
+ printf 'service prerequisite metadata is missing or out of sync\n' >&2
+ exit 1
 fi
 
 if grep -q 'mineru-pdf\|runtime_command' "$skill_dir/requirements/skills.yaml"; then
-  printf 'local MinerU skill/runtime dependency is forbidden\n' >&2
-  exit 1
+ printf 'local MinerU skill/runtime dependency is forbidden\n' >&2
+ exit 1
 fi
 
-if ! grep -q 'name: "mineru-open-api"' "$skill_dir/requirements/tools.yaml" || \
-   ! grep -q 'direct_http_calls: false' "$skill_dir/requirements/services.yaml"; then
-  printf 'official MinerU CLI composition contract is missing or out of sync\n' >&2
-  exit 1
+if ! grep -q 'name: "mineru-open-api"' "$skill_dir/requirements/tools.yaml" ||
+ ! grep -q 'direct_http_calls: false' "$skill_dir/requirements/services.yaml"; then
+ printf 'official MinerU CLI composition contract is missing or out of sync\n' >&2
+ exit 1
 fi
 
 if grep -R -n '/api/v4/\|file-urls/batch\|extract-results/batch' \
-  "$skill_dir/SKILL.md" "$skill_dir/references" "$skill_dir/config" >/dev/null 2>&1; then
-  printf 'direct MinerU HTTP ownership is forbidden\n' >&2
-  exit 1
+ "$skill_dir/SKILL.md" "$skill_dir/references" "$skill_dir/config" >/dev/null 2>&1; then
+ printf 'direct MinerU HTTP ownership is forbidden\n' >&2
+ exit 1
 fi
 
 if grep -q 'language: "ch"\|is_ocr: false\|is_ocr: "confirm-per-document"' \
-  "$skill_dir/requirements/services.yaml" "$skill_dir/config/pipeline.example.yaml"; then
-  printf 'language and is_ocr must have no hard-coded request defaults\n' >&2
-  exit 1
+ "$skill_dir/requirements/services.yaml" "$skill_dir/config/pipeline.example.yaml"; then
+ printf 'language and is_ocr must have no hard-coded request defaults\n' >&2
+ exit 1
 fi
 
 if ! grep -q 'required_confirmation:' "$skill_dir/requirements/services.yaml"; then
-  printf 'language/OCR confirmation contract is missing\n' >&2
-  exit 1
+ printf 'language/OCR confirmation contract is missing\n' >&2
+ exit 1
 fi
 
-if ! grep -q 'persistence: "encrypted-at-rest"' "$skill_dir/requirements/services.yaml" || \
-   ! grep -q 'file: "state/mineru-api-token.enc.json"' "$skill_dir/requirements/tools.yaml"; then
-  printf 'encrypted token-store contract is missing or out of sync\n' >&2
-  exit 1
+if ! grep -q 'persistence: "encrypted-at-rest"' "$skill_dir/requirements/services.yaml" ||
+ ! grep -q 'file: "state/mineru-api-token.enc.json"' "$skill_dir/requirements/tools.yaml"; then
+ printf 'encrypted token-store contract is missing or out of sync\n' >&2
+ exit 1
 fi
 
 if ! grep -q 'repeated_user_confirmation: false' "$skill_dir/requirements/services.yaml"; then
-  printf 'automatic credential reuse contract is missing\n' >&2
-  exit 1
+ printf 'automatic credential reuse contract is missing\n' >&2
+ exit 1
 fi
 
-if ! command -v openssl >/dev/null 2>&1 || \
-   ! openssl enc -list | grep -q 'aes-256-cbc'; then
-  printf 'OpenSSL with aes-256-cbc is required\n' >&2
-  exit 1
+if ! command -v openssl >/dev/null 2>&1 ||
+ ! openssl enc -list | grep -q 'aes-256-cbc'; then
+ printf 'OpenSSL with aes-256-cbc is required\n' >&2
+ exit 1
 fi
 
-if ! command -v obsidian >/dev/null 2>&1 || \
-   [ ! -x "$skill_dir/scripts/plan-canvas-batch.py" ] || \
-   [ ! -x "$canvas_skill_dir/scripts/canvas-render-qa.py" ] || \
-   [ ! -x "$canvas_skill_dir/scripts/canvas-aesthetic-qa.py" ] || \
-   [ ! -x "$canvas_skill_dir/scripts/recall-skeleton.py" ]; then
-  printf 'Obsidian CLI and executable canvas-render-qa.py are required for local renderer QA\n' >&2
-  exit 1
+if ! command -v obsidian >/dev/null 2>&1 ||
+ [ ! -x "$skill_dir/scripts/plan-canvas-batch.py" ] ||
+ [ ! -x "$canvas_skill_dir/scripts/canvas-render-qa.py" ] ||
+ [ ! -x "$canvas_skill_dir/scripts/canvas-aesthetic-qa.py" ] ||
+ [ ! -x "$canvas_skill_dir/scripts/recall-skeleton.py" ]; then
+ printf 'Obsidian CLI and executable canvas-render-qa.py are required for local renderer QA\n' >&2
+ exit 1
 fi
 
-if [ ! -x "$live_notes_skill_dir/scripts/apply-note-patches.py" ] || \
-   [ ! -x "$asr_skill_dir/scripts/validate-enrichment-plan.py" ] || \
-   [ ! -x "$layout_skill_dir/scripts/validate-layout-refinement.py" ] || \
-   [ ! -x "$latex_skill_dir/scripts/normalize-latex.py" ] || \
-   [ ! -x "$latex_skill_dir/scripts/self-check.py" ] || \
-   [ ! -x "$latex_skill_dir/scripts/validate-latex-refinement.py" ]; then
-  printf 'supplementary skill scripts must be executable\n' >&2
-  exit 1
+if [ ! -x "$live_notes_skill_dir/scripts/apply-note-patches.py" ] ||
+ [ ! -x "$asr_skill_dir/scripts/validate-enrichment-plan.py" ] ||
+ [ ! -x "$layout_skill_dir/scripts/validate-layout-refinement.py" ] ||
+ [ ! -x "$latex_skill_dir/scripts/normalize-latex.py" ] ||
+ [ ! -x "$latex_skill_dir/scripts/self-check.py" ] ||
+ [ ! -x "$latex_skill_dir/scripts/validate-latex-refinement.py" ]; then
+ printf 'supplementary skill scripts must be executable\n' >&2
+ exit 1
 fi
 
-if ! command -v security >/dev/null 2>&1 || \
-   ! grep -q 'wrapping_key_backend: "macos-keychain"' "$skill_dir/requirements/tools.yaml"; then
-  printf 'macOS Keychain security CLI is required for automatic token unlock\n' >&2
-  exit 1
+if ! command -v security >/dev/null 2>&1 ||
+ ! grep -q 'wrapping_key_backend: "macos-keychain"' "$skill_dir/requirements/tools.yaml"; then
+ printf 'macOS Keychain security CLI is required for automatic token unlock\n' >&2
+ exit 1
 fi
 
 if git -C "$repo_dir" ls-files --error-unmatch \
-  'skills/lecture-slides-to-obsidian/state/mineru-api-token.enc.json' >/dev/null 2>&1; then
-  printf 'encrypted runtime token file must not be tracked\n' >&2
-  exit 1
+ 'skills/lecture-slides-to-obsidian/state/mineru-api-token.enc.json' >/dev/null 2>&1; then
+ printf 'encrypted runtime token file must not be tracked\n' >&2
+ exit 1
 fi
 
 if ! git -C "$repo_dir" check-ignore -q \
-  'skills/lecture-slides-to-obsidian/state/mineru-api-token.enc.json'; then
-  printf 'encrypted runtime token file must be ignored\n' >&2
-  exit 1
+ 'skills/lecture-slides-to-obsidian/state/mineru-api-token.enc.json'; then
+ printf 'encrypted runtime token file must be ignored\n' >&2
+ exit 1
 fi
 
 python3 "$skill_dir/scripts/validate-output.py" \
-  "$repo_dir/tests/fixtures/synthetic/valid-document-folder" \
-  --fixture-mode \
-  --report "$repo_dir/tests/fixtures/staging/conversion-report.md" >/dev/null
+ "$repo_dir/tests/fixtures/synthetic/valid-document-folder" \
+ --fixture-mode \
+ --report "$repo_dir/tests/fixtures/staging/conversion-report.md" >/dev/null
 
 python3 -m unittest discover -s "$repo_dir/tests" -p 'test_*.py' >/dev/null
 

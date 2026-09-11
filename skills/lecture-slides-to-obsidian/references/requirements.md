@@ -20,7 +20,7 @@ Delegate all Canvas layout, styling, static aesthetic scoring, local DOM measure
 
 ### `slide-layout-refiner`
 
-Load only when the user enables multimodal slide-layout refinement. It reads the original PDF or rendered page images visually and directly overwrites the one final Markdown note; it may modify syntax and same-page asset placement only. A byte-exact rollback snapshot and report live under system tmp or the installed skill directory, outside the vault. If visual input or validation is unavailable, keep or restore the base MinerU Markdown rather than guessing.
+Loaded by default; disabled only with `--no-visual-layout-refinement` or when the model cannot view the PDF (`--layout-visual-input false`). It reads the original PDF or rendered page images visually and directly overwrites the one final Markdown note; it may modify syntax and same-page asset placement only. A byte-exact rollback snapshot and report live under system tmp or the installed skill directory, outside the vault. If visual input or validation is unavailable, keep or restore the base MinerU Markdown rather than guessing.
 
 ### `obsidian-latex-refiner`
 
