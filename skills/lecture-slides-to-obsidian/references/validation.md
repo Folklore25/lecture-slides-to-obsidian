@@ -30,9 +30,7 @@ scripts/validate-output.py <document-folder> --vault-root <vault-root> \
   --render-check <run>/canvas-render-check.json --delete-qa-on-success
 ```
 
-When layout refinement ran and its in-place overwrite passed, also pass `--layout-refinement-report <run>/layout-refinement-report.json`. Omit it when the feature is disabled, skipped for lack of visual input, or rolled back. The report and its pre-edit snapshot must be outside the vault.
-
-When both refinement reports are supplied they must form a single snapshot-to-refined chain whose final hash equals the delivered Markdown.
+When the LaTeX refinement report is supplied it must form a single snapshot-to-refined chain whose final hash equals the delivered Markdown.
 
 ## Folder checks
 

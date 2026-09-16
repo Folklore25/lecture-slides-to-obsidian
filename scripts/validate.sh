@@ -6,7 +6,6 @@ skill_dir="$repo_dir/skills/lecture-slides-to-obsidian"
 canvas_skill_dir="$repo_dir/skills/obsidian-canvas-designer"
 live_notes_skill_dir="$repo_dir/skills/obsidian-live-lecture-notes"
 asr_skill_dir="$repo_dir/skills/lecture-asr-enricher"
-layout_skill_dir="$repo_dir/skills/slide-layout-refiner"
 latex_skill_dir="$repo_dir/skills/obsidian-latex-refiner"
 
 main_required_files='SKILL.md
@@ -83,15 +82,6 @@ requirements/tools.yaml
 scripts/validate-enrichment-plan.py
 templates/enrichment-plan.example.json'
 
-layout_required_files='SKILL.md
-agents/openai.yaml
-references/refinement-contract.md
-references/native-markdown-layout.md
-requirements/skills.yaml
-requirements/tools.yaml
-scripts/validate-layout-refinement.py
-templates/multimodal-layout-task.md'
-
 latex_required_files='SKILL.md
 agents/openai.yaml
 references/latex-normalization.md
@@ -131,13 +121,6 @@ printf '%s\n' "$asr_required_files" | while IFS= read -r relative_path; do
  fi
 done
 
-printf '%s\n' "$layout_required_files" | while IFS= read -r relative_path; do
- if [ ! -f "$layout_skill_dir/$relative_path" ]; then
-  printf 'layout refiner skill missing: %s\n' "$relative_path" >&2
-  exit 1
- fi
-done
-
 printf '%s\n' "$latex_required_files" | while IFS= read -r relative_path; do
  if [ ! -f "$latex_skill_dir/$relative_path" ]; then
   printf 'LaTeX refiner skill missing: %s\n' "$relative_path" >&2
@@ -166,12 +149,6 @@ if ! grep -q '^name: obsidian-live-lecture-notes$' "$live_notes_skill_dir/SKILL.
  ! grep -q '^name: lecture-asr-enricher$' "$asr_skill_dir/SKILL.md" ||
  ! grep -q '^description: .\+' "$asr_skill_dir/SKILL.md"; then
  printf 'invalid supplementary skill metadata\n' >&2
- exit 1
-fi
-
-if ! grep -q '^name: slide-layout-refiner$' "$layout_skill_dir/SKILL.md" ||
- ! grep -q '^description: .\+' "$layout_skill_dir/SKILL.md"; then
- printf 'invalid slide layout refiner metadata\n' >&2
  exit 1
 fi
 
@@ -229,10 +206,22 @@ if grep -q 'name: "obsidian"' "$asr_skill_dir/requirements/tools.yaml"; then
  exit 1
 fi
 
-if ! grep -q 'optional-skills: "slide-layout-refiner, obsidian-latex-refiner"' "$skill_dir/SKILL.md" ||
- ! grep -q 'requires-visual-input: "true"' "$layout_skill_dir/SKILL.md" ||
- ! grep -A6 'name: "slide-layout-refiner"' "$skill_dir/requirements/skills.yaml" | grep -q 'enabled_only_with_extraction_mode: "mineru"'; then
- printf 'optional multimodal layout refinement contract is missing\n' >&2
+if ! grep -q 'optional-skills: "obsidian-latex-refiner"' "$skill_dir/SKILL.md" ||
+ grep -q 'slide-layout-refiner' "$skill_dir/requirements/skills.yaml"; then
+ printf 'optional skill metadata is missing or still references the retired layout refiner\n' >&2
+ exit 1
+fi
+
+if [ -e "$repo_dir/skills/slide-layout-refiner" ]; then
+ printf 'retired slide-layout-refiner skill directory still exists\n' >&2
+ exit 1
+fi
+
+# Machine-readable surfaces only: README/AGENTS prose may document the retirement.
+if grep -rIq 'slide-layout-refiner' \
+ --exclude=validate.sh --exclude-dir=__pycache__ \
+ "$skill_dir" "$canvas_skill_dir" "$repo_dir/tests" 2>/dev/null; then
+ printf 'retired slide-layout-refiner reference found; the skill was removed\n' >&2
  exit 1
 fi
 
@@ -268,6 +257,13 @@ if ! grep -q 'mode: "native"' "$skill_dir/config/pipeline.example.yaml" ||
  ! grep -q 'page_markers_allowed: false' "$repo_dir/tests/cases/document-profiles.example.yaml" ||
  ! grep -q 'expected_action: "ask-user-every-conversion"' "$repo_dir/tests/cases/document-profiles.example.yaml"; then
  printf 'native-default extraction or mandatory note-granularity contract is missing\n' >&2
+ exit 1
+fi
+
+if ! grep -q 'Never summarize a visual in prose and drop it' "$skill_dir/references/asset-naming.md" ||
+ ! grep -q '"visuals"' "$skill_dir/references/output-contract.md" ||
+ ! grep -q 'VISUAL_DROP_REASONS' "$skill_dir/scripts/plan-note-structure.py"; then
+ printf 'visual extraction contract is missing or out of sync\n' >&2
  exit 1
 fi
 
@@ -333,7 +329,6 @@ fi
 
 if [ ! -x "$live_notes_skill_dir/scripts/apply-note-patches.py" ] ||
  [ ! -x "$asr_skill_dir/scripts/validate-enrichment-plan.py" ] ||
- [ ! -x "$layout_skill_dir/scripts/validate-layout-refinement.py" ] ||
  [ ! -x "$latex_skill_dir/scripts/normalize-latex.py" ] ||
  [ ! -x "$latex_skill_dir/scripts/self-check.py" ] ||
  [ ! -x "$latex_skill_dir/scripts/validate-latex-refinement.py" ]; then

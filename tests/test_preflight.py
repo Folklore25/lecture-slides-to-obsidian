@@ -90,29 +90,11 @@ class PreflightTests(unittest.TestCase):
             ])
             self.assertTrue(any(item["id"] == "native_visual_input" for item in result["questions"]))
 
-    def test_lecture_notes_supersedes_slide_layout_refiner(self):
-        with tempfile.TemporaryDirectory() as temp:
-            source, vault, token = self.make_paths(Path(temp))
-            code, result = run_preflight([
-                *self.base_arguments(source, vault, token, "lecture-notes"),
-                "--loaded-skill", "slide-layout-refiner",
-                "--note-granularity", "single-note",
-                "--visual-input", "true",
-                "--visual-layout-refinement",
-            ])
-            self.assertNotEqual(code, 0)
-            self.assertTrue(any("only applies to MinerU-based transcription" in item for item in result["errors"]))
-            self.assertEqual(
-                result["checks"]["visual_layout_refinement_source"],
-                "superseded-by-content-driven-synthesis",
-            )
-
     def test_section_notes_granularity_is_rejected_for_other_profiles(self):
         with tempfile.TemporaryDirectory() as temp:
             source, vault, token = self.make_paths(Path(temp))
             code, result = run_preflight([
                 *self.base_arguments(source, vault, token, LEGACY_PROFILE),
-                "--no-visual-layout-refinement",
                 "--note-granularity", "section-notes",
             ])
             self.assertNotEqual(code, 0)
@@ -129,7 +111,6 @@ class PreflightTests(unittest.TestCase):
             self.assertEqual(result["checks"]["extraction"], "native")
             self.assertEqual(result["checks"]["mineru_token"], "not-required")
             self.assertEqual(result["checks"]["language"], "not-applicable")
-            self.assertFalse(result["checks"]["visual_layout_refinement"])
             self.assertTrue(result["checks"]["native_visual_input"])
 
     # --- profile selection ----------------------------------------------------
@@ -180,71 +161,16 @@ class PreflightTests(unittest.TestCase):
             ])
             self.assertTrue(any(item["id"] == "language" for item in result["questions"]))
 
-    # --- legacy multimodal layout refinement ----------------------------------
-
-    def test_optional_layout_refinement_requires_loaded_skill_and_visual_input_check(self):
+    def test_mineru_mode_needs_no_visual_input_decision(self):
         with tempfile.TemporaryDirectory() as temp:
             source, vault, token = self.make_paths(Path(temp))
-            _, result = run_preflight([
-                *self.base_arguments(source, vault, token, LEGACY_PROFILE, "mineru"),
-                "--visual-layout-refinement",
-            ])
-            self.assertTrue(any("slide-layout-refiner" in item for item in result["errors"]))
-            self.assertTrue(any(item["id"] == "layout_visual_input" for item in result["questions"]))
-
-    def test_optional_layout_refinement_accepts_visual_input_capability(self):
-        with tempfile.TemporaryDirectory() as temp:
-            source, vault, token = self.make_paths(Path(temp))
-            code, result = run_preflight([
-                *self.base_arguments(source, vault, token, LEGACY_PROFILE, "mineru"),
-                "--loaded-skill", "slide-layout-refiner",
-                "--visual-layout-refinement", "--layout-visual-input", "true",
-            ])
+            code, result = run_preflight(
+                self.base_arguments(source, vault, token, LEGACY_PROFILE, "mineru")
+            )
             self.assertEqual(code, 0, result["errors"])
-            self.assertTrue(result["checks"]["layout_visual_input"])
-
-    def test_optional_layout_refinement_rejects_text_only_model(self):
-        with tempfile.TemporaryDirectory() as temp:
-            source, vault, token = self.make_paths(Path(temp))
-            code, result = run_preflight([
-                *self.base_arguments(source, vault, token, LEGACY_PROFILE, "mineru"),
-                "--loaded-skill", "slide-layout-refiner",
-                "--visual-layout-refinement", "--layout-visual-input", "false",
-            ])
-            self.assertNotEqual(code, 0)
-            self.assertTrue(any("visual input" in item for item in result["errors"]))
-
-    def test_layout_refinement_is_enabled_by_default(self):
-        with tempfile.TemporaryDirectory() as temp:
-            source, vault, token = self.make_paths(Path(temp))
-            _, result = run_preflight(self.base_arguments(source, vault, token, LEGACY_PROFILE, "mineru"))
-            self.assertTrue(result["checks"]["visual_layout_refinement"])
-            self.assertEqual(result["checks"]["visual_layout_refinement_source"], "default")
-            self.assertTrue(any("slide-layout-refiner is enabled by default" in item for item in result["errors"]))
-            self.assertTrue(any(item["id"] == "layout_visual_input" for item in result["questions"]))
-
-    def test_no_visual_layout_refinement_disables_it(self):
-        with tempfile.TemporaryDirectory() as temp:
-            source, vault, token = self.make_paths(Path(temp))
-            code, result = run_preflight([
-                *self.base_arguments(source, vault, token, LEGACY_PROFILE, "mineru"),
-                "--no-visual-layout-refinement",
-            ])
-            self.assertEqual(code, 0, result["errors"])
-            self.assertFalse(result["checks"]["visual_layout_refinement"])
-            self.assertEqual(result["checks"]["visual_layout_refinement_source"], "flag")
-
-    def test_default_layout_refinement_skips_without_visual_input(self):
-        with tempfile.TemporaryDirectory() as temp:
-            source, vault, token = self.make_paths(Path(temp))
-            code, result = run_preflight([
-                *self.base_arguments(source, vault, token, LEGACY_PROFILE, "mineru"),
-                "--loaded-skill", "slide-layout-refiner",
-                "--layout-visual-input", "false",
-            ])
-            self.assertEqual(code, 0, result["errors"])
-            self.assertFalse(result["checks"]["visual_layout_refinement"])
-            self.assertEqual(result["checks"]["visual_layout_refinement_skip"], "visual-input-unavailable")
+            self.assertNotIn("native_visual_input", result["checks"])
+            self.assertEqual(result["checks"]["extraction"], "mineru")
+            self.assertIn("encrypted_token_file", result["checks"])
 
     # --- deterministic LaTeX refinement ---------------------------------------
 
@@ -253,7 +179,6 @@ class PreflightTests(unittest.TestCase):
             source, vault, token = self.make_paths(Path(temp))
             _, result = run_preflight([
                 *self.base_arguments(source, vault, token, LEGACY_PROFILE, "mineru"),
-                "--no-visual-layout-refinement",
                 "--latex-refinement",
             ])
             self.assertTrue(any("obsidian-latex-refiner" in item for item in result["errors"]))
@@ -264,7 +189,6 @@ class PreflightTests(unittest.TestCase):
             code, result = run_preflight([
                 *self.base_arguments(source, vault, token, LEGACY_PROFILE, "mineru"),
                 "--loaded-skill", "obsidian-latex-refiner",
-                "--no-visual-layout-refinement",
                 "--latex-refinement",
             ])
             self.assertEqual(code, 0, result["errors"])

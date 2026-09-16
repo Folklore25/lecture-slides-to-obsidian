@@ -51,10 +51,6 @@ Extract only visuals whose structure matters and name them per [asset-naming.md]
 
 Disabled by default. When enabled, load `obsidian-latex-refiner` and run `scripts/normalize-latex.py --target <note> --vault-root <root> --snapshot <run>/before.md --report <run>/latex-refinement-report.json`. It rewrites only math syntax, keeps visible text and links intact, treats a marker-free note as one segment, and restores the snapshot on any conservation failure. Delete the snapshot and report after success.
 
-### Optional layout refinement (MinerU transcription only)
-
-Load `slide-layout-refiner` only with `--extraction mineru` for `policy-document` or `paper`. It is enabled by default there and may change structure only inside each immutable `<!-- source-page: N -->` segment. Native synthesis and `lecture-notes` already produce the final layout, so the refiner must not run for them.
-
 ## 6. Derived artifacts
 
 Write:

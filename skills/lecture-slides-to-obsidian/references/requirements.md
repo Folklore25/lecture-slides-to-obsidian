@@ -34,10 +34,6 @@ Delegate all Canvas layout, styling, static aesthetic scoring, local DOM measure
 
 Load only when the user enables LaTeX normalization. Run the read-only `--analyze` scan first, decide which transform groups are safe, then apply them in place. An independent validator enforces conservation of visible non-math text, links, and assets and restores the byte-exact outside-vault snapshot on any failure. It needs no vision model and treats a marker-free note as a single segment.
 
-### `slide-layout-refiner`
-
-Only meaningful for `--extraction mineru` transcription of `policy-document` and `paper`, where it is enabled by default. It reads the original PDF or rendered page images and rewrites only inside immutable `<!-- source-page: N -->` segments. Native synthesis and `lecture-notes` already produce the final layout, so it must not run there; passing `--visual-layout-refinement` for those is an error. Disable it for transcription with `--no-visual-layout-refinement`.
-
 ## Required service (MinerU mode only)
 
 Use only authenticated precision extraction through the official `mineru-open-api` CLI. Do not use unauthenticated flash mode, direct HTTP, a local MinerU runtime, or a third-party wrapper.
@@ -49,7 +45,7 @@ Use only authenticated precision extraction through the official `mineru-open-ap
 
 ## Preflight
 
-1. Inspect the available skill list for exact names `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`, then explicitly invoke all three. Invoke `obsidian-latex-refiner` when LaTeX normalization is enabled, and `slide-layout-refiner` only for MinerU transcription.
+1. Inspect the available skill list for exact names `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`, then explicitly invoke all three. Invoke `obsidian-latex-refiner` only when LaTeX normalization is enabled.
 2. Confirm the extraction mode and, when native, that the current model can view the source pages.
 3. Resolve every path against the installed skill directory (the directory containing the loaded SKILL.md).
 4. In MinerU mode, run `scripts/token-store.py status` before asking for a token: `configured` means proceed silently. Only when status reports `not configured`, send the chat-provided token through stdin to `scripts/token-store.py set --token-stdin`. Never place the token in command arguments or environment profiles.

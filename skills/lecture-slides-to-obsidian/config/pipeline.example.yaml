@@ -68,7 +68,6 @@ staging:
   note_plan_name: "note-plan.json"
   page_ledger_name: "page-ledger.json"
   page_groups_name: "{source_stem}.content-list-v2.compat.json"
-  layout_refinement_report_name: "layout-refinement-report.json"
   latex_refinement_report_name: "latex-refinement-report.json"
   recall_model_name: "recall-model.json"
   canvas_aesthetic_check_name: "canvas-aesthetic-check.json"
@@ -112,23 +111,6 @@ conversion:
   equation_policy: "preserve-and-flag"
   table_policy: "markdown-preferred"
   drop_slide_furniture: true
-  visual_layout_refinement:
-    enabled: false
-    enabled_only_with_extraction_mode: "mineru"
-    enabled_only_for_profiles:
-      - "policy-document"
-      - "paper"
-    skill: "slide-layout-refiner"
-    requires_multimodal: true
-    requires_visual_input: true
-    accepted_source_views:
-      - "original-pdf"
-      - "rendered-page-images"
-    source_format: "pdf"
-    scope: "inside-source-page-markers-only"
-    write_mode: "overwrite-final-markdown"
-    snapshot_location: "staging-outside-vault"
-    on_failure: "restore-snapshot-without-confirmation"
   latex_refinement:
     enabled: false
     skill: "obsidian-latex-refiner"

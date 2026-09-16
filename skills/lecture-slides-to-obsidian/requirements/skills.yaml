@@ -29,16 +29,6 @@ required_skills:
       skill_name: "obsidian-canvas-designer"
 
 optional_skills:
-  - name: "slide-layout-refiner"
-    purpose: "Restore page-local hierarchy and asset placement inside MinerU source-page segments without changing content or page separation."
-    source: "../slide-layout-refiner"
-    enabled_by_default: false
-    enabled_only_with_extraction_mode: "mineru"
-    enabled_only_for_profiles:
-      - "policy-document"
-      - "paper"
-    superseded_by: "native-multimodal-synthesis"
-    requires_visual_input: true
   - name: "obsidian-latex-refiner"
     purpose: "Normalize LaTeX math in an Obsidian note so it renders in MathJax, with an agent-driven scan, conservation checks, and automatic rollback. Marker-free notes are treated as one segment."
     source: "../obsidian-latex-refiner"

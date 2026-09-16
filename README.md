@@ -2,7 +2,7 @@
 
 一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 PDF、PPT/PPTX、政策文档和论文，**优先由原生多模态模型直接阅读**，整理成适合 Obsidian 阅读、连接和课堂补充的内容驱动笔记。
 
-当前实现采用六技能组合：主技能负责课前转换，可选LaTeX refiner把公式规范成Obsidian可渲染的数学语法，Canvas子技能负责视觉产物，live-notes技能负责课堂即时思考，ASR enricher负责课后教师上下文增量。
+当前实现采用五技能组合：主技能负责课前转换，可选LaTeX refiner把公式规范成Obsidian可渲染的数学语法，Canvas子技能负责视觉产物，live-notes技能负责课堂即时思考，ASR enricher负责课后教师上下文增量。
 
 **MinerU 是备选项，不是前置条件。** 默认的 `--extraction native` 由原生多模态模型逐页阅读源文件并直接写笔记，无需上传、无需 token、不依赖文本层。只有在模型无法读图、文档过长或大面积扫描、或用户明确要求时，才用 `--extraction mineru` 把官方 CLI 的结构化 page group 作为提取辅助。
 
@@ -10,7 +10,10 @@
 
 - 追求 semantic fidelity，而不是宣称 PDF → Markdown “无损”。
 - **以内容为对象，而不是以提取格式为对象。** 笔记结构来自源文档自己的章节大纲，不来自幻灯片顺序、页码或提取工具的块编号。
-- 文字、层级、列表、公式和表格尽量结构化；对比矩阵与分类表转成真正的 Markdown 表格，而不是贴图。
+- 文字、层级、列表、公式和表格尽量结构化。
+- **图片默认提取并放回原位，而不是用文字概括后丢弃。** 图、流程图、分类矩阵、标注截图都属于"要看的东西"：抽出来、语义命名、嵌在它所支撑的那段内容旁边。文字描述只能陪衬图片，不能替代它。
+- 只有**纯数值数据表**这类文字能完整承载的信息，才用 Markdown 表格替代图片，并在 page ledger 里显式声明 `superseded-by-table` + `rendered_as: markdown-table`。
+- 丢弃任何视觉都必须给出受控理由（`decorative` / `duplicate` / `illegible` / `page-furniture`），不允许静默消失。
 - 图表、复杂排版、手写标注和低置信度页面保留视觉兜底，但只在视觉本身承载不可替代信息时才留图。
 - 幻灯片外壳不进笔记：封面页、目录页、章节分隔页、课程行政页、习题页、重复页眉页脚和装饰页，全部在 page ledger 里标记为 `dropped` 并给出受控理由。
 - 每次转换前必须询问笔记粒度（`single-note` 或 `section-notes`），不设默认值。
@@ -48,8 +51,6 @@ lecture-slides-to-obsidian/
 │   │   └── ...Canvas 设计、Axton 美术规则、静态评分与 DOM QA
 │   ├── obsidian-live-lecture-notes/
 │   │   └── ...课堂即时想法路由与非破坏式插入
-│   ├── slide-layout-refiner/
-│   │   └── ...可选多模态逐页版式整理与内容守恒验证
 │   ├── obsidian-latex-refiner/
 │   │   └── ...可选确定性LaTeX规范化、守恒校验与自动回滚
 │   └── lecture-asr-enricher/
@@ -61,6 +62,8 @@ lecture-slides-to-obsidian/
 ```
 
 `skills/` 是可由 cc-switch 一起管理的技能包；其中五个目录均可独立发现和调用。仓库级 `tests/` 与 `scripts/` 只用于开发维护。
+
+已退役的 `slide-layout-refiner` 不再随包分发：默认的原生多模态合成已经产出最终版式，逐页版式整理只剩下「在 MinerU 文本层结果里重排」这一窄场景，收益不足以支撑一个独立技能。
 
 ## 课程路由模型
 
@@ -166,7 +169,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 3. 官方 CLI 执行 `extract -f md,json -o <staging>/`，负责上传、轮询、下载和 assets。
 4. Adapter 把 CLI legacy content-list JSON 按 `page_idx` 转成 page-group compatibility JSON。
 5. `plan-note-structure.py --page-groups ...` 用 page group 生成骨架与台账草稿，并额外启用逐页文本召回校验（比纯 evidence 校验更严格）。
-6. `policy-document` / `paper` 的逐页转录模式仍使用 `reconstruct-note.py` 生成带 `source-page` marker 的 Markdown，并可启用 `slide-layout-refiner`。
+6. `policy-document` / `paper` 的逐页转录模式仍使用 `reconstruct-note.py` 生成带 `source-page` marker 的 Markdown。
 
 支持三个 conversion profile：`lecture-notes`、`policy-document`、`paper`。不是 slides 的资料不会被拒绝，而会在写入 vault 前要求确认合适的 profile。
 
@@ -176,7 +179,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 推荐使用 **cc-switch** 管理。在自定义仓库中填写仓库 Owner、Name、Branch，并把 **Subdirectory** 设为 `skills`。让 cc-switch 负责安装、更新、切换和恢复运行态 `state/`；不要直接在它管理的安装目录中开发。
 
-若不使用 cc-switch，把 `skills/` 下六个技能目录一起复制或链接到当前运行环境支持的技能目录。具体目录位置和调用语法由运行环境决定。
+若不使用 cc-switch，把 `skills/` 下五个技能目录一起复制或链接到当前运行环境支持的技能目录。具体目录位置和调用语法由运行环境决定。
 
 如果完整 Markdown 已存在而只缺 Canvas，直接调用 `obsidian-canvas-designer`。这一入口不加载提取、token、课程路由或 conversion report。
 
@@ -184,7 +187,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 ## 本地验证
 
-主技能提供五个流程入口，Canvas子技能提供四个入口，课堂补充技能各提供一个确定性入口，可选layout refiner与LaTeX refiner各提供确定性入口：
+主技能提供五个流程入口，Canvas子技能提供四个入口，课堂补充技能各提供一个确定性入口，可选LaTeX refiner提供确定性入口：
 
 ```text
 preflight.py            分段收集/验证 vault、course、提取模式、笔记粒度、profile、helper skills、token state
@@ -200,7 +203,6 @@ obsidian-canvas-designer/canvas-render-qa.py      本机 DOM → 实测高度、
 
 obsidian-live-lecture-notes/apply-note-patches.py  学生/老师callout → 幂等插入（fs 文件系统 / obsidian-cli 双后端）
 lecture-asr-enricher/validate-enrichment-plan.py   ASR增量计划 → 可应用teacher patch
-slide-layout-refiner/validate-layout-refinement.py  原位覆盖结果 → 逐页内容/asset守恒PASS或自动回滚
 obsidian-latex-refiner/normalize-latex.py          LaTeX → Obsidian可渲染数学语法（--analyze只读预扫，原位覆盖，--dry-run预览）
 obsidian-latex-refiner/self-check.py               内置fixtures冒烟测试（不接触vault）
 obsidian-latex-refiner/validate-latex-refinement.py 数学规范化结果 → 非数学文本/数学载荷/asset守恒PASS或自动回滚
@@ -261,7 +263,7 @@ python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py \
   --render-check <staging>/canvas-render-check.json --delete-qa-on-success
 ```
 
-MinerU 跑过时再加 `--page-groups <staging>/<stem>.content-list-v2.compat.json`，把守恒校验从 evidence-only 升级为 evidence + 逐页文本召回。MinerU 逐页转录模式（带 page marker 的 `policy-document` / `paper`）沿用原调用方式，另加 `--layout-refinement-report`。
+MinerU 跑过时再加 `--page-groups <staging>/<stem>.content-list-v2.compat.json`，把守恒校验从 evidence-only 升级为 evidence + 逐页文本召回。MinerU 逐页转录模式（带 page marker 的 `policy-document` / `paper`）沿用原调用方式，不需要 plan/ledger。
 
 它验证 source-original exclusion、properties、唯一 H1、计划章节与 H2 一致、page ledger 完整、每页 evidence 确实出现在笔记中、逐页内容守恒、语义化 assets、wikilinks，以及 Canvas 的语义结构、真实 DOM 高度、安全余量、有效字体、路径和非重叠布局；成功后删除全部 staging QA 文件（含 plan 与 ledger）。
 

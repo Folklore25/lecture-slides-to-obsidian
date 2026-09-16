@@ -20,7 +20,6 @@ def run_validator(
     delete_report: bool = False,
     vault_root: Path | None = None,
     recall_model: Path | None = None,
-    layout_refinement_report: Path | None = None,
     latex_refinement_report: Path | None = None,
     aesthetic_check: Path | None = None,
     render_metrics: Path | None = None,
@@ -33,8 +32,6 @@ def run_validator(
         command += ["--vault-root", str(vault_root)]
     if recall_model is not None:
         command += ["--recall-model", str(recall_model)]
-    if layout_refinement_report is not None:
-        command += ["--layout-refinement-report", str(layout_refinement_report)]
     if latex_refinement_report is not None:
         command += ["--latex-refinement-report", str(latex_refinement_report)]
     if aesthetic_check is not None:
@@ -197,44 +194,13 @@ class ValidateOutputTests(unittest.TestCase):
             self.assertNotEqual(code, 0)
             self.assertTrue(any("aesthetic check does not match" in item for item in result["errors"]))
 
-    def test_optional_layout_report_must_match_delivered_markdown(self):
-        with tempfile.TemporaryDirectory() as temp:
-            base = Path(temp)
-            folder = base / "document"
-            staging = base / "staging"
-            report = staging / "conversion-report.md"
-            layout_report = staging / "layout-refinement-report.json"
-            shutil.copytree(FIXTURE, folder)
-            staging.mkdir()
-            shutil.copy2(REPORT_FIXTURE, report)
-            note_hash = hashlib.sha256((folder / "sample.md").read_bytes()).hexdigest()
-            layout_report.write_text(json.dumps({
-                "schema_version": 1,
-                "valid": True,
-                "refined_sha256": note_hash,
-            }))
-            code, result = run_validator(
-                folder, report, layout_refinement_report=layout_report
-            )
-            self.assertEqual(code, 0, result["errors"])
-
-            stale = json.loads(layout_report.read_text())
-            stale["refined_sha256"] = "0" * 64
-            layout_report.write_text(json.dumps(stale))
-            code, result = run_validator(
-                folder, report, layout_refinement_report=layout_report
-            )
-            self.assertNotEqual(code, 0)
-            self.assertTrue(any("does not match the delivered Markdown" in item for item in result["errors"]))
-
-    def test_optional_latex_report_chains_with_layout_report(self):
+    def test_optional_latex_report_must_match_delivered_markdown(self):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)
             folder = base / "document"
             staging = base / "staging"
             report = staging / "conversion-report.md"
             latex_report = staging / "latex-refinement-report.json"
-            layout_report = staging / "layout-refinement-report.json"
             shutil.copytree(FIXTURE, folder)
             staging.mkdir()
             shutil.copy2(REPORT_FIXTURE, report)
@@ -243,31 +209,42 @@ class ValidateOutputTests(unittest.TestCase):
                 "schema_version": 1,
                 "valid": True,
                 "snapshot_sha256": "a" * 64,
-                "refined_sha256": "b" * 64,
-            }))
-            layout_report.write_text(json.dumps({
-                "schema_version": 1,
-                "valid": True,
-                "snapshot_sha256": "b" * 64,
                 "refined_sha256": note_hash,
             }))
             code, result = run_validator(
-                folder, report,
-                layout_refinement_report=layout_report,
-                latex_refinement_report=latex_report,
+                folder, report, latex_refinement_report=latex_report
             )
             self.assertEqual(code, 0, result["errors"])
 
-            broken = json.loads(layout_report.read_text())
-            broken["snapshot_sha256"] = "c" * 64
-            layout_report.write_text(json.dumps(broken))
+            stale = json.loads(latex_report.read_text())
+            stale["refined_sha256"] = "0" * 64
+            latex_report.write_text(json.dumps(stale))
             code, result = run_validator(
-                folder, report,
-                layout_refinement_report=layout_report,
-                latex_refinement_report=latex_report,
+                folder, report, latex_refinement_report=latex_report
             )
             self.assertNotEqual(code, 0)
-            self.assertTrue(any("chain" in item for item in result["errors"]))
+            self.assertTrue(any("does not match the delivered Markdown" in item for item in result["errors"]))
+
+    def test_rejected_latex_report_is_fatal(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            folder = base / "document"
+            staging = base / "staging"
+            report = staging / "conversion-report.md"
+            latex_report = staging / "latex-refinement-report.json"
+            shutil.copytree(FIXTURE, folder)
+            staging.mkdir()
+            shutil.copy2(REPORT_FIXTURE, report)
+            latex_report.write_text(json.dumps({
+                "schema_version": 1,
+                "valid": False,
+                "refined_sha256": hashlib.sha256((folder / "sample.md").read_bytes()).hexdigest(),
+            }))
+            code, result = run_validator(
+                folder, report, latex_refinement_report=latex_report
+            )
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("LaTeX refinement did not pass" in item for item in result["errors"]))
 
     def test_temporary_report_is_deleted_on_success(self):
         with tempfile.TemporaryDirectory() as temp:

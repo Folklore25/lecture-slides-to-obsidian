@@ -81,16 +81,6 @@ cases:
     keychain_wrapping_key: "available"
     expected_action: "continue"
 
-  - id: "layout-refiner-superseded-by-native"
-    extraction_mode: "native"
-    requested_layout_refinement: true
-    expected_action: "stop-layout-refiner-not-applicable"
-
-  - id: "layout-refiner-disabled-by-flag-in-mineru-mode"
-    extraction_mode: "mineru"
-    no_visual_layout_refinement: true
-    expected_action: "continue-with-disabled-layout-refinement"
-
   - id: "obsidian-skill-missing"
     available_skills: []
     expected_action: "stop-and-report-obsidian-markdown"

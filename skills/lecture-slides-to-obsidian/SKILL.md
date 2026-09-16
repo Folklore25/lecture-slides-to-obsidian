@@ -3,7 +3,7 @@ name: lecture-slides-to-obsidian
 description: Convert an external course document into content-driven Obsidian notes by reading the source natively with a multimodal model, optionally aided by the official MinerU Open API CLI, and delegate a knowledge-recall Canvas. Use for extraction or Markdown reconstruction; when complete Markdown already exists and only Canvas is requested, invoke obsidian-canvas-designer directly instead.
 metadata:
   required-skills: "obsidian-markdown, obsidian-cli, obsidian-canvas-designer"
-  optional-skills: "slide-layout-refiner, obsidian-latex-refiner"
+  optional-skills: "obsidian-latex-refiner"
   required-services: "Native multimodal source reading; official mineru-open-api CLI used only as an optional extraction aid"
 ---
 
@@ -50,7 +50,7 @@ Read [requirements/skills.yaml](requirements/skills.yaml), [requirements/service
 5. Work in a uniquely named system temporary directory, falling back to a non-hidden `tmp/` directory inside the installed skill.
 6. Run `scripts/plan-note-structure.py` to draft `note-plan.json` and `page-ledger.json`, then correct them against what you actually saw. Set `draft: false` on both.
 7. Write the note or notes. Apply [references/obsidian-style.md](references/obsidian-style.md) and [references/output-contract.md](references/output-contract.md).
-8. Extract only the visuals whose structure matters and name them semantically. See [references/asset-naming.md](references/asset-naming.md).
+8. Extract and place every meaningful visual at its point of use, and name each one semantically. Record the per-page visual decision in the ledger. See [references/asset-naming.md](references/asset-naming.md).
 9. Optional deterministic LaTeX normalization: run `obsidian-latex-refiner` when enabled; it handles marker-free notes as a single segment.
 10. Read each note and allocate one isolated staging/output tuple per Canvas. Run `scripts/plan-canvas-batch.py`. With one note, direct execution or one subagent is allowed; with two or more, create one subagent task per note.
 11. Render temporary QA with `scripts/fill-report.py`, run [references/validation.md](references/validation.md), extract the facts needed for the final response, delete all QA state on success, then send the concise summary.
@@ -59,6 +59,7 @@ Read [requirements/skills.yaml](requirements/skills.yaml), [requirements/service
 
 - Do not claim that source-to-note conversion is lossless. Optimize for semantic fidelity with visual fallback.
 - Do not dump the extraction result into the vault. The extraction is input, never the deliverable.
+- Never summarize a visual in prose and drop it. Extract the image and place it where it belongs; replace it with text only when the text carries exactly the same information, and declare that in the ledger.
 - Do not invent missing content or normalize an uncertain equation into a confident-looking result.
 - Do not keep slide furniture: agendas, section dividers, course-admin pages, exercise pages, repeated chrome, page numbers, and decorative slides belong in the ledger as `dropped`, not in the note.
 - Never decide note granularity silently. Ask the user on every conversion.
@@ -85,4 +86,3 @@ Read [requirements/skills.yaml](requirements/skills.yaml), [requirements/service
 - [references/canvas-batch-delegation.md](references/canvas-batch-delegation.md) — one subagent per note.
 - [../obsidian-canvas-designer/SKILL.md](../obsidian-canvas-designer/SKILL.md) — delegated Canvas design.
 - [../obsidian-latex-refiner/SKILL.md](../obsidian-latex-refiner/SKILL.md) — optional deterministic math normalization.
-- [../slide-layout-refiner/SKILL.md](../slide-layout-refiner/SKILL.md) — only for MinerU-mode transcription.

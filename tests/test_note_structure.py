@@ -163,6 +163,38 @@ class NoteStructureTests(unittest.TestCase):
         errors = planner.validate_ledger(ledger, plan, False)
         self.assertTrue(any("unknown section" in item for item in errors))
 
+    def test_kept_page_must_declare_its_visuals(self):
+        planner = planner_module()
+        plan = json.loads(PLAN.read_text())
+        ledger = json.loads(LEDGER.read_text())
+        del ledger["pages"][1]["visuals"]
+        errors = planner.validate_ledger(ledger, plan, False)
+        self.assertTrue(any("must declare visuals" in item for item in errors))
+
+    def test_kept_visual_must_name_an_asset(self):
+        planner = planner_module()
+        plan = json.loads(PLAN.read_text())
+        ledger = json.loads(LEDGER.read_text())
+        ledger["pages"][1]["visuals"] = [{"disposition": "kept", "asset": ""}]
+        errors = planner.validate_ledger(ledger, plan, False)
+        self.assertTrue(any("names no asset" in item for item in errors))
+
+    def test_dropped_visual_needs_a_controlled_reason(self):
+        planner = planner_module()
+        plan = json.loads(PLAN.read_text())
+        ledger = json.loads(LEDGER.read_text())
+        ledger["pages"][5]["visuals"] = [{"disposition": "dropped", "reason": "did not feel useful"}]
+        errors = planner.validate_ledger(ledger, plan, False)
+        self.assertTrue(any("dropped without a supported reason" in item for item in errors))
+
+    def test_superseded_by_table_must_name_the_replacement(self):
+        planner = planner_module()
+        plan = json.loads(PLAN.read_text())
+        ledger = json.loads(LEDGER.read_text())
+        ledger["pages"][5]["visuals"] = [{"disposition": "dropped", "reason": "superseded-by-table"}]
+        errors = planner.validate_ledger(ledger, plan, False)
+        self.assertTrue(any("rendered_as" in item for item in errors))
+
     def test_ledger_heavy_drop_requires_explicit_approval(self):
         planner = planner_module()
         plan = json.loads(PLAN.read_text())
@@ -281,6 +313,44 @@ class SynthesisValidationTests(unittest.TestCase):
             self.assertNotEqual(code, 0)
             self.assertTrue(any("page-number prefix" in item for item in result["errors"]))
 
+    def test_kept_visual_missing_from_assets_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / "document"
+            staging = Path(temp) / "staging"
+            staging.mkdir()
+            shutil.copytree(SYNTHESIS_FOLDER, folder)
+            ledger = json.loads(LEDGER.read_text())
+            ledger["pages"][1]["visuals"] = [{"disposition": "kept", "asset": "never-extracted.png"}]
+            ledger_path = staging / "page-ledger.json"
+            ledger_path.write_text(json.dumps(ledger))
+            code, result = run_validator(folder, [
+                "--plan", PLAN, "--ledger", ledger_path, "--page-groups", PAGE_GROUPS,
+            ])
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("missing from assets/" in item for item in result["errors"]))
+
+    def test_asset_not_declared_in_the_ledger_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / "document"
+            staging = Path(temp) / "staging"
+            staging.mkdir()
+            shutil.copytree(SYNTHESIS_FOLDER, folder)
+            note = folder / "week3-qualitative-research.md"
+            note.write_text(
+                note.read_text().replace(
+                    "![[assets/qualitative-research-cycle.png|420]]",
+                    "![[assets/qualitative-research-cycle.png|420]]\n\n![[assets/undeclared-extra.png|300]]",
+                )
+            )
+            (folder / "assets/undeclared-extra.png").write_bytes(b"synthetic")
+            code, result = run_validator(folder, [
+                "--plan", PLAN, "--ledger", LEDGER, "--page-groups", PAGE_GROUPS,
+            ])
+            self.assertNotEqual(code, 0)
+            self.assertTrue(
+                any("not declared as kept in the page ledger" in item for item in result["errors"])
+            )
+
     def test_unreferenced_content_driven_asset_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp) / "document"
@@ -290,7 +360,9 @@ class SynthesisValidationTests(unittest.TestCase):
                 "--plan", PLAN, "--ledger", LEDGER, "--page-groups", PAGE_GROUPS,
             ])
             self.assertNotEqual(code, 0)
-            self.assertTrue(any("not referenced by any note" in item for item in result["errors"]))
+            self.assertTrue(
+                any("not declared as kept in the page ledger" in item for item in result["errors"])
+            )
 
     def test_qa_state_is_deleted_on_success(self):
         with tempfile.TemporaryDirectory() as temp:

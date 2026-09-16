@@ -25,7 +25,9 @@ A conversion is complete only when the required gates pass, or the report marks 
 - The page ledger accounts for every source page exactly once.
 - Every kept or merged page carries an `evidence` phrase that literally occurs in its target note. `--extraction mineru` additionally checks per-page text recall; any exemption is declared in the ledger with a reason.
 - Visual assets use lowercase semantic kebab-case names and every asset is referenced by a note embed or a Canvas file node.
-- Comparison matrices and classification tables are real Markdown tables, not embedded screenshots, unless the visual itself carries unrecoverable meaning and the report says so.
+- Every meaningful source visual is extracted, named, and embedded at its point of use. No visual was reduced to a prose description and discarded.
+- The page ledger declares a visual disposition for every kept or merged page: kept with an asset name, or dropped with a controlled reason. `superseded-by-table` additionally states `rendered_as`.
+- Every asset listed as kept in the ledger exists under `assets/` and is referenced by a note embed or a Canvas file node, and every file in `assets/` is listed in the ledger.
 
 ## CLI and secret safety (MinerU mode only)
 
@@ -39,7 +41,6 @@ A conversion is complete only when the required gates pass, or the report marks 
 - Page reconstruction used V2 page groups or legacy `page_idx`, never global `md` anchors.
 - Page markers are 1-based, monotonic, and precede the first included block from that page.
 - Final visual assets follow `page-PPP-kind-NN.ext` and match the staging `asset-map.json`.
-- `slide-layout-refiner` runs by default for `policy-document` and `paper`. Record `PASS` when it ran, `DISABLED` when `--no-visual-layout-refinement` was passed, `SKIPPED-VISUAL-INPUT` when the model cannot view the PDF, and `REJECTED` when it was rolled back. It is superseded and must not run for native extraction or for `lecture-notes`.
 
 ## Deterministic LaTeX normalization (optional)
 

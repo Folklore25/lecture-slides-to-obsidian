@@ -24,7 +24,10 @@ Content-driven topic notes. **This profile is a synthesis task, not a transcript
 - Choose `single-note` (one note, sections as H2) or `section-notes` (one note per source section) with the user, on every conversion. Rule of thumb to offer: three or more independent sections *and* sixty or more source pages → suggest `section-notes`; otherwise suggest `single-note`.
 - Keep what a learner needs to reconstruct the lesson: definitions, mechanisms, causal chains, formulas, comparison matrices, decision rules, worked-example logic, stated limitations, and cited sources.
 - Drop agendas, section dividers, course-admin or welcome pages, exercise and quiz pages, repeated title/logo/footer chrome, decorative slides, and duplicated summaries. Mark each in the page ledger as `dropped` with a controlled reason.
-- Convert comparison matrices and classification tables into real Markdown tables. Keep an image only when the visual itself carries meaning that prose cannot carry.
+- **Extract and embed every meaningful visual at the position where it belongs.** Never describe a diagram, chart, matrix, or annotated figure in prose and then drop it.
+- A prose description may accompany a visual, never replace it.
+- A Markdown table replaces a visual only when the text carries exactly the same information, which in practice means a legible numeric data table. Declare that in the page ledger as `superseded-by-table`.
+- Record every visual decision per page: kept with an asset name, or dropped with a controlled reason.
 - Record one `evidence` phrase per kept page: a short quotation that actually appears in the delivered note.
 - Keep `## In-class notes` at the end when the learner will take notes in class.
 - The Canvas reconstructs the lesson through foundations, mechanisms/processes, applications/evidence, boundaries/misconceptions, and active-recall questions, following conceptual dependency rather than page order.

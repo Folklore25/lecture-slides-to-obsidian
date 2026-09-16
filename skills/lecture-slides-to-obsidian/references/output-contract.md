@@ -92,7 +92,17 @@ Both are temporary Agent QA state under staging, outside the vault. `scripts/pla
   "source_pages": 44,
   "pages": [
     {"page": 1, "disposition": "dropped", "reason": "title-slide"},
-    {"page": 3, "disposition": "merged", "note": "l03-week3", "section": "1. Research methodology", "evidence": "An interview is a data collection technique, not a method"}
+    {
+      "page": 3,
+      "disposition": "merged",
+      "note": "l03-week3",
+      "section": "1. Research methodology",
+      "evidence": "An interview is a data collection technique, not a method",
+      "visuals": [
+        {"disposition": "kept", "asset": "qualitative-research-cycle.png"},
+        {"disposition": "dropped", "reason": "superseded-by-table", "rendered_as": "markdown-table"}
+      ]
+    }
   ]
 }
 ```
@@ -105,6 +115,18 @@ Rules:
 - Dropping more than half of the source pages needs `--allow-heavy-drop`.
 - `kept` and `merged` require `note`, `section`, and an `evidence` phrase that must literally appear in that note.
 - When MinerU page groups are available, page-level text recall is checked on top of the evidence phrase. A legitimately distilled page may set `recall_exempt` plus `recall_exempt_reason`; nothing is skipped silently.
+
+### Visuals
+
+**Extracting a visual is the default.** Every kept or merged page declares `visuals`: a list, possibly empty, saying what happened to each visual on that page.
+
+- `{"disposition": "kept", "asset": "<semantic-name>.<ext>"}` — the visual was extracted, named, and embedded at its point of use. The file must exist under `assets/` and be embedded by its note or attached to a Canvas concept.
+- `{"disposition": "dropped", "reason": "<reason>"}` — the visual was genuinely not worth keeping. Allowed reasons: `decorative`, `duplicate`, `illegible`, `page-furniture`, `superseded-by-table`.
+- `superseded-by-table` must also state `"rendered_as": "markdown-table"`, so replacing a visual with text is an explicit, auditable choice rather than a silent omission.
+
+Describing a diagram, chart, matrix, or annotated figure in prose and then dropping it is not allowed. A prose description accompanies a visual; it never replaces one.
+
+The ledger and `assets/` are cross-checked in both directions: every asset must be declared as kept, and every declared asset must exist and be embedded.
 
 ## Knowledge-recall Canvas
 

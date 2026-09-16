@@ -263,6 +263,44 @@ def normalize_for_match(value: str) -> str:
     return re.sub(r"\s+", " ", text).strip().casefold()
 
 
+def validate_visual_assets(ledger: dict, assets: Path, referenced: set[str]) -> list[str]:
+    """Tie every extracted asset back to a page that declared it kept, and back again."""
+    errors: list[str] = []
+    declared: set[str] = set()
+    for item in ledger.get("pages", []) if isinstance(ledger, dict) else []:
+        if not isinstance(item, dict):
+            continue
+        entries = item.get("visuals")
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict) or entry.get("disposition") != "kept":
+                continue
+            name = entry.get("asset")
+            if not isinstance(name, str) or not name.strip():
+                continue
+            name = name.strip()
+            declared.add(name)
+            if not (assets / name).is_file():
+                errors.append(
+                    f"page {item.get('page')} declares a kept visual that is missing from assets/: {name}"
+                )
+            elif name not in referenced:
+                errors.append(
+                    f"kept visual {name} is not embedded by its note or a Canvas file node"
+                )
+    on_disk = {
+        path.name for path in assets.iterdir()
+        if path.is_file() and path.suffix.lower() in VISUAL_EXTENSIONS
+    }
+    undeclared = sorted(on_disk - declared)
+    if undeclared:
+        errors.append(
+            "assets are not declared as kept in the page ledger: " + ", ".join(undeclared)
+        )
+    return errors
+
+
 def validate_page_evidence(ledger: dict, note_texts: dict[str, str]) -> list[str]:
     """Every kept page must quote a phrase that actually appears in its target note."""
     errors: list[str] = []
@@ -532,7 +570,9 @@ def validate_report(path: Path) -> list[str]:
     return errors
 
 
-def validate_assets(assets: Path, mode: str, page_count: int, referenced: set[str]) -> list[str]:
+def validate_assets(
+    assets: Path, mode: str, page_count: int, referenced: set[str], ledger: dict | None = None
+) -> list[str]:
     errors: list[str] = []
     sequences: dict[tuple[int, str], list[int]] = {}
     seen: set[str] = set()
@@ -565,12 +605,16 @@ def validate_assets(assets: Path, mode: str, page_count: int, referenced: set[st
         if ordered != expected:
             errors.append(f"asset sequence for page {page:03d} {kind} must be contiguous from 01: {ordered}")
     if mode == "synthesis":
-        orphans = sorted(seen - referenced)
-        if orphans:
-            errors.append(
-                "lecture-notes assets are not referenced by any note or Canvas file node: "
-                + ", ".join(orphans)
-            )
+        if ledger is not None:
+            # The ledger check is strictly stronger and reports the same orphans.
+            errors += validate_visual_assets(ledger, assets, referenced)
+        else:
+            orphans = sorted(seen - referenced)
+            if orphans:
+                errors.append(
+                    "lecture-notes assets are not referenced by any note or Canvas file node: "
+                    + ", ".join(orphans)
+                )
     return errors
 
 
@@ -603,7 +647,6 @@ def main() -> int:
     parser.add_argument("--conservation-threshold", type=float, default=0.35)
     parser.add_argument("--allow-heavy-drop", action="store_true")
     parser.add_argument("--recall-model", type=Path, help="Temporary Agent-authored recall model outside the vault")
-    parser.add_argument("--layout-refinement-report", type=Path, help="Optional validated multimodal layout report")
     parser.add_argument("--latex-refinement-report", type=Path, help="Optional validated LaTeX normalization report")
     parser.add_argument("--aesthetic-check", type=Path, help="Static Canvas aesthetic check outside the vault")
     parser.add_argument("--render-metrics", type=Path, help="First-pass Obsidian DOM measurements outside the vault")
@@ -621,8 +664,6 @@ def main() -> int:
     report = report_input.resolve()
     recall_model_input = args.recall_model
     recall_model = recall_model_input.resolve() if recall_model_input else None
-    layout_report_input = args.layout_refinement_report
-    layout_report = layout_report_input.resolve() if layout_report_input else None
     latex_report_input = args.latex_refinement_report
     latex_report = latex_report_input.resolve() if latex_report_input else None
     aesthetic_check_input = args.aesthetic_check
@@ -637,7 +678,6 @@ def main() -> int:
     render_metrics_data: dict | None = None
     render_check_data: dict | None = None
     aesthetic_check_data: dict | None = None
-    layout_report_data: dict | None = None
     latex_report_data: dict | None = None
     conservation_rows: list[dict] = []
     conservation_mode = "not-checked"
@@ -663,10 +703,6 @@ def main() -> int:
         errors.append("temporary recall model must not be a symlink")
     if recall_model is not None and recall_model.name != "recall-model.json":
         errors.append("temporary recall model filename must be recall-model.json")
-    if layout_report_input is not None and layout_report_input.is_symlink():
-        errors.append("temporary layout refinement report must not be a symlink")
-    if layout_report is not None and layout_report.name != "layout-refinement-report.json":
-        errors.append("temporary layout refinement report filename must be layout-refinement-report.json")
     if latex_report_input is not None and latex_report_input.is_symlink():
         errors.append("temporary LaTeX refinement report must not be a symlink")
     if latex_report is not None and latex_report.name != "latex-refinement-report.json":
@@ -692,7 +728,6 @@ def main() -> int:
         errors.append("temporary conversion report must be outside the document folder and vault")
     for resolved, label in (
         (recall_model, "temporary recall model"),
-        (layout_report, "temporary layout refinement report"),
         (latex_report, "temporary LaTeX refinement report"),
         (aesthetic_check, "temporary aesthetic check"),
         (render_metrics, "temporary render metrics"),
@@ -722,7 +757,6 @@ def main() -> int:
             except (json.JSONDecodeError, UnicodeDecodeError) as exc:
                 errors.append(f"invalid temporary recall model JSON: {exc}")
     for report_path, label, expected_mode in (
-        (layout_report, "temporary layout refinement report", None),
         (latex_report, "temporary LaTeX refinement report", None),
         (aesthetic_check, "temporary aesthetic check", None),
         (render_metrics, "temporary render metrics", "measure"),
@@ -741,11 +775,7 @@ def main() -> int:
         if not isinstance(data, dict) or data.get("schema_version") != 1:
             errors.append(f"{label} must use schema_version 1")
             continue
-        if report_path is layout_report:
-            if not data.get("valid"):
-                errors.append("optional multimodal layout refinement did not pass")
-            layout_report_data = data
-        elif report_path is latex_report:
+        if report_path is latex_report:
             if not data.get("valid"):
                 errors.append("optional LaTeX refinement did not pass")
             latex_report_data = data
@@ -818,7 +848,7 @@ def main() -> int:
                 if invalid:
                     errors.append(f"{note.name}: source-page markers outside 1..{page_count}: {invalid}")
                 errors += validate_refinement_chain(
-                    [entry for entry in (layout_report_data, latex_report_data) if entry is not None],
+                    [latex_report_data] if latex_report_data is not None else [],
                     sha256_file(note),
                 )
         else:
@@ -912,22 +942,23 @@ def main() -> int:
             for note in markdown_files:
                 note_props, _ = parse_frontmatter(note.read_text(encoding="utf-8"))
                 page_count = max(page_count, to_int(note_props.get("source_pages", "0")))
+            ledger_data: dict | None = None
             if ledger_path is not None and ledger_path.is_file():
+                loaded: object = None
                 try:
-                    page_count = max(
-                        page_count,
-                        to_int(json.loads(ledger_path.read_text(encoding="utf-8")).get("source_pages", "0")),
-                    )
+                    loaded = json.loads(ledger_path.read_text(encoding="utf-8"))
                 except (json.JSONDecodeError, UnicodeDecodeError):
-                    pass
-            errors += validate_assets(assets, mode, page_count, referenced)
+                    loaded = None
+                if isinstance(loaded, dict):
+                    ledger_data = loaded
+                    page_count = max(page_count, to_int(loaded.get("source_pages", "0")))
+            errors += validate_assets(assets, mode, page_count, referenced, ledger_data)
 
     deleted: dict[str, bool] = {}
     if not errors and args.delete_qa_on_success:
         for label, resolved in (
             ("report", report),
             ("recall_model", recall_model),
-            ("layout_report", layout_report),
             ("latex_report", latex_report),
             ("aesthetic_check", aesthetic_check),
             ("render_metrics", render_metrics),
@@ -946,7 +977,6 @@ def main() -> int:
         "report_deleted": deleted.get("report", False),
         "temporary_recall_model": str(recall_model) if recall_model else None,
         "recall_model_deleted": deleted.get("recall_model", False),
-        "layout_refinement_report_deleted": deleted.get("layout_report", False),
         "latex_refinement_report_deleted": deleted.get("latex_report", False),
         "aesthetic_check_deleted": deleted.get("aesthetic_check", False),
         "render_metrics_deleted": deleted.get("render_metrics", False),

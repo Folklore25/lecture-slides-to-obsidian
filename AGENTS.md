@@ -1,17 +1,18 @@
 # Repository maintenance instructions
 
-- Treat all six directories under `skills/` as one cc-switch-managed package: course orchestrator, optional slide-layout refiner, deterministic LaTeX refiner, Canvas designer, live lecture notes, and ASR enricher.
+- Treat all five directories under `skills/` as one cc-switch-managed package: course orchestrator, deterministic LaTeX refiner, Canvas designer, live lecture notes, and ASR enricher.
 - Keep `SKILL.md` concise; route conditional detail to `references/`.
-- The official `mineru-open-api` precision CLI is the only extraction client. Never add direct MinerU HTTP code, a local parser/runtime, or lightweight fallback.
+- Native multimodal reading is the default conversion path. When MinerU is used, the official `mineru-open-api` precision CLI is the only extraction client: never add direct MinerU HTTP code, a local parser/runtime, or a lightweight fallback in either mode.
 - Keep source originals outside the Obsidian vault; only complete Markdown, derived assets, and knowledge-recall Canvas belong in document folders.
 - Conversion reports, rollback snapshots, recall models, aesthetic checks, and render checks are temporary Agent QA state under system tmp or the installed skill directory, outside the vault. Delete all after successful validation.
-- Use the official CLI JSON output grouped by `page_idx`; never derive page boundaries with global Markdown anchors.
-- Enforce `page-PPP-kind-NN.ext` final asset names and keep `asset-map.json` in staging only.
+- In MinerU mode, use the official CLI JSON output grouped by `page_idx`; never derive page boundaries with global Markdown anchors.
+- Content-driven notes use lowercase semantic kebab-case asset names and must reference every asset. `page-PPP-kind-NN.ext` applies only to MinerU transcription folders. Keep `asset-map.json` in staging only.
 - The main skill never draws Canvas. Delegate to `obsidian-canvas-designer`, which must apply the pinned Axton guidance, aesthetic score, DOM measure/reflow, and final hash-bound check.
 - Canvas readability is not complete until local Obsidian DOM measurement drives a second layout pass and the final check confirms measured height margin plus 16px effective reading font. Do not use screenshots by default.
 - Keep live student thoughts, teacher ASR additions, and source transcription as separate layers. Supplementary skills insert stable callout blocks and never rewrite source paragraphs or each other's markers.
-- Slide refinement runs by default and directly overwrites the final Markdown; it is page-local only: source-page marker lines, visible token order, links, and per-page asset multisets are immutable. Restore the outside-vault snapshot automatically on any conservation failure. Disable it with `--no-visual-layout-refinement`; skip it when the model cannot view the PDF.
-- Deterministic LaTeX normalization also overwrites the final Markdown page-locally: it may change only math delimiters, environments, and CJK-in-math wrapping. Visible non-math text, links, per-page asset multisets, Callouts, and source-page marker lines are immutable, and the outside-vault snapshot is restored automatically on any conservation failure.
+- The default conversion is native multimodal synthesis: the model reads the source itself and writes section-driven notes. MinerU is an optional aid, and page markers exist only in MinerU transcription. Never decide note granularity silently.
+- Page coverage is audited by `page-ledger.json`: every source page is kept, merged, or dropped with a controlled reason, and every kept page must quote an evidence phrase that appears in its note. Never let a page disappear silently.
+- Deterministic LaTeX normalization overwrites the final Markdown math-spans-only: it may change only math delimiters, environments, and CJK-in-math wrapping. Visible non-math text, links, assets, Callouts, and any source-page marker lines are immutable, and the outside-vault snapshot is restored automatically on any conservation failure.
 - Pre-existing Callouts are valid conversion artifacts, not evidence of user authorship. Preserve their exact headers and `conversion-layer:` provenance; stop only for `lecture-layer:` or explicitly known later additions.
 - Never create a workflow-owned dot-prefixed directory or file in the Obsidian vault. Do not modify an existing `.obsidian/` directory as part of conversion.
 - Canvas learning modules must start from the final top-lane bottom plus 80px; never restore the old fixed `y = 520` placement after overview DOM reflow.

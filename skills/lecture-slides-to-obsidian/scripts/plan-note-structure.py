@@ -25,6 +25,7 @@ DROP_REASONS = {
     "repeated-chrome", "page-furniture", "duplicate", "illegible", "non-substantive",
 }
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+ASSET_FILE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*\.(?:png|jpg|jpeg|webp|gif|bmp|svg)$")
 NUMBERED = re.compile(r"^\s*(?:(\d{1,2}(?:\.\d{1,2})*)|([A-Z]))\s*[.、)]?\s+(\S.*)$")
 CJK = re.compile(r"[\u3400-\u9fff]")
 ADMIN_HINTS = re.compile(
@@ -37,6 +38,9 @@ EXERCISE_HINTS = re.compile(
     re.I,
 )
 VISUAL_TYPES = {"image", "chart", "table"}
+VISUAL_DROP_REASONS = {
+    "decorative", "duplicate", "illegible", "page-furniture", "superseded-by-table",
+}
 AUX_TYPES = {"page_header", "page_footer", "page_number", "page_aside_text", "page_footnote"}
 
 
@@ -92,6 +96,7 @@ def page_signals(index: int, page) -> dict:
     blocks = [block for block in page_blocks(page) if block.get("type") not in AUX_TYPES]
     titles: list[str] = []
     body_parts: list[str] = []
+    visual_types: list[str] = []
     visual_count = 0
     for block in blocks:
         block_type = block.get("type")
@@ -102,6 +107,7 @@ def page_signals(index: int, page) -> dict:
             continue
         if block_type in VISUAL_TYPES:
             visual_count += 1
+            visual_types.append(block_type)
         if text:
             body_parts.append(text)
     body = "\n".join(body_parts)
@@ -114,6 +120,7 @@ def page_signals(index: int, page) -> dict:
         "block_count": len(blocks),
         "char_count": len(body) + sum(len(title) for title in titles),
         "visual_count": visual_count,
+        "visual_types": visual_types,
         "body": body,
         "numbered": numbered,
         "divider_like": len(blocks) <= 3 and len(body) < 140 and visual_count == 0,
@@ -220,6 +227,12 @@ def draft_ledger(signals: list[dict], note_slug: str, sections: list[dict]) -> d
                 "note": note_slug,
                 "section": owner.get(page, sections[0]["heading"] if sections else ""),
                 "evidence": "",
+                # Extracting a detected visual is the default; the Agent names it or
+                # declares a controlled drop reason. An empty asset name cannot validate.
+                "visuals": [
+                    {"disposition": "kept", "asset": "", "kind": kind}
+                    for kind in item["visual_types"]
+                ],
             })
     return {"schema_version": 1, "draft": True, "source_pages": len(signals), "pages": pages}
 
@@ -250,6 +263,8 @@ def build_plan_from_page_count(
                 "Section headings follow the source document's own outline, never slide numbers.",
                 "Give every section the source pages it draws on.",
                 "Record one evidence phrase per kept page and mark furniture pages as dropped.",
+                "List every visual you saw on each kept page in visuals[]: extracted with an asset name, or dropped with a controlled reason.",
+                "Never describe a visual in prose and drop it; extract it and embed it where it belongs.",
                 "Set draft=false on both the plan and the ledger when they are final.",
             ],
         },
@@ -259,7 +274,7 @@ def build_plan_from_page_count(
         "draft": True,
         "source_pages": page_count,
         "pages": [
-            {"page": page, "disposition": "kept", "note": slug, "section": "", "evidence": ""}
+            {"page": page, "disposition": "kept", "note": slug, "section": "", "evidence": "", "visuals": []}
             for page in range(1, page_count + 1)
         ],
     }
@@ -387,6 +402,48 @@ def validate_plan(plan: dict) -> list[str]:
     return errors
 
 
+def validate_page_visuals(page: int, visuals) -> list[str]:
+    """Every kept page declares what happened to each visual it carries."""
+    errors: list[str] = []
+    if not isinstance(visuals, list):
+        return [
+            f"page {page} must declare visuals[] (use [] only when the page carries no visual); "
+            "summarizing a visual in prose and dropping it is not allowed"
+        ]
+    for index, entry in enumerate(visuals):
+        label = f"page {page} visuals[{index}]"
+        if not isinstance(entry, dict):
+            errors.append(f"{label} must be an object")
+            continue
+        disposition = entry.get("disposition")
+        if disposition == "kept":
+            asset = entry.get("asset")
+            if not isinstance(asset, str) or not asset.strip():
+                errors.append(
+                    f"{label} is kept but names no asset; extract it, name it, and embed it at its "
+                    "point of use"
+                )
+            elif not ASSET_FILE.fullmatch(asset.strip()):
+                errors.append(
+                    f"{label}.asset must be a lowercase semantic kebab-case filename: {asset!r}"
+                )
+        elif disposition == "dropped":
+            reason = entry.get("reason")
+            if reason not in VISUAL_DROP_REASONS:
+                errors.append(
+                    f"{label} is dropped without a supported reason: {reason!r}; "
+                    f"allowed={sorted(VISUAL_DROP_REASONS)}"
+                )
+            elif reason == "superseded-by-table" and entry.get("rendered_as") != "markdown-table":
+                errors.append(
+                    f"{label} claims superseded-by-table but does not state "
+                    "rendered_as: \"markdown-table\""
+                )
+        else:
+            errors.append(f"{label} has an unsupported disposition: {disposition!r}")
+    return errors
+
+
 def validate_ledger(ledger: dict, plan: dict, allow_heavy_drop: bool) -> list[str]:
     errors: list[str] = []
     if not isinstance(ledger, dict) or ledger.get("schema_version") != 1:
@@ -449,6 +506,7 @@ def validate_ledger(ledger: dict, plan: dict, allow_heavy_drop: bool) -> list[st
             errors.append(
                 f"page {page} needs an 8..200 character evidence phrase quoted from its target note"
             )
+        errors += validate_page_visuals(page, item.get("visuals"))
     if source_pages:
         missing = [page for page in range(1, source_pages + 1) if page not in seen]
         if missing:

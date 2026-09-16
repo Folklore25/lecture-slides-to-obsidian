@@ -13,14 +13,21 @@
       "disposition": "kept",
       "note": "week3-qualitative-research",
       "section": "1. Research methodology and the qualitative distinction",
-      "evidence": "An interview is a data collection technique, not a method"
+      "evidence": "An interview is a data collection technique, not a method",
+      "visuals": [
+        {
+          "disposition": "kept",
+          "asset": "qualitative-research-cycle.png"
+        }
+      ]
     },
     {
       "page": 3,
       "disposition": "kept",
       "note": "week3-qualitative-research",
       "section": "2. Grounded theory",
-      "evidence": "Grounded theory discovers theory from data that is systematically obtained"
+      "evidence": "Grounded theory discovers theory from data that is systematically obtained",
+      "visuals": []
     },
     {
       "page": 4,
@@ -30,28 +37,38 @@
       "merged_with": [
         3
       ],
-      "evidence": "plan, act, observe, and reflect"
+      "evidence": "plan, act, observe, and reflect",
+      "visuals": []
     },
     {
       "page": 5,
       "disposition": "kept",
       "note": "week3-qualitative-research",
       "section": "4. Ethnography",
-      "evidence": "Ethnographers commonly triangulate interview and observation"
+      "evidence": "Ethnographers commonly triangulate interview and observation",
+      "visuals": []
     },
     {
       "page": 6,
       "disposition": "kept",
       "note": "week3-qualitative-research",
       "section": "5. Case studies",
-      "evidence": "Case studies rely on direct observation and systematic interviewing"
+      "evidence": "Case studies rely on direct observation and systematic interviewing",
+      "visuals": [
+        {
+          "disposition": "dropped",
+          "reason": "superseded-by-table",
+          "rendered_as": "markdown-table"
+        }
+      ]
     },
     {
       "page": 7,
       "disposition": "kept",
       "note": "week3-qualitative-research",
       "section": "6. Evaluating qualitative research",
-      "evidence": "credibility, dependability, transferability, and confirmability"
+      "evidence": "credibility, dependability, transferability, and confirmability",
+      "visuals": []
     }
   ]
 }

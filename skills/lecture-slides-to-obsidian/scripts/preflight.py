@@ -62,11 +62,9 @@ def main() -> int:
     parser.add_argument("--language")
     parser.add_argument("--is-ocr", choices=("true", "false"))
     parser.add_argument("--loaded-skill", action="append", default=[])
-    parser.add_argument("--visual-layout-refinement", dest="layout_refinement_on", action="store_true")
-    parser.add_argument("--no-visual-layout-refinement", dest="layout_refinement_off", action="store_true")
     parser.add_argument(
-        "--layout-visual-input", "--visual-input",
-        dest="layout_visual_input", choices=("true", "false"),
+        "--visual-input", choices=("true", "false"),
+        help="Whether the current model can view the source PDF or rendered page images.",
     )
     parser.add_argument("--latex-refinement", action="store_true")
     parser.add_argument("--fixture-mode", action="store_true")
@@ -154,43 +152,10 @@ def main() -> int:
     if missing_skills:
         errors.append("helper skills not loaded through the Skill tool: " + ", ".join(missing_skills))
     checks["loaded_helper_skills"] = sorted(loaded & REQUIRED_SKILLS)
-    checks["loaded_optional_skills"] = sorted(loaded & {"slide-layout-refiner", "obsidian-latex-refiner"})
-    layout_superseded = synthesis_profile or native_extraction
-    if args.layout_refinement_on and args.layout_refinement_off:
-        errors.append("--visual-layout-refinement and --no-visual-layout-refinement are mutually exclusive")
-    if layout_superseded and args.layout_refinement_on:
-        errors.append(
-            "native multimodal synthesis already produces the final layout; "
-            "slide-layout-refiner only applies to MinerU-based transcription"
-        )
-    if layout_superseded:
-        checks["visual_layout_refinement"] = False
-        checks["visual_layout_refinement_source"] = "superseded-by-content-driven-synthesis"
-    else:
-        layout_explicit_on = args.layout_refinement_on
-        layout_disabled = args.layout_refinement_off
-        layout_refinement_enabled = not layout_disabled
-        checks["visual_layout_refinement"] = layout_refinement_enabled
-        checks["visual_layout_refinement_source"] = "flag" if (layout_explicit_on or layout_disabled) else "default"
-        if layout_refinement_enabled:
-            if "slide-layout-refiner" not in loaded:
-                errors.append("slide-layout-refiner is enabled by default; load it or pass --no-visual-layout-refinement")
-            if args.layout_visual_input is None:
-                questions.append({
-                    "id": "layout_visual_input",
-                    "prompt": "当前所选模型是否支持直接查看原PDF或逐页渲染图？请明确回答 true 或 false。",
-                })
-            elif args.layout_visual_input == "false":
-                if layout_explicit_on:
-                    errors.append("visual layout refinement requires a model with visual input")
-                else:
-                    checks["visual_layout_refinement"] = False
-                    checks["visual_layout_refinement_skip"] = "visual-input-unavailable"
-            else:
-                checks["layout_visual_input"] = True
+    checks["loaded_optional_skills"] = sorted(loaded & {"obsidian-latex-refiner"})
 
     if native_extraction:
-        if args.layout_visual_input is None:
+        if args.visual_input is None:
             questions.append({
                 "id": "native_visual_input",
                 "prompt": (
@@ -198,7 +163,7 @@ def main() -> int:
                     "当前模型能否直接查看原 PDF 或逐页渲染图？请回答 true。"
                 ),
             })
-        elif args.layout_visual_input != "true":
+        elif args.visual_input != "true":
             errors.append(
                 "native extraction requires a natively multimodal model with direct PDF or "
                 "rendered page-image input; otherwise re-run with --extraction mineru"

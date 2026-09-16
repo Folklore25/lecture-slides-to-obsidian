@@ -64,11 +64,15 @@ Mark each dropped page in the ledger with a controlled reason.
 - Use standard Markdown links only for external URLs.
 - Keep equations in LaTeX delimiters so they render in MathJax.
 - Use callouts for warnings or review items, not for ordinary source content. Wrap conversion-generated callouts in `<!-- conversion-layer:<kind>:<id>:start -->` / `<!-- conversion-layer:<kind>:<id>:end -->` markers.
-- Use Markdown tables when the relationship is unambiguous; otherwise keep the visual and state why.
+- Prefer a Markdown table over an image only for a legible numeric data table. For anything whose structure matters, keep the visual.
 
 ## Assets
 
-Embed a visual next to the idea it explains. If the extraction yielded no usable visual and none is needed, create none and report the zero counts.
+Extract the visual; do not paraphrase it away. Embed each one next to the idea it explains
+(`![[assets/coding-stages.png|420]]`), at the position where it appears in the source's reading flow.
+
+A prose description may accompany a visual, never replace it. If the source genuinely contained no
+meaningful visual, create none and report the zero counts.
 
 ## Page markers
 

@@ -33,6 +33,17 @@ Assign names in content-list order so a repeat conversion produces identical nam
 
 ## Choosing what to keep
 
-- Convert comparison matrices, classifications, and taxonomies into Markdown tables instead of images.
-- Keep an image only when the visual carries structure that prose cannot: process diagrams with feedback loops, geometric intuition, annotated screenshots, or a worked figure whose layout matters.
-- The Canvas may attach at most six memory-critical visuals.
+**Extracting the visual is the default.** A diagram, chart, matrix, taxonomy, annotated figure, or
+screenshot that carries information the prose does not must be extracted, named, and embedded at the
+point in the note where it belongs.
+
+- **Never summarize a visual in prose and drop it.** A textual description is a supplement to the
+  image, never a replacement.
+- Replace a visual with text only when that text carries exactly the same information — in practice a
+  legible numeric data table. Declare it in the page ledger as `superseded-by-table` with
+  `rendered_as: "markdown-table"`.
+- Drop a visual only for a controlled reason: `decorative`, `duplicate`, `illegible`, or
+  `page-furniture`. Record it in the ledger.
+- Place the embed where the visual sits in the source's reading flow, not collected at the end.
+- The Canvas cap of six memory-critical visuals applies to the **Canvas only**. It never limits what
+  the note itself keeps.
