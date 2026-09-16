@@ -1,71 +1,118 @@
 # Output contract
 
-The source original remains outside the Obsidian vault. The default deliverable is one self-contained derived folder per document:
+The source original stays outside the Obsidian vault. The deliverable is one self-contained derived folder per document.
 
 ```text
 <vault_root>/
 └── <course-folder>/
     └── Lectures/
         └── <document-slug>/
-            ├── <document-slug>.md
-            ├── <document-slug>.canvas
-            ├── assets/
-            │   ├── page-003-figure-01.png
-            │   └── page-007-fallback-01.png
+            ├── <note-slug>.md          # one or more
+            ├── <note-slug>.canvas      # exactly one per note
+            └── assets/
+                ├── qualitative-research-cycle.png
+                └── coding-stages.png
 ```
 
 The folder must not contain a conversion report, PDF, PPT/PPTX, DOC/DOCX, XLS/XLSX, archive original, second/backup note, or dot-prefixed file/directory. It must not depend on staging paths.
 
-## Complete Markdown
+## Notes
 
-The Markdown file is the complete course material, not a summary. It contains:
+Each note is a complete, readable knowledge artifact:
 
-1. YAML properties with supported source metadata and conversion profile.
-2. Exactly one H1 title.
-3. All substantive content in page/block reading order.
-4. Page markers immediately before the first included text/title block from each page.
-5. Relative Obsidian embeds for extracted images, tables, equations, or fallback pages.
+1. Minimal YAML properties (see below). No page-provenance fields.
+2. Exactly one H1 whose text is the note title.
+3. H2 headings that equal the planned section headings from `note-plan.json`.
+4. Real Markdown prose, lists, and tables for substantive content.
+5. Relative Obsidian embeds for the visuals that survived selection.
 6. Explicit uncertainty markers only where review is required.
-7. Profile-specific additions such as `## In-class notes` only when appropriate.
+7. `## In-class notes` last, for `lecture-notes` only.
 
-When a knowledge Canvas is requested, every concept source section must expose a real `## H2` anchor with page provenance. H3 headings are not valid Canvas source anchors. Do not promote user-authored headings merely to satisfy Canvas generation; report the exact structural candidates and require an authorized note repair.
+A note produced by native reading must not contain `<!-- source-page: N -->` markers. Markers are part of the MinerU faithful-transcription contract only, and page coverage is carried by `page-ledger.json` instead.
 
-When slide-layout refinement runs (enabled by default), `source-page` marker lines remain byte-identical and content may be reformatted only inside its original page segment. Final visible text tokens and their order must equal the base MinerU Markdown; assets may move only within their original page.
+Every `## H2` is a Canvas anchor: keep headings stable, unique inside a note, and free of page furniture.
 
-When optional LaTeX normalization is enabled, it rewrites only math syntax: delimiters, environments, and CJK runs inside math. Visible non-math text, links, assets, Callouts, and every `source-page` marker line stay unchanged, and the outside-vault snapshot is restored automatically on any conservation failure.
-
-Required top-level properties:
+Required properties:
 
 ```yaml
+---
 type: course-material
 course: COURSE101
 title: Example document
 source_filename: example.pdf
 source_format: pdf
 source_sha256: <sha256>
-source_pages: 14
 conversion_profile: lecture-notes
-mineru_model: vlm
+mineru_model: native
 status: pre-class
+---
 ```
 
-Do not store the absolute source path in the note by default.
+`mineru_model` records `native` or the CLI model (`vlm`, `pipeline`). Do not store the absolute source path in the note.
 
 ## Assets
 
-- Copy only derived MinerU images or explicitly generated visual fallback pages.
-- Follow [asset-naming.md](asset-naming.md): `page-<PPP>-<kind>-<NN>.<ext>` with 1-based page and per-page/per-kind sequence.
-- Keep assets local to the document folder.
-- When there are no figures, tables, equations, or fallback pages, keep `assets/` empty and report all four zero counts explicitly.
+- Copy only derived visuals: extracted figures or self-produced crops that carry meaning.
+- Follow [asset-naming.md](asset-naming.md): lowercase semantic kebab-case, for example `coding-stages.png`.
+- Keep assets flat under the document's `assets/`, and reference every asset from a note embed or a Canvas file node.
 - Never place the original document in `assets/`.
+- `page-PPP-kind-NN.ext` remains valid only for `--extraction mineru` transcription folders.
+
+## Note plan and page ledger
+
+Both are temporary Agent QA state under staging, outside the vault. `scripts/plan-note-structure.py` drafts them; the Agent corrects them against the source it actually read.
+
+`note-plan.json`
+
+```json
+{
+  "schema_version": 1,
+  "profile": "lecture-notes",
+  "granularity": "single-note",
+  "source_pages": 44,
+  "draft": false,
+  "notes": [
+    {
+      "slug": "l03-week3",
+      "title": "Week 3 Qualitative Research",
+      "sections": [
+        {"heading": "1. Research methodology", "pages": [2, 3, 4], "subtopics": ["Method versus technique"]}
+      ]
+    }
+  ]
+}
+```
+
+`page-ledger.json`
+
+```json
+{
+  "schema_version": 1,
+  "draft": false,
+  "source_pages": 44,
+  "pages": [
+    {"page": 1, "disposition": "dropped", "reason": "title-slide"},
+    {"page": 3, "disposition": "merged", "note": "l03-week3", "section": "1. Research methodology", "evidence": "An interview is a data collection technique, not a method"}
+  ]
+}
+```
+
+Rules:
+
+- Every source page appears exactly once.
+- `disposition` is `kept`, `merged`, or `dropped`.
+- `dropped` requires a reason from: `title-slide`, `section-divider`, `agenda`, `course-admin`, `exercise`, `repeated-chrome`, `page-furniture`, `duplicate`, `illegible`, `non-substantive`.
+- Dropping more than half of the source pages needs `--allow-heavy-drop`.
+- `kept` and `merged` require `note`, `section`, and an `evidence` phrase that must literally appear in that note.
+- When MinerU page groups are available, page-level text recall is checked on top of the evidence phrase. A legitimately distilled page may set `recall_exempt` plus `recall_exempt_reason`; nothing is skipped silently.
 
 ## Knowledge-recall Canvas
 
-Delegate `<document-slug>.canvas` to `obsidian-canvas-designer` following its [delegation contract](../../obsidian-canvas-designer/references/delegation-contract.md). It must link every concept back to the complete Markdown and must not link or embed the source original. The staging recall model, aesthetic check, and both DOM render-QA JSON files are temporary and must not enter the vault.
+Delegate `<note-slug>.canvas` to `obsidian-canvas-designer` following its [delegation contract](../../obsidian-canvas-designer/references/delegation-contract.md). It must link every concept back to its note and must not link or embed the source original. The staging recall model, aesthetic check, and both DOM render-QA JSON files are temporary and must not enter the vault.
 
 ## Temporary conversion report
 
-Build a context JSON matching [../templates/report-context.example.json](../templates/report-context.example.json), then run `scripts/fill-report.py`. Write the result under staging, outside the Obsidian vault. It is Agent-only QA state, not a user knowledge artifact. The rendered report contains these fixed sections:
+Build a context JSON matching [../templates/report-context.example.json](../templates/report-context.example.json), then run `scripts/fill-report.py`. Write the result under staging, outside the Obsidian vault. Fixed sections:
 
 - `## Matched routing`
 - `## Pipeline`
@@ -75,12 +122,12 @@ Build a context JSON matching [../templates/report-context.example.json](../temp
 - `## Review items`
 - `## Not checked`
 
-Include figures, tables, equations, fallback pages, page headers, page footers, and page footnotes even when counts are zero. Record omitted auxiliary blocks and the conversion profile.
+Include figures, tables, equations, fallback pages, page headers, page footers, and page footnotes even when counts are zero. Record the extraction mode, the granularity decision, and the conversion profile.
 
-Never include the API token, Authorization header, signed upload URL, result URL, CDN query parameters, raw response headers, or absolute source path. A redacted task/batch reference is allowed for timeout recovery.
+Never include the API token, Authorization header, signed upload URL, result URL, CDN query parameters, raw response headers, or absolute source path.
 
-Use the report to drive validation and the concise final user summary. Delete it immediately after successful validation/summary. Preserve it only when validation fails and debugging must continue; delete it when the failure is resolved or the task is abandoned.
+Delete the report immediately after successful validation and summary. Preserve it only while debugging a failure.
 
 ## Overwrite and idempotence
 
-Default to no overwrite. Stable input/configuration should produce stable folder and asset names. Never replace user-authored additions without an explicit merge strategy. A filename collision with different source hashes requires a distinct document slug or user decision.
+Default to no overwrite. Stable input and configuration should produce stable folder, note, and asset names. Never replace user-authored additions without an explicit merge strategy. A filename collision with a different source hash requires a distinct document slug or a user decision.

@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "draft": false,
+  "source_pages": 7,
+  "pages": [
+    {
+      "page": 1,
+      "disposition": "dropped",
+      "reason": "title-slide"
+    },
+    {
+      "page": 2,
+      "disposition": "kept",
+      "note": "week3-qualitative-research",
+      "section": "1. Research methodology and the qualitative distinction",
+      "evidence": "An interview is a data collection technique, not a method"
+    },
+    {
+      "page": 3,
+      "disposition": "kept",
+      "note": "week3-qualitative-research",
+      "section": "2. Grounded theory",
+      "evidence": "Grounded theory discovers theory from data that is systematically obtained"
+    },
+    {
+      "page": 4,
+      "disposition": "merged",
+      "note": "week3-qualitative-research",
+      "section": "3. Action research",
+      "merged_with": [
+        3
+      ],
+      "evidence": "plan, act, observe, and reflect"
+    },
+    {
+      "page": 5,
+      "disposition": "kept",
+      "note": "week3-qualitative-research",
+      "section": "4. Ethnography",
+      "evidence": "Ethnographers commonly triangulate interview and observation"
+    },
+    {
+      "page": 6,
+      "disposition": "kept",
+      "note": "week3-qualitative-research",
+      "section": "5. Case studies",
+      "evidence": "Case studies rely on direct observation and systematic interviewing"
+    },
+    {
+      "page": 7,
+      "disposition": "kept",
+      "note": "week3-qualitative-research",
+      "section": "6. Evaluating qualitative research",
+      "evidence": "credibility, dependability, transferability, and confirmability"
+    }
+  ]
+}

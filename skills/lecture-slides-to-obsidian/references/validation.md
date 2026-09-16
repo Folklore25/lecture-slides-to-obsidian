@@ -1,67 +1,86 @@
 # Output validation
 
-Run this before declaring completion:
+Run this before declaring completion.
+
+## Content-driven notes (native, or MinerU as an aid)
 
 ```text
-scripts/validate-output.py <document-folder> --vault-root <vault-root> --report <staging>/conversion-report.md --recall-model <staging>/recall-model.json --latex-refinement-report <staging>/latex-refinement-report.json --aesthetic-check <staging>/canvas-aesthetic-check.json --render-metrics <staging>/canvas-render-metrics.json --render-check <staging>/canvas-render-check.json --delete-qa-on-success
+scripts/validate-output.py <document-folder> --vault-root <vault-root> \
+  --plan <run>/note-plan.json --ledger <run>/page-ledger.json \
+  --report <run>/conversion-report.md \
+  --recall-model <run>/recall-model.json \
+  --aesthetic-check <run>/canvas-aesthetic-check.json \
+  --render-metrics <run>/canvas-render-metrics.json \
+  --render-check <run>/canvas-render-check.json \
+  --delete-qa-on-success
 ```
 
-When slide-layout refinement runs and its in-place overwrite passes, also pass `--layout-refinement-report <tmp>/layout-refinement-report.json`. Omit it when the feature is disabled, skipped for lack of visual input, or rolled back. The report and its pre-edit snapshot must be outside the vault.
+Add `--page-groups <run>/<stem>.content-list-v2.compat.json` when MinerU ran; that upgrades conservation from evidence-only to evidence plus per-page text recall. Add `--allow-heavy-drop` only after confirming the source really is mostly furniture.
 
-When optional deterministic LaTeX normalization is enabled and its in-place overwrite passes, also pass `--latex-refinement-report <tmp>/latex-refinement-report.json`. Omit it when the feature is disabled or the overwrite was rolled back. Its snapshot and report must be outside the vault. When both refinement reports are supplied, they must form a single snapshot-to-refined chain whose final refined hash equals the delivered Markdown.
+`--plan` and `--ledger` are mandatory whenever a note carries no page markers. That is the normal case for native reading.
+
+## MinerU transcription (page markers in force)
+
+```text
+scripts/validate-output.py <document-folder> --vault-root <vault-root> \
+  --report <run>/conversion-report.md --recall-model <run>/recall-model.json \
+  --latex-refinement-report <run>/latex-refinement-report.json \
+  --aesthetic-check <run>/canvas-aesthetic-check.json \
+  --render-metrics <run>/canvas-render-metrics.json \
+  --render-check <run>/canvas-render-check.json --delete-qa-on-success
+```
+
+When layout refinement ran and its in-place overwrite passed, also pass `--layout-refinement-report <run>/layout-refinement-report.json`. Omit it when the feature is disabled, skipped for lack of visual input, or rolled back. The report and its pre-edit snapshot must be outside the vault.
+
+When both refinement reports are supplied they must form a single snapshot-to-refined chain whose final hash equals the delivered Markdown.
 
 ## Folder checks
 
-- Exactly one primary Markdown file, one relationship `.canvas`, and `assets/` exist.
+- At least one primary Markdown file, one Canvas per note, and `assets/` exist.
 - `conversion-report.md` does not exist in the document folder or anywhere inside the vault.
 - No PDF, PPT/PPTX, DOC/DOCX, XLS/XLSX, ZIP, or other source original exists anywhere in the document folder.
 - All derived paths remain inside the document folder.
+- No dot-prefixed file or directory exists in the document folder.
 
-## Markdown checks
+## Note checks
 
-- UTF-8 text with closed YAML frontmatter.
-- Required properties from `output-contract.md` are present.
-- Exactly one H1 exists.
-- `source_pages` is a positive integer.
-- Every `<!-- source-page: N -->` uses `1 <= N <= source_pages` and markers are monotonic.
+- UTF-8 text with closed YAML frontmatter carrying the required properties.
+- Exactly one H1 per note.
+- H2 headings equal the planned section headings, with no duplicates.
+- Marks: content-driven notes contain no `<!-- source-page: N -->`; MinerU transcription notes contain monotonic in-range markers.
 - Every Markdown asset link and Obsidian embed resolves.
-- Every visual asset is a flat `assets/page-PPP-kind-NN.ext` file; page numbers are valid and per-page/per-kind sequences are contiguous from `01`.
-- When `--vault-root` is supplied, every non-heading wikilink resolves to a note or file within the vault.
-- The profile is one of `lecture-notes`, `policy-document`, or `paper`.
+- Every wikilink resolves inside the vault when `--vault-root` is supplied.
+- Content-driven assets use lowercase semantic kebab-case names; MinerU transcription assets use flat `page-PPP-kind-NN.ext` with contiguous per-page sequences.
+- Content-driven assets are referenced by a note or a Canvas file node.
 
-Structured provenance must also be checked against MinerU content lists: marker N precedes page N's first included block. The standalone validator checks marker range/order, while the conversion pipeline records block-level evidence in the report.
+## Ledger and conservation checks
+
+- The plan and ledger are final (`draft: false`) and internally consistent.
+- Every source page is present exactly once with a supported disposition.
+- Dropped pages carry a controlled reason; a heavy drop needs explicit approval.
+- Every kept or merged page maps to a planned note and section and carries an `evidence` phrase that occurs in that note.
+- With `--page-groups`, per-page text recall must clear `--conservation-threshold` (default `0.35`) unless the ledger declares `recall_exempt` with a reason. The validator reports the measured recall per page either way.
 
 ## Canvas checks
 
 - Valid JSON with `nodes` and `edges` arrays.
 - All node and edge IDs are unique 16-character lowercase hex strings.
-- Node types and required fields are valid.
-- Every edge endpoint resolves.
+- Node types and required fields are valid, and every edge endpoint resolves.
 - Exactly one overview, logic-chain synthesis, distinctions, and active-recall node exists.
-- There are 2–7 learning-module groups and 4–20 concept nodes.
-- Concept cards use compact H3 hierarchy and exact heading/page provenance; recall cues are consolidated in the shared active-recall zone.
-- Semantic concept edges form one connected graph, stay between `N-1` and `2N`, and avoid generic labels.
-- No concept has more than six semantic connections and no text node is a paragraph dump.
-- Final Obsidian DOM check matches the delivered Canvas hash, reports no node below the measured safety height, and leaves the reading view at 16px effective font size.
-- File-node paths resolve inside the document folder.
-- No file or URL node targets a source-original format.
-- Basic node rectangles do not overlap.
+- 2–7 learning-module groups and 4–20 concept nodes.
+- Concept cards use compact H3 hierarchy and link to an exact `## H2` in the paired note. Include `Source p.N` only when the note actually carries page provenance.
+- Semantic concept edges form one connected graph, stay between `N-1` and `2N`, avoid generic labels, and keep every concept at six connections or fewer.
+- Final Obsidian DOM check matches the delivered Canvas hash and reports no node below its measured safety height.
+- File-node paths resolve inside the document folder and never target a source original.
 
 ## Temporary QA checks
 
-- All fixed template sections exist.
-- Content inventory includes figures, tables, equations, fallback pages, headers, footers, and footnotes, including zeros.
-- Structural alignment and pixel-level visual comparison are separate gates.
-- Unperformed visual rendering is marked `NOT-CHECKED`, not `PASS`.
+- All fixed report sections exist and inventory rows are numeric, including zeros.
+- Structural alignment and pixel-level visual comparison remain separate gates; unperformed rendering is `NOT-CHECKED`, never `PASS`.
 - No token, Authorization header, signed URL, or absolute source path appears.
 - `recall-model.json` is outside the vault, valid JSON with schema version 1, and was used to build the Canvas.
-- If supplied, `layout-refinement-report.json` is valid and, together with any LaTeX report, forms a chain whose final refined target SHA matches the delivered Markdown.
-- If supplied, `latex-refinement-report.json` is valid, uses schema version 1, and its `refined_sha256` participates in that chain.
-- The document folder contains no dot-prefixed file or directory. The workflow never creates hidden staging/tmp/cache paths anywhere in the vault.
-- `canvas-aesthetic-check.json` passes at score 85 or above and matches the delivered Canvas hash.
-- `canvas-render-metrics.json` is a complete first-pass DOM measurement; `canvas-render-check.json` is a successful final check for the delivered Canvas.
-- After the Agent has extracted the facts needed for its final response, `--delete-qa-on-success` removes the report, recall model, optional layout report, aesthetic check, render metrics, and render check before that response is sent.
+- `--delete-qa-on-success` removes the report, recall models, plan, ledger, page groups, optional refinement reports, aesthetic checks, render metrics, and render checks before the final response is sent.
 
 ## Reporting
 
-The validator returns non-zero when deterministic checks fail and preserves the report for debugging. Do not reinterpret a failure as a warning. Checks requiring MinerU block evidence or pixel rendering remain explicit temporary-report gates.
+The validator returns non-zero when deterministic checks fail and preserves the report and plan/ledger for debugging. Do not reinterpret a failure as a warning.

@@ -1,45 +1,69 @@
 ---
 type: course-material
 course: COURSE101
-title: Example Lecture
+title: Week 3 Qualitative Research
 source_filename: example-lecture.pdf
 source_format: pdf
 source_sha256: 0000000000000000000000000000000000000000000000000000000000000000
-source_pages: 3
 conversion_profile: lecture-notes
-mineru_model: vlm
+mineru_model: native
 status: pre-class
-tags:
-  - lecture
 ---
 
-# Example Lecture
+# Week 3 Qualitative Research
 
-> [!info] Conversion scope
-> Complete Markdown derived through the official MinerU Open API CLI. The source PDF remains outside the vault.
+> Four overarching methods, three data collection techniques, and four tests of quality.
 
-<!-- source-page: 1 -->
+## 1. Research methodology and the qualitative distinction
 
-## Learning objectives
+A methodology is a strategy of inquiry chosen to answer a research question, and it can be qualitative,
+quantitative, or mixed.
 
-- Explain the fictional concept used in this synthetic example.
-- Compare two sample approaches.
+| Qualitative | Quantitative |
+| --- | --- |
+| Understand and interpret | Describe, explain, and predict |
+| Researcher is participant or catalyst | Limited; controlled to prevent bias |
+| Non-probability, purposive sampling | Probability sampling |
 
-<!-- source-page: 2 -->
+An interview is a **data collection technique**, not a method.
 
-## 1. Core idea
+![[assets/qualitative-research-cycle.png|420]]
 
-The main idea is represented as editable text. Source numbering is preserved because it may be used by later cross-references.
+## 2. Grounded theory
 
-<!-- source-page: 3 -->
+Grounded theory discovers theory from data that is systematically obtained and analyzed, reversing the
+traditional order by collecting data before proposing a theory.
 
-## 2. Process diagram
+- **Open coding** labels phenomena and develops categories.
+- **Axial coding** interconnects the categories.
+- **Selective coding** builds the connecting story into theoretical propositions.
 
-The diagram shows a three-stage relationship that cannot be represented confidently as linear prose.
+Data collection and analysis zigzag until categories reach saturation.
 
-![[assets/page-003-fallback.png]]
+## 3. Action research
+
+Action research solves a real world issue while contributing to theory. Each cycle has four steps:
+plan, act, observe, and reflect.
+
+## 4. Ethnography
+
+Ethnography studies social interactions, behaviours, and perceptions within groups, communities, and
+organisations. Ethnographers commonly triangulate interview and observation, because what people say
+about their behaviour can differ from what they do.
+
+## 5. Case studies
+
+A case study analyses a person, event, decision, project, or institution holistically as an instance of a
+class of phenomena, and is preferred for contemporary events when behaviour cannot be manipulated.
+
+## 6. Evaluating qualitative research
+
+> [!note] Source
+> Guba and Lincoln's four tests of quality, as cited on the final source page.
+
+The four tests are credibility, dependability, transferability, and confirmability.
 
 > [!warning] Manual review
-> Confirm the arrow direction and labels against source page 3.
+> One formula on the coding slide was rendered as an image; confirm the notation before relying on it.
 
 ## In-class notes

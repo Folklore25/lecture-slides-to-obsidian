@@ -14,6 +14,10 @@ The complete Markdown remains the source of detail. Every concept node links bac
 
 Reference inspiration: [phd-deepread-workflow](https://github.com/heleninsights-dot/phd-deepread-workflow/tree/main). Retain its useful critical-thinking pattern—argument, assumptions, evidence, limitations, alternatives, questions—but do not copy its fixed paper-only layout or placeholder nodes.
 
+## One Canvas per note
+
+A conversion may deliver several notes. Each note gets its own `<note-slug>.canvas` beside it, its own recall model, and its own staging QA files. Never build one Canvas across two notes.
+
 ## Required two-stage generation
 
 Do not ask `build-canvas.py` to infer meaning from Markdown headings. The delegating Agent must first read the **complete note**, reason about the content, and write a staging `recall-model.json` following [recall-model.md](recall-model.md). Then run:
@@ -34,11 +38,11 @@ The model is temporary Agent QA state. Delete it together with the conversion re
 The renderer creates four visual zones:
 
 - **One-minute recall:** central question, one-sentence answer, and three to five takeaways.
-- **Learning modules:** two to seven left-to-right groups. Group by conceptual function, not slide/page order.
-- **Concept network:** four to twenty atomic nodes, normally eight to sixteen. Each node states one idea, gives at most three details, includes a recall cue, and links to its full source section.
+- **Learning modules:** two to seven left-to-right groups. Group by conceptual function, not slide or page order.
+- **Concept network:** four to twenty atomic nodes, normally eight to sixteen. Each node states one idea, gives at most two details, includes a recall cue, and links to its full source section.
 - **Synthesis strip:** logic chain, distinctions/boundaries, and active-recall prompts; post-class additions appear here.
 
-The Canvas may omit low-value detail from view, but not silently. The model's `coverage` ledger must account for every H2 heading/page occurrence by mapping it to concept nodes or giving a concrete omission reason. This is how repeated headings stay distinct and the Canvas remains concise without pretending to contain the full note.
+The Canvas may omit low-value detail from view, but not silently. The model's `coverage` ledger must account for every H2 heading, mapping it to concept nodes or giving a concrete omission reason.
 
 The overview and source-note preview form one top orientation lane. Learning-module group bounds begin at least 80 px below the lower edge of that lane. This clearance includes the group labels that Obsidian renders above group bounds. Compute the row dynamically from the final overview height; a fixed module-row `y` is invalid.
 
@@ -73,8 +77,8 @@ A finished Canvas must pass all of these:
 - **Reading-scale test:** at the supported `zoom = 0`, the effective Canvas font is `16px`, at least as large as the local `13px` sidebar text.
 - **One-minute test:** at reading scale, the overview plus logic chain recovers the lesson's thesis without opening the Markdown.
 - **Why-edge test:** every arrow can be read as a meaningful sentence, `A <label> B`.
-- **Coverage test:** every major Markdown section is mapped or explicitly excluded in staging.
-- **Traceability test:** every concept links to an exact existing `## H2` and states its 1-based source page; H3 is not accepted and selected assets resolve inside the document folder.
+- **Coverage test:** every H2 heading in the note is mapped or explicitly excluded in staging.
+- **Traceability test:** every concept links to an exact existing `## H2`; H3 is not accepted, selected assets resolve inside the document folder, and page numbers appear only when the note actually carries page provenance.
 - **Density test:** no placeholder nodes, paragraph dumps, isolated concepts, node overlaps, or hub with more than six semantic connections.
 - **Card compactness test:** every rendered text node has `8–12px` effective headroom after local renderer chrome; both clipping and oversized empty tails fail.
 - **Top-lane clearance test:** after DOM-driven reflow, the overview/source lane has at least 80 px before the learning-module group bounds.
@@ -83,10 +87,10 @@ A finished Canvas must pass all of these:
 
 ## JSON Canvas invariants
 
-- Create `<document-slug>.canvas` beside `<document-slug>.md`.
+- Create `<note-slug>.canvas` beside `<note-slug>.md`.
 - Use unique 16-character lowercase hexadecimal IDs.
 - File paths are relative to the vault root, never relative to the Canvas.
-- Never create a file/link node for the original PDF/PPT/Office source or its absolute path.
+- Never create a file/link node for the original PDF or Office source, or its absolute path.
 - Keep 50–100 px spacing and let groups sit behind their child nodes.
 - Treat offline `text_height()` as an initial estimate only. Rebuild from Obsidian DOM measurements before final validation.
 - Production delivery never skips renderer QA. Offline estimates are allowed only in synthetic/unit fixtures and must not be reported as a completed Canvas.

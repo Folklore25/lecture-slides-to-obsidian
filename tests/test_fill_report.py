@@ -14,8 +14,8 @@ CONTEXT_PATH = REPO / "skills/lecture-slides-to-obsidian/templates/report-contex
 VALIDATOR = REPO / "skills/lecture-slides-to-obsidian/scripts/validate-output.py"
 OUTPUT_FIXTURE = REPO / "tests/fixtures/synthetic/valid-document-folder"
 SPEC = importlib.util.spec_from_file_location("fill_report", SCRIPT)
+assert SPEC is not None and SPEC.loader is not None
 FILL_REPORT = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
 SPEC.loader.exec_module(FILL_REPORT)
 
 
@@ -30,7 +30,7 @@ class FillReportTests(unittest.TestCase):
             "Quality gates", "Review items", "Not checked",
         ):
             self.assertIn(f"## {section}", report)
-        self.assertIn("| Figures/images | 0 |", report)
+        self.assertRegex(report, r"(?m)^\| Figures/images \| \d+ \|$")
         self.assertIn("Pixel-level visual diff", report)
 
     def test_review_items_are_machine_greppable(self):

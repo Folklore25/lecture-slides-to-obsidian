@@ -10,7 +10,27 @@ Agent: Which folder inside your Obsidian vault should contain this term's course
 User: /path/to/vault/example-term
 ```
 
-The Agent confirms the course folder, profile, language, OCR choice, and encrypted token state in stages. The source remains outside the vault.
+The Agent confirms the course folder, the extraction mode, the note granularity, and the profile in stages. The source remains outside the vault.
+
+## Extraction mode is chosen first
+
+```text
+Agent: I can read this deck directly and write the notes myself, which preserves the layout and the comparison tables.
+       That needs a model that can see the pages, which this one can. Proceed natively, or should I run MinerU as an aid?
+User: Read it yourself.
+```
+
+Native reading is the default. MinerU is only selected when the model cannot view the source, when the document is long or scanned, or when the user asks for it.
+
+## Note granularity is always asked
+
+```text
+Agent: This deck has four numbered sections across 44 pages. Do you want one note with those sections as headings
+       (single-note), or one note per section (section-notes)?
+User: One note, sections as headings.
+```
+
+`preflight.py` emits this question on every `lecture-notes` conversion. There is no default.
 
 ## Existing course mapping
 
@@ -36,23 +56,30 @@ User: Convert /external/materials/example-policy.pdf for COURSE101.
 Agent: The filename suggests policy-document rather than lecture-notes. Use policy-document?
 ```
 
-Profile is confirmed before upload. Structured MinerU output acts as a later mismatch check.
+Profile is confirmed before any writing.
 
-## Encrypted token setup
-
-If encrypted state is absent, the Agent discloses the upload and configures it:
+## MinerU as an optional aid
 
 ```text
-Agent: This source will be uploaded to the official MinerU API. Provide the API token; I will encrypt it in this installed skill's state directory and will not echo or store plaintext.
-User: <MinerU API token>
+User: This one is a 180-page scan; use MinerU this time.
+Agent: This source will be uploaded to the official MinerU API. You already stored an encrypted token, so I will reuse it.
+       Confirm language `en` and OCR `true` for this document.
 ```
 
-The Agent passes the token to `token-store.py set --token-stdin` through stdin, never a command argument. The script automatically stores a random wrapping key in macOS Keychain. Later conversions unlock automatically without asking again.
+Only with `--extraction mineru`. The Agent passes the token to `token-store.py set --token-stdin` through stdin when state is absent, never as a command argument, and reuses the encrypted token silently afterwards.
 
-## API option confirmation
+## Text-only model
 
 ```text
-Agent: Confirm MinerU language `en` and OCR `false` for this document.
+Agent: This model cannot view PDF pages, so native reading is not available. Re-running with --extraction mineru to keep the
+       conversion faithful rather than guessing from a text layer alone.
 ```
 
-Both fields require explicit values; neither uses a silent request default.
+Never run native conversion on a model that cannot see the source.
+
+## Skeleton review
+
+```text
+Agent: plan-note-structure.py proposed five sections and marked nine pages as furniture. I read the deck and adjusted two
+       headings; the plan and ledger are now final and every kept page carries an evidence phrase.
+```

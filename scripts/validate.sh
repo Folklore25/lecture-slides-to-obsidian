@@ -36,6 +36,7 @@ scripts/plan-canvas-batch.py
 scripts/fill-report.py
 scripts/mineru-cli-adapter.py
 scripts/preflight.py
+scripts/plan-note-structure.py
 scripts/reconstruct-note.py
 scripts/purge-state.sh
 scripts/token-store.py
@@ -61,7 +62,8 @@ scripts/canvas-aesthetic-qa.py
 scripts/canvas-render-qa.py
 scripts/recall-skeleton.py
 templates/delegated-task.md
-templates/recall-model.lecture-notes.example.json'
+templates/recall-model.lecture-notes.example.json
+templates/recall-model.content-driven.example.json'
 
 live_notes_required_files='SKILL.md
 agents/openai.yaml
@@ -229,7 +231,7 @@ fi
 
 if ! grep -q 'optional-skills: "slide-layout-refiner, obsidian-latex-refiner"' "$skill_dir/SKILL.md" ||
  ! grep -q 'requires-visual-input: "true"' "$layout_skill_dir/SKILL.md" ||
- ! grep -A4 'name: "slide-layout-refiner"' "$skill_dir/requirements/skills.yaml" | grep -q 'enabled_by_default: true'; then
+ ! grep -A6 'name: "slide-layout-refiner"' "$skill_dir/requirements/skills.yaml" | grep -q 'enabled_only_with_extraction_mode: "mineru"'; then
  printf 'optional multimodal layout refinement contract is missing\n' >&2
  exit 1
 fi
@@ -255,8 +257,23 @@ if grep -R -n 'source_slides\|copy_source_into_course: true\|<course-folder>/Sli
  exit 1
 fi
 
-if ! grep -q 'required-services: "MinerU Precision API via official mineru-open-api CLI"' "$skill_dir/SKILL.md"; then
+if ! grep -q 'required-services: "Native multimodal source reading; official mineru-open-api CLI used only as an optional extraction aid"' "$skill_dir/SKILL.md"; then
  printf 'service prerequisite metadata is missing or out of sync\n' >&2
+ exit 1
+fi
+
+if ! grep -q 'mode: "native"' "$skill_dir/config/pipeline.example.yaml" ||
+ ! grep -q 'granularity: "ask-user-every-time"' "$skill_dir/config/pipeline.example.yaml" ||
+ ! grep -q 'page_groups_optional: true' "$skill_dir/config/pipeline.example.yaml" ||
+ ! grep -q 'page_markers_allowed: false' "$repo_dir/tests/cases/document-profiles.example.yaml" ||
+ ! grep -q 'expected_action: "ask-user-every-conversion"' "$repo_dir/tests/cases/document-profiles.example.yaml"; then
+ printf 'native-default extraction or mandatory note-granularity contract is missing\n' >&2
+ exit 1
+fi
+
+if ! grep -q 'requires_multimodal_model: true' "$skill_dir/requirements/skills.yaml" ||
+ ! grep -q 'used_only_with_extraction_mode: "mineru"' "$skill_dir/requirements/tools.yaml"; then
+ printf 'extraction-mode capability split is missing or out of sync\n' >&2
  exit 1
 fi
 
@@ -345,6 +362,14 @@ fi
 python3 "$skill_dir/scripts/validate-output.py" \
  "$repo_dir/tests/fixtures/synthetic/valid-document-folder" \
  --fixture-mode \
+ --report "$repo_dir/tests/fixtures/staging/conversion-report.md" >/dev/null
+
+python3 "$skill_dir/scripts/validate-output.py" \
+ "$repo_dir/tests/fixtures/synthetic/section-notes-folder" \
+ --fixture-mode \
+ --plan "$repo_dir/tests/fixtures/staging/note-plan.json" \
+ --ledger "$repo_dir/tests/fixtures/staging/page-ledger.json" \
+ --page-groups "$repo_dir/tests/fixtures/staging/page-groups.json" \
  --report "$repo_dir/tests/fixtures/staging/conversion-report.md" >/dev/null
 
 python3 -m unittest discover -s "$repo_dir/tests" -p 'test_*.py' >/dev/null

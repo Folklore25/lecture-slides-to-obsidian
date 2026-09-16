@@ -1,10 +1,25 @@
-# Normalization examples
+# MinerU normalization examples
 
-Use these page-group examples with `scripts/reconstruct-note.py`; they illustrate decisions that raw MinerU levels alone cannot make.
+These page-group examples apply to `--extraction mineru`. For the default native path, the equivalent decision is made by the model while reading the page, and the outcome is recorded in the page ledger.
 
-## Lecture notes
+## Content-driven note (plan input)
 
-Normalized page-group input:
+MinerU page groups feed `scripts/plan-note-structure.py --page-groups`, which proposes sections from the document's own outline:
+
+```json
+[
+  [{"type":"title","content":{"title_content":[{"type":"text","content":"Week 3 Qualitative Research"}],"level":1}}],
+  [{"type":"paragraph","content":{"paragraph_content":[{"type":"text","content":"1. Grounded theory\n2. Action research\n3. Ethnography"}]}}],
+  [{"type":"title","content":{"title_content":[{"type":"text","content":"1. Grounded theory"}],"level":2}},
+   {"type":"paragraph","content":{"paragraph_content":[{"type":"text","content":"Coding stages and saturation."}]}}]
+]
+```
+
+Proposed plan: three sections with the numbered outline as headings, page 1 classified as `title-slide`, and one ledger row per page. The Agent still reads the source and corrects the proposal before setting `draft: false`.
+
+## Faithful transcription
+
+Normalized page-group input for `reconstruct-note.py`:
 
 ```json
 [
@@ -24,11 +39,9 @@ Output:
 - Compare Y
 ```
 
-Add `## In-class notes` only after all source pages.
-
 ## Policy document
 
-Normalized page-group input where MinerU labels every title as level 2 and misses one short item:
+Input where MinerU labels every title as level 2 and misses one short item:
 
 ```json
 [
@@ -64,8 +77,10 @@ body paragraph       -> paragraph
 equation_interline   -> display math
 ```
 
-Do not apply policy short-item promotion to a paper.
-
 ## Duplicate anchors
 
-If the same sentence appears in an overview and a detail page, use the adapter's page group. Do not search Markdown globally. Page markers are inserted from the outer-array index, so identical text can appear on separate pages without collision.
+If the same sentence appears in an overview and a detail page, use the page group rather than searching Markdown globally. Page markers are inserted from the outer-array index, so identical text can appear on separate pages without collision.
+
+## Body font in this repository
+
+These examples use ASCII only; the repository validator rejects machine-specific absolute paths in committed examples.

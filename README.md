@@ -1,17 +1,22 @@
 # Lecture Slides to Obsidian
 
-一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 PDF、PPT/PPTX、政策文档和论文，通过 MinerU 官方 CLI 整理成适合 Obsidian 阅读、连接和课堂补充的派生资料。
+一个面向长期维护的 Agent Skill 项目：把 Canvas 中下载或本地已有的 PDF、PPT/PPTX、政策文档和论文，**优先由原生多模态模型直接阅读**，整理成适合 Obsidian 阅读、连接和课堂补充的内容驱动笔记。
 
-当前实现采用六技能组合：MinerU官方CLI与主技能负责课前转换，layout refiner（默认开启）整理每张slide内部版式，可选LaTeX refiner把MinerU公式规范成Obsidian可渲染的数学语法，Canvas子技能负责视觉产物，live-notes技能负责课堂即时思考，ASR enricher负责课后教师上下文增量。
+当前实现采用六技能组合：主技能负责课前转换，可选LaTeX refiner把公式规范成Obsidian可渲染的数学语法，Canvas子技能负责视觉产物，live-notes技能负责课堂即时思考，ASR enricher负责课后教师上下文增量。
+
+**MinerU 是备选项，不是前置条件。** 默认的 `--extraction native` 由原生多模态模型逐页阅读源文件并直接写笔记，无需上传、无需 token、不依赖文本层。只有在模型无法读图、文档过长或大面积扫描、或用户明确要求时，才用 `--extraction mineru` 把官方 CLI 的结构化 page group 作为提取辅助。
 
 ## 设计目标
 
 - 追求 semantic fidelity，而不是宣称 PDF → Markdown “无损”。
-- 文字、层级、列表、公式和表格尽量结构化。
-- 图表、复杂排版、手写标注和低置信度页面保留视觉兜底。
-- 默认使用支持视觉输入的模型逐页对照原PDF，只整理每个`source-page`边界内部的版式；可用`--no-visual-layout-refinement`关闭，模型不支持读图时自动跳过，内容与顺序守恒验证失败时保留MinerU原稿。
+- **以内容为对象，而不是以提取格式为对象。** 笔记结构来自源文档自己的章节大纲，不来自幻灯片顺序、页码或提取工具的块编号。
+- 文字、层级、列表、公式和表格尽量结构化；对比矩阵与分类表转成真正的 Markdown 表格，而不是贴图。
+- 图表、复杂排版、手写标注和低置信度页面保留视觉兜底，但只在视觉本身承载不可替代信息时才留图。
+- 幻灯片外壳不进笔记：封面页、目录页、章节分隔页、课程行政页、习题页、重复页眉页脚和装饰页，全部在 page ledger 里标记为 `dropped` 并给出受控理由。
+- 每次转换前必须询问笔记粒度（`single-note` 或 `section-notes`），不设默认值。
+- 原生模式必须由能直接查看源页面的原生多模态模型执行；模型无法读图时应改用 `--extraction mineru`，而不是凭文本层猜测。
 - 可选用确定性脚本把MinerU的`\[...\]`、`\begin{equation}`、`align`等LaTeX规范成Obsidian MathJax可渲染的`$...$`/`$$...$$`与`aligned`/`gathered`，并给数学环境内的中文加`\text{}`；只改数学语法，非数学文本、链接、页面资产和marker保持不变，守恒验证失败自动回滚。
-- 最终视觉资产统一命名为 `page-PPP-kind-NN.ext`，例如 `page-004-figure-01.png`。
+- 内容驱动笔记的视觉资产使用小写语义 kebab-case 命名，例如 `coding-stages.png`；`page-PPP-kind-NN.ext` 只保留在 MinerU 逐页转录模式。
 - 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。
 - 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和知识回忆 Canvas。report、snapshot、recall model、aesthetic/render checks 只存在于系统 tmp 或技能安装目录的 `tmp/`，验证完成即删除；不会在 vault 中创建任何点号开头的工作目录。
 - Canvas 不是目录图：它提炼中心问题、学习模块、概念依赖/因果/对比链、边界条件和主动回忆问题，并让每个概念回链到完整课件。
@@ -24,7 +29,8 @@
 - 后续通过课程代码、正式名称或已登记别名唯一匹配，自动归档到对应学期的课程子目录。
 - 这是通用、运行环境无关的 Agent Skill；推荐通过 cc-switch 统一安装、更新和切换。
 - 除官方 CLI 访问 MinerU 服务外，不把课件发送到其他第三方服务。
-- 课程文件内容解析只使用官方 `mineru-open-api extract` 精准模式，不下载本地模型，也不维护自定义 HTTP client。
+- 需要 MinerU 时只使用官方 `mineru-open-api extract` 精准模式，不下载本地模型，也不维护自定义 HTTP client。
+- 原生模式不做本地 PDF 解析：读图与写作由模型完成，脚本只负责骨架规划、台账和验证。
 
 ## 仓库结构
 
@@ -58,7 +64,7 @@ lecture-slides-to-obsidian/
 
 ## 课程路由模型
 
-请求在任何 preflight 之前分流：外部源文件需要提取时运行完整流程；已有 normalized page groups 只缺 Markdown 时只运行 reconstruction；完整 Markdown 只缺 Canvas 时直接调用 `obsidian-canvas-designer`，不加载 MinerU、token 或课程路由。
+请求在任何 preflight 之前分流：外部源文件需要转换时运行完整流程；完整 Markdown 只缺 Canvas 时直接调用 `obsidian-canvas-designer`，不加载提取、token 或课程路由。
 
 技能把真实注册表保存在自己的安装目录内：
 
@@ -81,9 +87,9 @@ lecture-slides-to-obsidian/
 └── <course-folder>/
     └── Lectures/
         └── <document-slug>/
-            ├── <document-slug>.md       # 完整课件/文档
-            ├── <document-slug>.canvas   # 一分钟知识回忆地图
-            └── assets/                  # MinerU 派生图片/表格/兜底页
+            ├── <note-slug>.md          # 内容驱动笔记，一个或多个
+            ├── <note-slug>.canvas      # 每篇笔记一个一分钟知识回忆地图
+            └── assets/                 # 语义命名的派生视觉素材
 ```
 
 原始 PDF/PPT 等不会复制、移动、symlink、embed 或作为 Canvas file node 放进 vault。Canvas 只连接完整 Markdown、经语义建模的关键概念，以及最多六个真正有助于记忆的派生视觉素材。
@@ -104,19 +110,23 @@ cc-switch 卸载时可能创建自己的 skill backup。若要求卸载备份中
 
 ## 解析策略与前置要求
 
-PDF 会上传到 MinerU 官方服务进行解析。转换前必须：
+默认的 `--extraction native` 不上传、不联网、不需要凭据。转换前必须：
 
 - 能发现并加载 `obsidian-markdown`，用于 Obsidian properties、wikilinks、embeds、callouts 和 Markdown 语法。
 - 能发现并加载 `obsidian-canvas-designer`；其绘图 subagent 会加载 `json-canvas` 和 `obsidian-cli` 完成格式、美术与真实 DOM 检查。
 - 主技能加载 `obsidian-cli` 处理 vault-native 操作和最终交付验证。
+- **当前模型能直接查看源 PDF 或逐页渲染图**（原生模式硬性要求）。
 - 当前只支持已测量的 MacBook Pro 14 / Composer 主题 / Obsidian 1.13.7 环境，不宣称其他机器兼容。
-- 已安装官方 `mineru-open-api` CLI，并能访问 MinerU Precision API。
+
+只有选择 `--extraction mineru` 时，才额外要求：
+
+- PDF 会上传到 MinerU 官方服务进行解析，需要已安装官方 `mineru-open-api` CLI 并能访问 MinerU Precision API。
 - 本机具有支持 `aes-256-cbc` 的 OpenSSL。
 - 当前自动 credential backend 为 macOS Keychain（`security` CLI）；其他平台会明确失败，不会退回明文或同目录 key 文件。
 
 当前 adapter 已使用官方 CLI `v0.5.9` 验证命令/参数兼容性。
 
-安装 CLI（二选一）：
+安装 CLI（二选一，仅 MinerU 模式需要）：
 
 ```bash
 npm install -g mineru-open-api
@@ -140,40 +150,48 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 密文采用 AES-256-CBC + PBKDF2-HMAC-SHA256（600,000 iterations），并用独立的 Encrypt-then-HMAC-SHA256 做完整性校验。token 文件权限为 `0600`，state 目录写入时设为 `0700`。`purge-state.sh --confirm` 会同时删除密文与对应 Keychain 项。
 
-提取流程：
+### 默认流程（原生多模态）
+
+1. `preflight.py` 分段确认 vault、课程、提取模式、笔记粒度、profile 和助手技能。
+2. 主 Agent **逐页原生阅读源文件**：判断每一页是实质内容、结构骨架、页面外壳还是行政信息。这一步决定了输出是笔记还是素材包。
+3. `plan-note-structure.py --page-count N` 生成 `note-plan.json` 与 `page-ledger.json` 草稿；Agent 按实际所见修正章节、页处置和每页 evidence 短语，并把两者设为 `draft: false`。
+4. 按 plan 写一篇或多篇笔记：H2 等于计划章节，丢弃外壳页，对比矩阵转成 Markdown 表格。
+5. 只导出真正承载结构的视觉素材，用语义名放进 `assets/`。
+6. 每篇笔记交给 `obsidian-canvas-designer` 子技能：布局、美术评分、DOM 实测、重排由 subagent 完成；主 Agent 只消费 Canvas 与 PASS/FAIL 证据。
+
+### 可选 MinerU 辅助流程
 
 1. `mineru-cli-adapter.py` 从 Keychain 自动解锁 token。
 2. Token 只通过子进程 `MINERU_TOKEN` 注入官方 CLI。
 3. 官方 CLI 执行 `extract -f md,json -o <staging>/`，负责上传、轮询、下载和 assets。
 4. Adapter 把 CLI legacy content-list JSON 按 `page_idx` 转成 page-group compatibility JSON。
-5. Adapter 按页码/类型/序号重命名图片，输出 `asset-map.json` 和 `normalized-assets/`。
-6. `reconstruct-note.py`生成基础MinerU Markdown与不可变source-page markers。
-7. 可选的`slide-layout-refiner`使用支持视觉输入的模型直接查看原PDF或逐页渲染图，并直接覆盖最终Markdown，但只能修改相邻markers之间的结构。目标是完整保存信息和提高可读性，不是像素级还原；会将`\-`/装饰符号整理为真实列表，并让每级子列表使用四个ASCII空格加`-`表达层级，禁止Tab缩进。已有fallback/warning Callout会原样保留，不会被误判为用户笔记；只有`lecture-layer:`才触发停止。marker行逐字节锁定，文本token顺序和每页asset集合必须完全守恒；验证失败时自动从tmp快照恢复。
-8. 主 Agent 通读最终采用的Markdown并建立覆盖所有H2的临时recall model。
-9. 独立`obsidian-canvas-designer`子技能由subagent执行布局、美术评分、DOM实测和重排；主Agent只消费Canvas与PASS/FAIL证据。
+5. `plan-note-structure.py --page-groups ...` 用 page group 生成骨架与台账草稿，并额外启用逐页文本召回校验（比纯 evidence 校验更严格）。
+6. `policy-document` / `paper` 的逐页转录模式仍使用 `reconstruct-note.py` 生成带 `source-page` marker 的 Markdown，并可启用 `slide-layout-refiner`。
 
 支持三个 conversion profile：`lecture-notes`、`policy-document`、`paper`。不是 slides 的资料不会被拒绝，而会在写入 vault 前要求确认合适的 profile。
 
-机器可读声明位于 `requirements/skills.yaml`、`requirements/tools.yaml` 和 `requirements/services.yaml`，组合契约位于 `references/mineru-cli.md`。
+机器可读声明位于 `requirements/skills.yaml`、`requirements/tools.yaml` 和 `requirements/services.yaml`，组合契约位于 `references/workflow.md` 与 `references/mineru-cli.md`。
 
 ## 安装与加载
 
 推荐使用 **cc-switch** 管理。在自定义仓库中填写仓库 Owner、Name、Branch，并把 **Subdirectory** 设为 `skills`。让 cc-switch 负责安装、更新、切换和恢复运行态 `state/`；不要直接在它管理的安装目录中开发。
 
-若不使用 cc-switch，把 `skills/` 下五个技能目录一起复制或链接到当前运行环境支持的技能目录。具体目录位置和调用语法由运行环境决定。
+若不使用 cc-switch，把 `skills/` 下六个技能目录一起复制或链接到当前运行环境支持的技能目录。具体目录位置和调用语法由运行环境决定。
 
-如果完整 Markdown 已存在而只缺 Canvas，直接调用 `obsidian-canvas-designer`。这一入口不加载 MinerU、token、提取、课程路由或 conversion report。
+如果完整 Markdown 已存在而只缺 Canvas，直接调用 `obsidian-canvas-designer`。这一入口不加载提取、token、课程路由或 conversion report。
 
-如果一次需要为两个或更多文件生成 Canvas，主 Agent 必须创建“一文件一任务”的 Canvas subagents。semantic authoring、初版布局和 aesthetic QA 可按可用容量并行；共享的本机 Obsidian DOM measure/reflow/check 必须单通道串行，避免不同 Canvas 互相抢 active renderer。批计划由 `plan-canvas-batch.py` 生成，单文件失败按文件报告，不得把整批笼统标成 PASS/FAIL。
+如果一次需要为两篇或更多笔记生成 Canvas，主 Agent 必须创建“一笔记一任务”的 Canvas subagents。semantic authoring、初版布局和 aesthetic QA 可按可用容量并行；共享的本机 Obsidian DOM measure/reflow/check 必须单通道串行，避免不同 Canvas 互相抢 active renderer。批计划由 `plan-canvas-batch.py` 生成，单笔记失败按笔记报告，不得把整批笼统标成 PASS/FAIL。
 
 ## 本地验证
 
-主技能提供三个流程入口，Canvas子技能提供四个入口，课堂补充技能各提供一个确定性入口，可选layout refiner与LaTeX refiner各提供确定性入口：
+主技能提供五个流程入口，Canvas子技能提供四个入口，课堂补充技能各提供一个确定性入口，可选layout refiner与LaTeX refiner各提供确定性入口：
 
 ```text
-preflight.py          分段收集/验证 vault、course、profile、language、OCR、helper skills、token state
-reconstruct-note.py  content_list_v2.json → 完整 profile-aware Markdown + normalization context
-fill-report.py        QA context JSON → staging 临时 report
+preflight.py            分段收集/验证 vault、course、提取模式、笔记粒度、profile、helper skills、token state
+plan-note-structure.py  骨架规划：page-count/page-groups → note-plan.json + page-ledger.json（并校验定稿版）
+validate-output.py      交付文件夹校验：结构、台账、evidence、内容守恒、assets、Canvas
+reconstruct-note.py     MinerU 转录模式：content_list_v2.json → 带 source-page marker 的 Markdown
+fill-report.py          QA context JSON → staging 临时 report
 
 obsidian-canvas-designer/build-canvas.py          recall model → Canvas
 obsidian-canvas-designer/recall-skeleton.py       H2/page inventory → authoring draft
@@ -230,11 +248,12 @@ python3 skills/obsidian-canvas-designer/scripts/canvas-render-qa.py check \
 ./scripts/validate.sh
 ```
 
-仓库验证检查技能规范与模板。实际输出还必须运行：
+仓库验证检查技能规范与模板。内容驱动笔记的实际输出还必须运行：
 
 ```bash
 python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py \
   <document-folder> --vault-root <vault-root> \
+  --plan <staging>/note-plan.json --ledger <staging>/page-ledger.json \
   --report <staging>/conversion-report.md \
   --recall-model <staging>/recall-model.json \
   --aesthetic-check <staging>/canvas-aesthetic-check.json \
@@ -242,9 +261,9 @@ python3 skills/lecture-slides-to-obsidian/scripts/validate-output.py \
   --render-check <staging>/canvas-render-check.json --delete-qa-on-success
 ```
 
-启用可选版式整理时，最终验证额外传入 `--layout-refinement-report <tmp>/layout-refinement-report.json`；未启用时不需要该文件。
+MinerU 跑过时再加 `--page-groups <staging>/<stem>.content-list-v2.compat.json`，把守恒校验从 evidence-only 升级为 evidence + 逐页文本召回。MinerU 逐页转录模式（带 page marker 的 `policy-document` / `paper`）沿用原调用方式，另加 `--layout-refinement-report`。
 
-它验证 source-original exclusion、frontmatter、H1/page markers、wikilinks/assets，以及 Canvas 的语义结构、真实 DOM 高度、安全余量、有效字体、路径和非重叠布局；成功后删除全部 staging QA 文件。
+它验证 source-original exclusion、properties、唯一 H1、计划章节与 H2 一致、page ledger 完整、每页 evidence 确实出现在笔记中、逐页内容守恒、语义化 assets、wikilinks，以及 Canvas 的语义结构、真实 DOM 高度、安全余量、有效字体、路径和非重叠布局；成功后删除全部 staging QA 文件（含 plan 与 ledger）。
 
 ## 测试素材政策
 

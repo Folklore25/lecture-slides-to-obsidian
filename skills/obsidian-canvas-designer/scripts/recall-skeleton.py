@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Inspect note headings and create a provenance-complete recall-model authoring draft."""
+"""Inspect note headings and create a recall-model authoring draft.
+
+Both note contracts are supported:
+
+* marker-based notes (``policy-document``, ``paper``) carry ``<!-- source-page: N -->``
+  lines, so every H2 gets a page anchor.
+* content-driven ``lecture-notes`` carry no page markers, so an H2 is identified by
+  its heading alone. Page provenance is then optional and is not required to address
+  a section uniquely.
+"""
 
 from __future__ import annotations
 
@@ -19,6 +28,16 @@ HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 
 class SkeletonError(RuntimeError):
     pass
+
+
+def marker_page(line: str) -> int | None:
+    match = PAGE_MARKER.fullmatch(line.strip())
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
 
 
 def parse_frontmatter(text: str) -> dict[str, str]:
@@ -43,11 +62,13 @@ def inspect_note(text: str) -> dict:
     h3_candidates = []
     current_h2: str | None = None
     hard_errors = []
+    marker_seen = False
 
     for line_number, line in enumerate(text.splitlines(), start=1):
-        marker = PAGE_MARKER.fullmatch(line.strip())
-        if marker:
-            current_page = int(marker.group(1))
+        page = marker_page(line)
+        if page is not None:
+            marker_seen = True
+            current_page = page
             continue
         heading = HEADING.match(line)
         if not heading:
@@ -69,44 +90,51 @@ def inspect_note(text: str) -> dict:
                 }
             )
 
+    page_provenance = "markers" if marker_seen else "none"
     if not h2_sections:
         hard_errors.append(
             "No H2 sections found. Canvas concepts require exact ## H2 anchors; review H3 candidates outside this skill."
         )
-    missing_pages = [item for item in h2_sections if item["source_page"] is None]
-    if missing_pages:
-        hard_errors.append(
-            "H2 sections without a preceding source-page marker: "
-            + ", ".join(f"{item['heading']} (line {item['line']})" for item in missing_pages)
-        )
+    if page_provenance == "markers":
+        missing_pages = [item for item in h2_sections if item["source_page"] is None]
+        if missing_pages:
+            hard_errors.append(
+                "H2 sections without a preceding source-page marker: "
+                + ", ".join(f"{item['heading']} (line {item['line']})" for item in missing_pages)
+            )
+
     seen: set[tuple[str, int | None]] = set()
     duplicates = []
     for item in h2_sections:
-        key = (item["heading"], item["source_page"])
+        key = (item["heading"], item["source_page"] if page_provenance == "markers" else None)
         if key in seen:
             duplicates.append(item)
         seen.add(key)
     if duplicates:
         hard_errors.append(
-            "Duplicate H2 heading/page anchors cannot be addressed uniquely: "
-            + ", ".join(f"{item['heading']} (page {item['source_page']})" for item in duplicates)
+            "Duplicate H2 headings cannot be addressed uniquely: "
+            + ", ".join(f"{item['heading']} (line {item['line']})" for item in duplicates)
         )
 
     try:
         source_pages = int(frontmatter.get("source_pages", "0"))
     except ValueError:
         source_pages = 0
+    if source_pages == 0 and page_provenance == "markers":
+        marker_pages = [item["source_page"] for item in h2_sections if item["source_page"] is not None]
+        source_pages = max(marker_pages) if marker_pages else 0
     out_of_range = [
         item for item in h2_sections
         if item["source_page"] is not None and source_pages > 0 and item["source_page"] > source_pages
     ]
     if out_of_range:
-        hard_errors.append("H2 source-page provenance exceeds frontmatter source_pages")
+        hard_errors.append("H2 source-page provenance exceeds the note page count")
 
     return {
         "frontmatter": frontmatter,
         "title": h1_title or frontmatter.get("title") or "",
         "source_pages": source_pages,
+        "page_provenance": page_provenance,
         "h2_sections": h2_sections,
         "h3_review_candidates": h3_candidates,
         "hard_errors": hard_errors,
@@ -143,11 +171,13 @@ def create_skeleton(inspection: dict, profile: str, mode: str) -> dict:
         "asset_links": [],
         "_authoring": {
             "h2_count": len(inspection["h2_sections"]),
+            "page_provenance": inspection["page_provenance"],
             "h3_review_candidates": inspection["h3_review_candidates"],
             "hard_errors": inspection["hard_errors"],
             "instructions": [
                 "Fill semantic fields; this draft is intentionally not build-valid.",
                 "Map or explain every coverage row.",
+                "Omit source_page when the note carries no page markers.",
                 "Do not edit or promote note headings inside the Canvas skill.",
                 "Remove _authoring and set draft_status to ready after review.",
             ],
@@ -190,6 +220,7 @@ def main() -> int:
             response = {
                 "draft": str(args.output.resolve()),
                 "h2_count": len(inspection["h2_sections"]),
+                "page_provenance": inspection["page_provenance"],
                 "h3_review_candidates": inspection["h3_review_candidates"],
                 "hard_errors": inspection["hard_errors"],
                 "next": "fill semantic fields, remove _authoring, set draft_status=ready",

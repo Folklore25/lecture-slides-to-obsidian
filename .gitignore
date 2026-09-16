@@ -21,3 +21,6 @@ tests/fixtures/private/**
 !tests/fixtures/private/README.md
 tests/fixtures/inbox/**
 !tests/fixtures/inbox/README.md
+
+# Agent harness local state.
+.pi/

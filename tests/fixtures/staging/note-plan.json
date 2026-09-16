@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "profile": "lecture-notes",
+  "granularity": "single-note",
+  "source_pages": 7,
+  "draft": false,
+  "notes": [
+    {
+      "slug": "week3-qualitative-research",
+      "title": "Week 3 Qualitative Research",
+      "sections": [
+        {
+          "heading": "1. Research methodology and the qualitative distinction",
+          "pages": [
+            2
+          ],
+          "subtopics": [
+            "Method versus technique"
+          ]
+        },
+        {
+          "heading": "2. Grounded theory",
+          "pages": [
+            3
+          ],
+          "subtopics": [
+            "Coding stages",
+            "Zigzag to saturation"
+          ]
+        },
+        {
+          "heading": "3. Action research",
+          "pages": [
+            4
+          ],
+          "subtopics": [
+            "Plan, act, observe, reflect"
+          ]
+        },
+        {
+          "heading": "4. Ethnography",
+          "pages": [
+            5
+          ],
+          "subtopics": [
+            "Triangulation"
+          ]
+        },
+        {
+          "heading": "5. Case studies",
+          "pages": [
+            6
+          ],
+          "subtopics": [
+            "Case study compared with ethnography"
+          ]
+        },
+        {
+          "heading": "6. Evaluating qualitative research",
+          "pages": [
+            7
+          ],
+          "subtopics": [
+            "Guba and Lincoln tests"
+          ]
+        }
+      ]
+    }
+  ]
+}

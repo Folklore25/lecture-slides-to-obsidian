@@ -1,134 +1,69 @@
-# Recall-model schema
+# Recall model
 
-Start with `scripts/recall-skeleton.py --note <note> --profile <profile> --output <staging>/recall-model.json`. It inventories exact H2/page anchors and H3 review candidates without changing the note. The output is an intentionally invalid authoring draft; fill its semantic fields before `build-canvas.py`.
+The Canvas is built from an Agent-authored semantic model, never inferred from Markdown headings.
 
-When `--output` is supplied, the command prints only a compact diagnostic summary instead of dumping the full draft into Agent context. Read/edit the saved JSON file for semantic authoring.
+Start with `scripts/recall-skeleton.py --note <note> --profile <profile> --output <staging>/recall-model.json`. It inventories exact H2 anchors, H3 review candidates, page provenance when the note has it, and coverage rows. The output is an intentionally invalid authoring draft; fill its semantic fields before `build-canvas.py`.
 
-`concept.source_heading` is a hard contract: it must equal a real `## H2` heading in the Markdown. H1, H3, generated labels, and approximate text do not count. If the note has only H3 structure, stop and return candidates for authorized repair; this skill never promotes headings itself.
+## Page provenance is optional
 
-## Top-level fields
+- A note with `<!-- source-page: N -->` markers (MinerU transcription) gives every H2 a page anchor. There, `source_page` is required and the heading/page pair must occur in the note.
+- A content-driven note has no page markers. There, omit `source_page` entirely and identify a section by its heading alone. The skeleton reports `page_provenance: "none"` so you can tell the two cases apart.
+
+Never add page markers to a note to satisfy this skill, and never promote H3 headings. If a note has no usable H2 anchors, stop and return the H3 candidates for authorized repair.
+
+## `concept.source_heading` is a hard contract
+
+It must equal a real `## H2` heading in the Markdown. H1, H3, generated labels, and approximate text do not count.
 
 ```json
 {
   "schema_version": 1,
   "profile": "lecture-notes",
   "mode": "pre-class",
-  "title": "Document title",
-  "orientation": {},
-  "groups": [],
-  "concepts": [],
+  "title": "Week 3 Qualitative Research",
+  "orientation": {
+    "central_question": "...",
+    "one_sentence_answer": "...",
+    "takeaways": ["...", "...", "..."]
+  },
+  "groups": [
+    {"id": "foundations", "title": "Foundations", "summary": "...", "order": 1}
+  ],
+  "concepts": [
+    {
+      "id": "technique",
+      "group": "foundations",
+      "kind": "boundary",
+      "title": "Technique is not method",
+      "statement": "...",
+      "details": ["..."],
+      "recall_cue": "...",
+      "source_heading": "1. Research methodology and the qualitative distinction"
+    }
+  ],
   "relations": [],
-  "coverage": [],
-  "synthesis": {},
+  "coverage": [
+    {"source_heading": "1. Research methodology and the qualitative distinction", "concepts": ["technique"]}
+  ],
+  "synthesis": {
+    "logic_chain": [],
+    "distinctions": [],
+    "recall_prompts": [],
+    "in_class_additions": []
+  },
   "asset_links": []
 }
 ```
 
-`profile` is `lecture-notes`, `policy-document`, or `paper`. `mode` is `pre-class` or `post-class`.
-
-For lecture authoring, use [../templates/recall-model.lecture-notes.example.json](../templates/recall-model.lecture-notes.example.json) only as a structure example. Its groups follow foundations → mechanism → applications/limits; replace every topic-specific value with evidence from the current note.
-
-## Orientation
-
-```json
-{
-  "central_question": "What problem does this material help the learner solve?",
-  "one_sentence_answer": "A direct answer that states the governing idea and outcome.",
-  "takeaways": ["Three to five durable, source-supported takeaways."]
-}
-```
-
-Do not use an administrative title such as “Week 4 slides” as the central question.
-
-## Groups
-
-Two to seven learning modules, ordered by the logic needed to understand the subject:
-
-```json
-{"id":"foundations","title":"Foundations","summary":"The ideas needed before the mechanism makes sense.","order":1}
-```
-
-Group by meaning. Do not mechanically create one group per slide or one group per Markdown heading.
-
-## Concepts
-
-Four to twenty atomic recall nodes; eight to sixteen is the normal target for a full lecture:
-
-```json
-{
-  "id": "control-signal",
-  "group": "foundations",
-  "kind": "concept",
-  "title": "Control signal",
-  "statement": "A concise statement of one idea and why it matters.",
-  "details": ["Up to two details needed to reconstruct the idea."],
-  "recall_cue": "A short question or contrast that triggers retrieval.",
-  "source_heading": "Exact H2 heading from the Markdown",
-  "source_page": 4
-}
-```
-
-Allowed `kind` values:
-
-`foundation`, `concept`, `mechanism`, `process`, `evidence`, `example`, `application`, `comparison`, `boundary`, `misconception`, `decision`, `claim`, `method`, `finding`, `limitation`, `rule`, `exception`.
-
-Use at least three kinds. A title plus copied paragraph is not an atomic recall node. Titles are limited to 60 Latin or 30 CJK characters, statements to 180 characters, and details to two items of 140 characters each. `recall_cue` remains semantic input for the shared active-recall zone but is not repeated on the concept card. `source_page` is required even when the heading is unique; the heading/page pair must occur in the Markdown, preserving exact provenance when headings repeat. Within each group, list concepts in the visual/logical order the renderer should preserve.
-
-## Relations
-
-```json
-{
-  "from": "control-signal",
-  "to": "system-response",
-  "type": "causes",
-  "label": "changes the system state",
-  "why": "The source describes the response as the effect of the applied control signal."
-}
-```
-
-`why` is staging evidence and is not rendered. Allowed `type` values are listed in [canvas-contract.md](canvas-contract.md). The undirected form of the concept graph must be connected.
+Keep every concept card atomic and scannable: an H3 title, one short statement, at most two details, one recall cue, and one compact source link. Titles are limited to 60 Latin or 30 CJK characters, statements to 180 characters, and details to two items of 140 characters each.
 
 ## Coverage ledger
 
-Include one entry for every exact H2 heading in the Markdown:
+The model's `coverage` must include one entry for every H2 heading in the note.
 
-```json
-{"source_heading":"System behavior","source_page":4,"concepts":["control-signal","system-response"]}
-```
+- With page provenance: one entry per heading/page occurrence, so repeated headings stay distinct.
+- Without page provenance: one entry per heading, and duplicate headings are an error the note must fix rather than something the Canvas can disambiguate.
 
-If a section is non-substantive or empty, keep the row and explain:
+Each entry either maps to concept ids or gives a concrete `omission_reason`. This is how the Canvas stays concise without pretending to contain the full note.
 
-```json
-{"source_heading":"In-class notes","source_page":12,"concepts":[],"omission_reason":"Empty in pre-class mode."}
-```
-
-Never omit a section from the ledger because it is difficult to summarize. Coverage identity is the exact `(source_heading, source_page)` pair, so repeated headings on different pages remain separate.
-
-## Synthesis
-
-```json
-{
-  "logic_chain": ["Three to seven steps that reconstruct the lesson."],
-  "distinctions": [
-    {"terms":"Positive vs negative feedback","rule":"State the decision rule that separates them."}
-  ],
-  "recall_prompts": ["Three to five questions answerable from the map."],
-  "in_class_additions": []
-}
-```
-
-The logic chain is the shortest coherent reconstruction of the lesson, not a list of section names. `in_class_additions` must be empty before class and may contain only confirmed notes after class.
-
-## Asset links
-
-Select zero to six visuals whose structure materially aids recall:
-
-```json
-{
-  "concept": "system-response",
-  "path": "assets/page-006-chart-01.png",
-  "caption": "Response curve showing overshoot and settling"
-}
-```
-
-Do not include decorative images, logos, repeated headers, or every extracted figure. `asset_links: []` is fully valid and preferred when no visual materially improves recall. When present, paths must match `assets/page-PPP-kind-NN.ext`; hash-named or source-original files are rejected even if they exist.
+Delete the temporary model together with the conversion report after successful validation. Keep it only while debugging a failed build.

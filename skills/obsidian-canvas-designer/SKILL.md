@@ -12,24 +12,26 @@ Turn an evidence-backed semantic model into a scannable Obsidian Canvas that rem
 
 ## Operation boundary
 
-This is the `canvas-only` entry point. If complete Markdown already exists, do not load MinerU, token storage, extraction, reconstruction, course routing, conversion reports, or the parent workflow. Canvas work begins with note inspection and ends with Canvas/aesthetic/render artifacts.
+This is the `canvas-only` entry point. If complete Markdown already exists, do not load extraction, MinerU, token storage, course routing, conversion reports, or the parent workflow. Canvas work begins with note inspection and ends with Canvas/aesthetic/render artifacts.
 
 ## Required inputs
 
-- complete Markdown note inside the vault;
+- one complete Markdown note inside the vault, per task;
 - staging recall-model JSON following [references/recall-model.md](references/recall-model.md);
 - vault root and final Canvas path;
 - optional document-local `assets/` containing only derived visuals.
 
-If delegated by another Agent, follow [references/delegation-contract.md](references/delegation-contract.md). Do not re-interpret course routing or extraction decisions.
+When a document produced several notes, each note gets its own task, its own Canvas, and its own staging paths. Never combine two notes in one subagent.
+
+If delegated by another Agent, follow [references/delegation-contract.md](references/delegation-contract.md). Do not re-interpret course routing, extraction-mode, or profile decisions.
 
 For a direct Canvas-only request without an explicit vault root, run `obsidian vault info=path` and verify that the note resolves inside that path. Do not infer the vault root from an arbitrary ancestor folder or use a bare filename when paths may be ambiguous.
 
 ## Workflow
 
 1. Explicitly load `json-canvas` and `obsidian-cli`.
-2. Run `scripts/recall-skeleton.py` before semantic authoring. It inventories source pages, exact H2 anchors, H3 review candidates, and coverage rows. `concept.source_heading` may reference only a real `## H2`; never promote or edit the user's headings inside this skill.
-3. Read the complete note and fill the recall-model draft. Reject unsupported relationships or missing heading/page provenance.
+2. Run `scripts/recall-skeleton.py` before semantic authoring. It inventories exact H2 anchors, H3 review candidates, coverage rows, and whether the note carries page provenance. `concept.source_heading` may reference only a real `## H2`; never promote or edit the user's headings inside this skill.
+3. Read the complete note and fill the recall-model draft. Reject unsupported relationships. Omit `source_page` for a note without page markers; require it, and the matching heading/page pair, when markers are present.
 4. Read [references/axton-aesthetics.md](references/axton-aesthetics.md) and choose a layout pattern from the semantic graph, not from source section order.
 5. Keep every concept card atomic and scannable: H3 title, one short statement, at most two details, and one compact source link. Put recall questions in the shared active-recall zone instead of repeating them in every card.
 6. Run `scripts/build-canvas.py` for the first layout.
@@ -53,6 +55,8 @@ For a direct Canvas-only request without an explicit vault root, run `obsidian v
 
 - Read [references/canvas-contract.md](references/canvas-contract.md) for the artifact contract.
 - Read [references/recall-model.md](references/recall-model.md) before accepting semantic input.
+- Read [references/asset-contract.md](references/asset-contract.md) before selecting visuals.
 - Read [references/axton-aesthetics.md](references/axton-aesthetics.md) before layout or visual revision.
 - Read [references/render-qa.md](references/render-qa.md) before final acceptance.
 - Orchestrators may instantiate [templates/delegated-task.md](templates/delegated-task.md) for parallel Canvas-only subagents; do not build a runtime-specific batch launcher into this skill.
+- [templates/recall-model.lecture-notes.example.json](templates/recall-model.lecture-notes.example.json) shows the marker-based shape; [templates/recall-model.content-driven.example.json](templates/recall-model.content-driven.example.json) shows the marker-free shape.

@@ -1,0 +1,256 @@
+{
+	"nodes": [
+		{
+			"id": "998a9a237922d6bb",
+			"type": "group",
+			"x": 0,
+			"y": 500,
+			"width": 520,
+			"height": 1190,
+			"label": "01 · Foundations",
+			"color": "1"
+		},
+		{
+			"id": "3f6f8c58b6f0bafb",
+			"type": "group",
+			"x": 680,
+			"y": 500,
+			"width": 520,
+			"height": 2690,
+			"label": "02 · Four qualitative methods",
+			"color": "5"
+		},
+		{
+			"id": "42cf99ecd583f3e4",
+			"type": "group",
+			"x": 1360,
+			"y": 500,
+			"width": 520,
+			"height": 650,
+			"label": "03 · Evidence and quality",
+			"color": "4"
+		},
+		{
+			"id": "d1e4275041fc2f92",
+			"type": "text",
+			"x": 0,
+			"y": 0,
+			"width": 1040,
+			"height": 420,
+			"text": "<!-- recall-map: overview -->\n# One-minute recall\n**Central question:** How do qualitative research methods help an IS manager investigate how and why organisational phenomena happen?\n**Answer:** Qualitative research studies meaning in natural settings through four overarching methods, three data collection techniques, and four explicit quality tests.\n\n**Takeaways**\n- A method is an overarching strategy; an interview is only a data collection technique.\n- The four methods differ in unit of analysis and engagement model.\n- Quality is argued through credibility, dependability, transferability, and confirmability.",
+			"color": "6"
+		},
+		{
+			"id": "3ac25a95e07975e1",
+			"type": "file",
+			"x": 1120,
+			"y": 0,
+			"width": 420,
+			"height": 420,
+			"file": "week3-qualitative-research.md",
+			"color": "1"
+		},
+		{
+			"id": "c34c26227812a4ad",
+			"type": "text",
+			"x": 40,
+			"y": 590,
+			"width": 440,
+			"height": 470,
+			"text": "<!-- recall-map: concept -->\n<!-- recall-kind: foundation -->\n### Methodology as strategy\nA methodology is a strategy of inquiry chosen to answer a research question, and it can be qualitative, quantitative, or mixed.\n\n- The words versus numbers split is useful but narrow.\n\n[[COURSE101/Lectures/week3/week3-qualitative-research.md#1. Research methodology and the qualitative distinction|Source]]",
+			"color": "3"
+		},
+		{
+			"id": "ccabebad74024f6f",
+			"type": "text",
+			"x": 40,
+			"y": 1130,
+			"width": 440,
+			"height": 470,
+			"text": "<!-- recall-map: concept -->\n<!-- recall-kind: boundary -->\n### Technique is not method\nAn interview is a data collection technique and a questionnaire is part of a survey method, so neither is a method on its own.\n\n- Confusing the two collapses design into data collection.\n\n[[COURSE101/Lectures/week3/week3-qualitative-research.md#1. Research methodology and the qualitative distinction|Source]]",
+			"color": "1"
+		},
+		{
+			"id": "530a382acd13de2e",
+			"type": "text",
+			"x": 720,
+			"y": 590,
+			"width": 440,
+			"height": 470,
+			"text": "<!-- recall-map: concept -->\n<!-- recall-kind: method -->\n### Grounded theory\nGrounded theory discovers theory from systematically obtained data, reversing the traditional order by collecting data before proposing a theory.\n\n- Choose it to explain a process or stay close to the data.\n\n[[COURSE101/Lectures/week3/week3-qualitative-research.md#2. Grounded theory|Source]]",
+			"color": "5"
+		},
+		{
+			"id": "a25e2e383f0bd593",
+			"type": "text",
+			"x": 720,
+			"y": 1130,
+			"width": 440,
+			"height": 440,
+			"text": "<!-- recall-map: concept -->\n<!-- recall-kind: process -->\n### Three coding stages\nOpen coding labels phenomena, axial coding interconnects the categories, and selective coding builds the connecting story into propositions.\n\n- Interviews zigzag toward saturation of categories.\n\n[[COURSE101/Lectures/week3/week3-qualitative-research.md#2. Grounded theory|Source]]",
+			"color": "5"
+		},
+		{
+			"id": "807172d933443241",
+			"type": "text",
+			"x": 720,
+			"y": 1640,
+			"width": 440,
+			"height": 440,
+			"text": "<!-- recall-map: concept -->\n<!-- recall-kind: method -->\n### Action research\nAction research solves a real world issue while contributing to theory, with each cycle moving through plan, act, observe, and reflect.\n\n- Researchers design and measure change with the host organisation.\n\n[[COURSE101/Lectures/week3/week3-qualitative-research.md#3. Action research|Source]]",
+			"color": "5"
+		},
+		{
+			"id": "ffcf06814786c370",
+			"type": "text",
+			"x": 720,
+			"y": 2150,
+			"width": 440,
+			"height": 440,
+			"text": "<!-- recall-map: concept -->\n<!-- recall-kind: method -->\n### Ethnography\nEthnography studies social interactions, behaviours, and perceptions within groups and communities by living among the people studied.\n\n- Interview and observation are triangulated because talk differs from action.\n\n[[COURSE101/Lectures/week3/week3-qualitative-research.md#4. Ethnography|Source]]",
+			"color": "5"
+		},
+		{
+			"id": "4109b9eafdf2fff7",
+			"type": "text",
+			"x": 720,
+			"y": 2660,
+			"width": 440,
+			"height": 440,
+			"text": "<!-- recall-map: concept -->\n<!-- recall-kind: method -->\n### Case study\nA case study analyses a person, event, decision, project, or institution holistically as an instance of a class of phenomena.\n\n- Preferred for contemporary events when behaviour cannot be manipulated.\n\n[[COURSE101/Lectures/week3/week3-qualitative-research.md#5. Case studies|Source]]",
+			"color": "5"
+		},
+		{
+			"id": "6ed00714659c2a65",
+			"type": "text",
+			"x": 1400,
+			"y": 590,
+			"width": 440,
+			"height": 470,
+			"text": "<!-- recall-map: concept -->\n<!-- recall-kind: evidence -->\n### Four quality tests\nGuba and Lincoln's four tests of quality are credibility, dependability, transferability, and confirmability.\n\n- They replace statistical validity with assumptions of the qualitative paradigm.\n\n[[COURSE101/Lectures/week3/week3-qualitative-research.md#6. Evaluating qualitative research|Source]]",
+			"color": "4"
+		},
+		{
+			"id": "d05a61973af5736d",
+			"type": "text",
+			"x": 0,
+			"y": 3370,
+			"width": 586,
+			"height": 310,
+			"text": "<!-- recall-map: synthesis -->\n# Logic chain\n1. Choose a strategy of inquiry for the research question.\n2. Decide whether the question needs words, numbers, or both.\n3. Select the method whose unit of analysis fits the question.\n4. Collect data with interviews, focus groups, or observation.\n5. Argue quality through the four alternative tests.",
+			"color": "5"
+		},
+		{
+			"id": "477cd97075030f34",
+			"type": "text",
+			"x": 646,
+			"y": 3370,
+			"width": 586,
+			"height": 270,
+			"text": "<!-- recall-map: distinctions -->\n# Distinctions and boundaries\n- **Method versus technique:** A method is an overall strategy; an interview or questionnaire only collects data inside it.\n- **Ethnography versus case study:** Ethnography follows a culture, while a case study bounds one instance of a phenomenon.",
+			"color": "1"
+		},
+		{
+			"id": "fd623ef786b52852",
+			"type": "text",
+			"x": 1292,
+			"y": 3370,
+			"width": 586,
+			"height": 270,
+			"text": "<!-- recall-map: prompts -->\n# Active recall\n- Why is an interview not a method?\n- What do the three coding stages each produce?\n- Which four tests replace statistical validity in qualitative work?",
+			"color": "2"
+		}
+	],
+	"edges": [
+		{
+			"id": "e54ed3d62b03ed2d",
+			"fromNode": "c34c26227812a4ad",
+			"fromSide": "bottom",
+			"toNode": "ccabebad74024f6f",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "separates method from technique",
+			"color": "1"
+		},
+		{
+			"id": "59877f43b1bd4907",
+			"fromNode": "c34c26227812a4ad",
+			"fromSide": "right",
+			"toNode": "530a382acd13de2e",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "frames the qualitative stance",
+			"color": "5"
+		},
+		{
+			"id": "9266b168b2089fb7",
+			"fromNode": "530a382acd13de2e",
+			"fromSide": "bottom",
+			"toNode": "a25e2e383f0bd593",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "needs coding to build theory",
+			"color": "2"
+		},
+		{
+			"id": "51e89275efcbcb33",
+			"fromNode": "530a382acd13de2e",
+			"fromSide": "bottom",
+			"toNode": "807172d933443241",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "theory-first versus problem-first",
+			"color": "1"
+		},
+		{
+			"id": "6794c37e218eb94f",
+			"fromNode": "807172d933443241",
+			"fromSide": "bottom",
+			"toNode": "4109b9eafdf2fff7",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "intervention versus observation",
+			"color": "1"
+		},
+		{
+			"id": "449868f7927a5424",
+			"fromNode": "ffcf06814786c370",
+			"fromSide": "bottom",
+			"toNode": "4109b9eafdf2fff7",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "culture versus bounded case",
+			"color": "1"
+		},
+		{
+			"id": "3a7b5a9a97c837ec",
+			"fromNode": "ccabebad74024f6f",
+			"fromSide": "bottom",
+			"toNode": "4109b9eafdf2fff7",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "interviews become case evidence",
+			"color": "5"
+		},
+		{
+			"id": "068a1abfe5656164",
+			"fromNode": "a25e2e383f0bd593",
+			"fromSide": "right",
+			"toNode": "6ed00714659c2a65",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "traceable categories aid credibility",
+			"color": "4"
+		},
+		{
+			"id": "31394280788e949b",
+			"fromNode": "4109b9eafdf2fff7",
+			"fromSide": "top",
+			"toNode": "6ed00714659c2a65",
+			"toSide": "bottom",
+			"toEnd": "arrow",
+			"label": "needs explicit quality tests",
+			"color": "2"
+		}
+	]
+}

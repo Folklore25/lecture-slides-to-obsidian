@@ -1,25 +1,102 @@
 schema_version: 1
 
+extraction_modes:
+  native:
+    network_upload_required: false
+    requires_credentials: false
+    requires_multimodal_model: true
+    mineru_cli: "not-required"
+    token_state: "not-required"
+    language_and_ocr: "not-applicable"
+  mineru:
+    network_upload_required: true
+    requires_credentials: true
+    requires_multimodal_model: false
+    mineru_cli: "required"
+    token_state: "required"
+    language_and_ocr: "required"
+
+always_required:
+  - "obsidian-markdown"
+  - "obsidian-cli"
+  - "obsidian-canvas-designer"
+  - "obsidian-renderer-for-canvas-qa"
+
 cases:
-  - id: "skills-openssl-and-encrypted-token-ready"
+  - id: "native-default-ready"
+    extraction_mode: "native"
     available_skills:
       - "obsidian-markdown"
       - "obsidian-canvas-designer"
       - "obsidian-cli"
-    obsidian_render_profile: "matching"
+    multimodal_visual_input: true
+    mineru_cli: "missing"
+    encrypted_token_file: "missing"
+    expected_action: "continue-without-mineru-or-credentials"
+
+  - id: "native-with-text-only-model"
+    extraction_mode: "native"
+    available_skills:
+      - "obsidian-markdown"
+      - "obsidian-canvas-designer"
+      - "obsidian-cli"
+    multimodal_visual_input: false
+    expected_action: "stop-or-rerun-with-extraction-mineru"
+
+  - id: "native-never-asks-for-language-or-ocr"
+    extraction_mode: "native"
+    language: null
+    is_ocr: null
+    expected_action: "mark-not-applicable"
+
+  - id: "granularity-never-defaulted"
+    extraction_mode: "native"
+    profile: "lecture-notes"
+    note_granularity: null
+    expected_action: "ask-user-every-conversion"
+
+  - id: "section-notes-outside-lecture-notes"
+    profile: "policy-document"
+    note_granularity: "section-notes"
+    expected_action: "stop-with-profile-mismatch"
+
+  - id: "mineru-selected-without-cli"
+    extraction_mode: "mineru"
+    available_skills:
+      - "obsidian-markdown"
+      - "obsidian-canvas-designer"
+      - "obsidian-cli"
+    mineru_cli: "missing"
+    expected_action: "stop-and-report-mineru-open-api"
+
+  - id: "mineru-selected-with-credentials-ready"
+    extraction_mode: "mineru"
+    available_skills:
+      - "obsidian-markdown"
+      - "obsidian-canvas-designer"
+      - "obsidian-cli"
     openssl: "available-with-aes-256-cbc"
     mineru_network: "available"
     encrypted_token_file: "valid"
     keychain_wrapping_key: "available"
     expected_action: "continue"
 
+  - id: "layout-refiner-superseded-by-native"
+    extraction_mode: "native"
+    requested_layout_refinement: true
+    expected_action: "stop-layout-refiner-not-applicable"
+
+  - id: "layout-refiner-disabled-by-flag-in-mineru-mode"
+    extraction_mode: "mineru"
+    no_visual_layout_refinement: true
+    expected_action: "continue-with-disabled-layout-refinement"
+
   - id: "obsidian-skill-missing"
     available_skills: []
-    mineru_network: "available"
-    encrypted_token_file: "not-created"
     expected_action: "stop-and-report-obsidian-markdown"
 
   - id: "encrypted-token-not-configured"
+    extraction_mode: "mineru"
     available_skills:
       - "obsidian-markdown"
       - "obsidian-canvas-designer"
@@ -30,6 +107,7 @@ cases:
     expected_action: "run-token-store-set-with-hidden-prompts"
 
   - id: "openssl-missing"
+    extraction_mode: "mineru"
     available_skills:
       - "obsidian-markdown"
       - "obsidian-canvas-designer"
@@ -39,6 +117,7 @@ cases:
     expected_action: "stop-without-plaintext-storage-fallback"
 
   - id: "token-invalid-or-expired"
+    extraction_mode: "mineru"
     available_skills:
       - "obsidian-markdown"
       - "obsidian-canvas-designer"
@@ -48,6 +127,7 @@ cases:
     expected_action: "replace-encrypted-token-without-echo"
 
   - id: "local-mineru-present-but-api-unavailable"
+    extraction_mode: "mineru"
     available_skills:
       - "obsidian-markdown"
       - "obsidian-canvas-designer"
@@ -58,9 +138,11 @@ cases:
     expected_action: "stop-without-local-fallback"
 
   - id: "local-render-profile-mismatch"
+    extraction_mode: "native"
     available_skills:
       - "obsidian-markdown"
       - "obsidian-canvas-designer"
       - "obsidian-cli"
+    multimodal_visual_input: true
     obsidian_render_profile: "theme-or-version-mismatch"
     expected_action: "stop-and-recalibrate-without-screenshot-fallback"

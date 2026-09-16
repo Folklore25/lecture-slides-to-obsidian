@@ -5,19 +5,53 @@ input:
   copy_source_into_vault: false
   reject_source_inside_vault: true
 
+extraction:
+  mode: "native"                       # native (default) | mineru
+  native:
+    requires_multimodal_model: true
+    accepted_source_views:
+      - "original-pdf"
+      - "rendered-page-images"
+  mineru:
+    enabled_only_with_mode: "mineru"
+
 course_routing:
   registry: "state/course-registry.yaml"
   unmatched_course: "use-active-semester-or-ask-root"
   require_unique_match: true
   create_default_subfolders: true
 
+note_planning:
+  granularity: "ask-user-every-time"       # single-note | section-notes
+  granularity_never_defaulted: true
+  section_headings_from: "source-document-outline"
+  allow_slide_number_headings: false
+  require_page_ledger: true
+  require_page_evidence_phrase: true
+  dropped_page_reasons:
+    - "title-slide"
+    - "section-divider"
+    - "agenda"
+    - "course-admin"
+    - "exercise"
+    - "repeated-chrome"
+    - "page-furniture"
+    - "duplicate"
+    - "illegible"
+    - "non-substantive"
+  heavy_drop_requires_flag: true
+  conservation_threshold: 0.35
+  page_groups_optional: true
+
 output:
   overwrite: false
   document_folder: "{document_slug}"
-  note_name: "{document_slug}.md"
-  canvas_name: "{document_slug}.canvas"
+  note_name: "{note_slug}.md"
+  canvas_name: "{note_slug}.canvas"
   assets_directory: "assets"
-  asset_name_pattern: "page-{page:03d}-{kind}-{index:02d}.{ext}"
+  asset_name_style: "semantic-kebab-case"      # content-driven notes
+  asset_name_pattern: "{semantic-slug}.{ext}"
+  mineru_transcription_asset_name_pattern: "page-{page:03d}-{kind}-{index:02d}.{ext}"
   asset_kinds:
     - "figure"
     - "table"
@@ -31,6 +65,9 @@ staging:
   allow_inside_vault: false
   create_dot_prefixed_paths_in_vault: false
   report_name: "conversion-report.md"
+  note_plan_name: "note-plan.json"
+  page_ledger_name: "page-ledger.json"
+  page_groups_name: "{source_stem}.content-list-v2.compat.json"
   layout_refinement_report_name: "layout-refinement-report.json"
   latex_refinement_report_name: "latex-refinement-report.json"
   recall_model_name: "recall-model.json"
@@ -42,6 +79,7 @@ staging:
   delete_qa_on_success: true
 
 mineru_cli:
+  required_only_with_extraction_mode: "mineru"
   executable: "mineru-open-api"
   command: "extract"
   direct_http_calls: false
@@ -69,13 +107,17 @@ conversion:
     - "lecture-notes"
     - "policy-document"
     - "paper"
-  page_source: "content-list-v2-or-page-idx"
-  page_provenance: "html-comment"
+  page_provenance: "none"                 # markers only with extraction.mode=mineru
   visual_fallback: "uncertain-pages"
   equation_policy: "preserve-and-flag"
-  table_policy: "markdown-or-image"
+  table_policy: "markdown-preferred"
+  drop_slide_furniture: true
   visual_layout_refinement:
-    enabled: true
+    enabled: false
+    enabled_only_with_extraction_mode: "mineru"
+    enabled_only_for_profiles:
+      - "policy-document"
+      - "paper"
     skill: "slide-layout-refiner"
     requires_multimodal: true
     requires_visual_input: true
@@ -92,7 +134,7 @@ conversion:
     skill: "obsidian-latex-refiner"
     deterministic: true
     requires_multimodal: false
-    scope: "inside-source-page-markers-only"
+    scope: "math-spans-only"
     write_mode: "overwrite-final-markdown"
     snapshot_location: "staging-outside-vault"
     on_failure: "restore-snapshot-without-confirmation"

@@ -3,7 +3,7 @@
 The delegating Agent supplies:
 
 - absolute vault root;
-- absolute complete-note path inside that vault;
+- absolute complete-note path inside that vault, one note per Canvas subagent;
 - absolute recall-model path under staging outside the vault;
 - conversion profile;
 - final `.canvas` path beside the note;
@@ -12,7 +12,7 @@ The delegating Agent supplies:
 
 The Canvas subagent must not:
 
-- ask the user to repeat course, semester, MinerU, language, OCR, or credential decisions;
+- ask the user to repeat course, semester, extraction-mode, granularity, profile, or credential decisions;
 - edit the complete Markdown, course registry, source original, token state, or unrelated vault files;
 - promote H3 headings to H2, even when the note lacks usable anchors; report exact candidates instead;
 - invent missing relationships to make the graph look fuller;

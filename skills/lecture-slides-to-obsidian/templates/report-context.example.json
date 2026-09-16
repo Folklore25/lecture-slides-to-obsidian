@@ -6,43 +6,52 @@
     "routing_decision": "confirmed exact course folder"
   },
   "pipeline": {
-    "provider": "MinerU Precision API via mineru-open-api",
-    "model": "vlm",
-    "profile": "policy-document",
-    "language": "en",
-    "is_ocr": false,
+    "extraction_mode": "native",
+    "provider": "native multimodal reading",
+    "model": "native",
+    "profile": "lecture-notes",
+    "note_granularity": "single-note",
+    "granularity_decided_by": "user",
     "loaded_helper_skills": [
       "obsidian-markdown",
       "obsidian-cli",
       "obsidian-canvas-designer"
     ],
-    "page_count_source": "normalized page-group length",
+    "note_count": 1,
+    "page_count_source": "source page count",
     "page_count_observations": {
-      "normalized_page_groups": 14,
-      "spotlight_metadata": 14,
-      "file_command": 8
+      "source_pages": 44
     }
   },
   "outputs": {
-    "markdown": "COURSE101/Lectures/example-policy/example-policy.md",
-    "canvas": "COURSE101/Lectures/example-policy/example-policy.canvas",
-    "assets": "COURSE101/Lectures/example-policy/assets"
+    "notes": "COURSE101/Lectures/example-policy/example-policy.md",
+    "canvases": "COURSE101/Lectures/example-policy/example-policy.canvas",
+    "assets": "COURSE101/Lectures/example-policy/assets",
+    "note_plan": "note-plan.json",
+    "page_ledger": "page-ledger.json"
   },
   "inventory": {
-    "pages": 14,
-    "figures_images": 0,
-    "tables": 0,
+    "pages": 44,
+    "figures_images": 3,
+    "tables": 2,
     "equations": 0,
     "fallback_pages": 0,
-    "page_headers": 1,
+    "page_headers": 0,
     "page_footers": 0,
-    "page_footnotes": 1
+    "page_footnotes": 0
   },
   "quality_gates": {
+    "extraction_mode_declared": "PASS",
+    "granularity_decided_by_user": "PASS",
+    "native_visual_capability": "PASS",
     "source_original_excluded": "PASS",
-    "structural_alignment": "PASS",
+    "note_structure_matches_plan": "PASS",
+    "page_ledger_complete": "PASS",
+    "page_evidence_matches_note": "PASS",
+    "content_conservation": "PASS",
+    "slide_furniture_removed": "PASS",
     "markdown_validation": "PASS",
-    "visual_layout_refinement": "PASS",
+    "visual_layout_refinement": "NOT-APPLICABLE",
     "latex_refinement": "DISABLED",
     "canvas_validation": "PASS",
     "canvas_aesthetic_score": 100,

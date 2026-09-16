@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
-"""Validate one derived Obsidian course-document folder using only stdlib."""
+"""Validate one derived Obsidian course-document folder using only stdlib.
+
+Two contracts live here:
+
+* ``policy-document`` and ``paper`` keep the faithful-transcription contract: one
+  note, page markers, ``page-PPP-kind-NN.ext`` assets.
+* ``lecture-notes`` uses the content-driven synthesis contract: one or more notes
+  planned from the source document's own section outline, no page markers,
+  semantic asset names, and a page ledger that accounts for every source page.
+"""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import re
 import sys
@@ -16,15 +26,20 @@ SOURCE_EXTENSIONS = {
     ".zip", ".7z", ".rar", ".tar", ".gz",
 }
 VISUAL_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"}
-ASSET_NAME = re.compile(
+PAGE_ASSET_NAME = re.compile(
     r"^page-(\d{3})-(figure|table|equation|chart|fallback)-(\d{2})\.[a-z0-9]+$"
+)
+SEMANTIC_ASSET_NAME = re.compile(
+    r"^[a-z0-9]+(?:-[a-z0-9]+)*\.(?:png|jpg|jpeg|webp|gif|bmp|svg)$"
 )
 REQUIRED_PROPERTIES = {
     "type", "course", "title", "source_filename", "source_format",
-    "source_sha256", "source_pages", "conversion_profile",
-    "mineru_model", "status",
+    "source_sha256", "conversion_profile", "mineru_model", "status",
 }
-PROFILES = {"lecture-notes", "policy-document", "paper"}
+SYNTHESIS_PROFILE = "lecture-notes"
+LEGACY_PROFILES = {"policy-document", "paper"}
+PROFILES = {SYNTHESIS_PROFILE} | LEGACY_PROFILES
+ALLOWED_EXTRA_SECTIONS = {"In-class notes"}
 REPORT_SECTIONS = {
     "Matched routing", "Pipeline", "Outputs", "Content inventory",
     "Quality gates", "Review items", "Not checked",
@@ -36,10 +51,35 @@ INVENTORY_LABELS = {
 HEX_ID = re.compile(r"^[0-9a-f]{16}$")
 MARKER = re.compile(r"<!--\s*source-page:\s*(\d+)\s*-->")
 RECALL_ROLE = re.compile(r"<!--\s*recall-map:\s*([a-z-]+)\s*-->")
+SOURCE_LINK = re.compile(r"\[\[[^\]]+#([^\]|]+)\|Source(?:\s+p\.(\d+))?\]\]")
+H2 = re.compile(r"(?m)^##\s+(.+?)\s*$")
 BANNED_CANVAS_EDGE_LABELS = {
     "related to", "contains", "contains section", "followed by", "includes asset",
     "connects to", "next", "section",
 }
+STOPWORDS = {
+    "with", "from", "that", "this", "these", "those", "than", "then", "they",
+    "their", "there", "them", "when", "where", "which", "while", "will",
+    "would", "could", "should", "have", "has", "had", "been", "were", "was",
+    "are", "and", "the", "for", "not", "but", "you", "your", "can", "into",
+    "more", "most", "some", "such", "also", "each", "other", "only", "over",
+    "used", "using", "use", "one", "two", "how", "why", "what", "who", "its",
+    "about", "does", "may", "any", "all", "our", "out", "see", "per", "via",
+}
+
+
+class ValidationError(RuntimeError):
+    pass
+
+
+def load_planner():
+    path = Path(__file__).resolve().parent / "plan-note-structure.py"
+    spec = importlib.util.spec_from_file_location("lecture_skill_note_plan", path)
+    if spec is None or spec.loader is None:
+        raise ValidationError("cannot load plan-note-structure.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
@@ -79,51 +119,96 @@ def local_target(raw: str) -> str | None:
     return target
 
 
-def to_int(value: str, default: int = 0) -> int:
+def to_int(value, default: int = 0) -> int:
     try:
         return int(value)
     except (TypeError, ValueError):
         return default
 
 
-def validate_markdown(path: Path, folder: Path, vault_root: Path | None) -> list[str]:
+def distinctive_tokens(text: str) -> set[str]:
+    lowered = text.lower()
+    latin = {token for token in re.findall(r"[a-z][a-z0-9-]{3,}", lowered) if token not in STOPWORDS}
+    sequences = re.findall(r"[\u3400-\u9fff]+", text)
+    bigrams = {sequence[index : index + 2] for sequence in sequences for index in range(len(sequence) - 1)}
+    return latin | bigrams
+
+
+def flatten_block(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, list):
+        return "".join(flatten_block(item) for item in value)
+    if isinstance(value, dict):
+        if isinstance(value.get("content"), str):
+            return value["content"]
+        preferred = [
+            "title_content", "paragraph_content", "math_content", "code_content",
+            "algorithm_content", "list_items", "image_caption", "table_caption",
+            "chart_caption", "page_header_content", "page_footer_content",
+            "page_footnote_content",
+        ]
+        for key in preferred:
+            if key in value:
+                return flatten_block(value[key])
+        return "".join(flatten_block(item) for item in value.values())
+    return ""
+
+
+def page_bodies(pages: list) -> list[str]:
+    bodies: list[str] = []
+    for page in pages:
+        blocks: list[dict] = []
+        if isinstance(page, list):
+            blocks = [item for item in page if isinstance(item, dict)]
+        elif isinstance(page, dict):
+            for key in ("blocks", "content", "items"):
+                if isinstance(page.get(key), list):
+                    blocks = [item for item in page[key] if isinstance(item, dict)]
+                    break
+        bodies.append("\n".join(flatten_block(block.get("content")).strip() for block in blocks))
+    return bodies
+
+
+def validate_markdown(
+    path: Path, folder: Path, vault_root: Path | None, mode: str
+) -> tuple[list[str], dict[str, str], str, list[int]]:
     errors: list[str] = []
     text = path.read_text(encoding="utf-8")
     props, body = parse_frontmatter(text)
     missing = sorted(REQUIRED_PROPERTIES - props.keys())
     if missing:
-        errors.append(f"markdown missing properties: {', '.join(missing)}")
+        errors.append(f"{path.name} missing properties: {', '.join(missing)}")
     if props.get("type") != "course-material":
-        errors.append("frontmatter type must be course-material")
+        errors.append(f"{path.name}: frontmatter type must be course-material")
     source_filename = props.get("source_filename", "")
     if not source_filename or Path(source_filename).name != source_filename:
-        errors.append("source_filename must be a basename, not a path")
+        errors.append(f"{path.name}: source_filename must be a basename, not a path")
     if not re.fullmatch(r"[0-9a-fA-F]{64}", props.get("source_sha256", "")):
-        errors.append("source_sha256 must contain 64 hexadecimal characters")
-
-    try:
-        page_count = int(props.get("source_pages", "0"))
-    except ValueError:
-        page_count = 0
-    if page_count <= 0:
-        errors.append("source_pages must be a positive integer")
-
+        errors.append(f"{path.name}: source_sha256 must contain 64 hexadecimal characters")
     profile = props.get("conversion_profile")
     if profile not in PROFILES:
-        errors.append(f"invalid conversion_profile: {profile!r}")
+        errors.append(f"{path.name}: invalid conversion_profile: {profile!r}")
 
     h1_count = len(re.findall(r"(?m)^#\s+\S", body))
     if h1_count != 1:
-        errors.append(f"expected exactly one H1, found {h1_count}")
+        errors.append(f"{path.name}: expected exactly one H1, found {h1_count}")
 
     markers = [to_int(value) for value in MARKER.findall(body)]
-    if not markers:
-        errors.append("no source-page markers found")
-    if markers != sorted(markers):
-        errors.append("source-page markers are not monotonic")
-    invalid = [value for value in markers if value < 1 or value > page_count]
-    if invalid:
-        errors.append(f"source-page markers outside 1..{page_count}: {invalid}")
+    if mode == "legacy":
+        if not markers:
+            errors.append(f"{path.name}: no source-page markers found")
+        if markers != sorted(markers):
+            errors.append(f"{path.name}: source-page markers are not monotonic")
+    elif markers:
+        errors.append(
+            f"{path.name}: page markers are not part of the content-driven lecture-note contract; "
+            "the page ledger carries page coverage instead"
+        )
 
     targets: list[str] = []
     targets += re.findall(r"!\[[^\]]*\]\(([^)]+)\)", body)
@@ -134,7 +219,7 @@ def validate_markdown(path: Path, folder: Path, vault_root: Path | None) -> list
             continue
         candidate = (folder / target).resolve()
         if not inside(candidate, folder) or not candidate.is_file():
-            errors.append(f"unresolved or escaping asset/embed: {target}")
+            errors.append(f"{path.name}: unresolved or escaping asset/embed: {target}")
 
     if vault_root:
         for raw in re.findall(r"(?<!!)\[\[([^\]|#]+)", body):
@@ -146,9 +231,89 @@ def validate_markdown(path: Path, folder: Path, vault_root: Path | None) -> list
             if not any(item.is_file() for item in candidates):
                 by_name = list(vault_root.rglob(Path(target).name + ".md")) if not candidate.suffix else []
                 if len(by_name) != 1:
-                    errors.append(f"unresolved or ambiguous wikilink: {target}")
+                    errors.append(f"{path.name}: unresolved or ambiguous wikilink: {target}")
 
+    return errors, props, body, markers
+
+
+def validate_note_sections(note_name: str, body: str, sections: list[str]) -> list[str]:
+    errors: list[str] = []
+    headings = [match.group(1).strip() for match in H2.finditer(body)]
+    expected = set(sections)
+    extra = sorted({
+        heading for heading in headings
+        if heading not in expected and heading not in ALLOWED_EXTRA_SECTIONS
+    })
+    if extra:
+        errors.append(f"{note_name}: H2 headings outside the finalized note plan: {', '.join(extra)}")
+    missing = [section for section in sections if section not in headings]
+    if missing:
+        errors.append(f"{note_name}: planned sections are missing as H2 headings: {', '.join(missing)}")
+    duplicated = sorted({heading for heading in headings if headings.count(heading) > 1})
+    if duplicated:
+        errors.append(f"{note_name}: duplicate H2 headings cannot be addressed uniquely: {', '.join(duplicated)}")
     return errors
+
+
+def normalize_for_match(value: str) -> str:
+    """Fold Markdown emphasis, link syntax, and whitespace so quoted phrases can match."""
+    text = re.sub(r"\[\[([^\]|#]+)(?:\|([^\]]+))?\]\]", lambda match: match.group(2) or match.group(1), value)
+    text = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", text)
+    text = re.sub(r"[*_`~]+", "", text)
+    return re.sub(r"\s+", " ", text).strip().casefold()
+
+
+def validate_page_evidence(ledger: dict, note_texts: dict[str, str]) -> list[str]:
+    """Every kept page must quote a phrase that actually appears in its target note."""
+    errors: list[str] = []
+    for item in ledger.get("pages", []) if isinstance(ledger, dict) else []:
+        if not isinstance(item, dict) or item.get("disposition") == "dropped":
+            continue
+        slug = item.get("note")
+        evidence = item.get("evidence")
+        if slug not in note_texts or not isinstance(evidence, str) or not evidence.strip():
+            continue
+        needle = normalize_for_match(evidence)
+        haystack = normalize_for_match(note_texts[slug])
+        if needle not in haystack:
+            errors.append(
+                f"page {item.get('page')} evidence does not appear in {slug}: {evidence!r}; "
+                "quote text that the delivered note actually contains"
+            )
+    return errors
+
+
+def validate_conservation(
+    ledger: dict, page_groups: list, note_texts: dict[str, str], threshold: float,
+) -> tuple[list[str], list[dict]]:
+    errors: list[str] = []
+    rows: list[dict] = []
+    bodies = page_bodies(page_groups)
+    note_tokens = {slug: distinctive_tokens(text) for slug, text in note_texts.items()}
+    for item in ledger.get("pages", []):
+        if not isinstance(item, dict) or item.get("disposition") == "dropped":
+            continue
+        page = item.get("page")
+        if not isinstance(page, int) or page < 1 or page > len(bodies):
+            continue
+        slug = item.get("note")
+        if slug not in note_tokens:
+            continue
+        page_tokens = distinctive_tokens(bodies[page - 1])
+        recall = 1.0 if not page_tokens else len(page_tokens & note_tokens[slug]) / len(page_tokens)
+        rows.append({"page": page, "note": slug, "recall": round(recall, 3)})
+        exempt = (
+            isinstance(item.get("recall_exempt"), bool)
+            and item["recall_exempt"]
+            and isinstance(item.get("recall_exempt_reason"), str)
+            and bool(item["recall_exempt_reason"].strip())
+        )
+        if recall + 1e-9 < threshold and not exempt:
+            errors.append(
+                f"page {page} content is not represented in {slug}: recall {recall:.2f} < {threshold:.2f}; "
+                "either fold the missing content into the note or declare recall_exempt with a reason"
+            )
+    return errors, rows
 
 
 def rectangles_overlap(a: dict, b: dict) -> bool:
@@ -162,7 +327,7 @@ def rectangles_overlap(a: dict, b: dict) -> bool:
     )
 
 
-def validate_canvas(path: Path, folder: Path, vault_root: Path | None) -> list[str]:
+def validate_canvas(path: Path, folder: Path, vault_root: Path | None, note: Path | None) -> list[str]:
     errors: list[str] = []
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -174,12 +339,11 @@ def validate_canvas(path: Path, folder: Path, vault_root: Path | None) -> list[s
     if not isinstance(nodes, list) or not isinstance(edges, list):
         return ["canvas must contain nodes and edges arrays"]
 
-    note_candidates = [item for item in folder.glob("*.md") if item.name != "conversion-report.md"]
     note_h2: set[str] = set()
     note_h2_pages: dict[str, set[int]] = {}
     note_page_count = 0
-    if len(note_candidates) == 1:
-        note_text = note_candidates[0].read_text(encoding="utf-8")
+    if note is not None and note.is_file():
+        note_text = note.read_text(encoding="utf-8")
         note_h2 = set(re.findall(r"(?m)^##\s+(.+?)\s*$", note_text))
         current_page: int | None = None
         for line in note_text.splitlines():
@@ -191,10 +355,7 @@ def validate_canvas(path: Path, folder: Path, vault_root: Path | None) -> list[s
             if heading and current_page is not None:
                 note_h2_pages.setdefault(heading.group(1).strip(), set()).add(current_page)
         note_props, _ = parse_frontmatter(note_text)
-        try:
-            note_page_count = int(note_props.get("source_pages", "0"))
-        except ValueError:
-            note_page_count = 0
+        note_page_count = to_int(note_props.get("source_pages", "0"))
 
     all_ids: list[str] = []
     node_ids: set[str] = set()
@@ -229,18 +390,22 @@ def validate_canvas(path: Path, folder: Path, vault_root: Path | None) -> list[s
                 if len(text) > 1400:
                     errors.append(f"text node {node_id} is too dense for recall: {len(text)} characters")
                 if role_match and role_match.group(1) == "concept":
-                    source_link = re.search(r"\[\[[^\]]+#([^\]|]+)\|Source p\.(\d+)\]\]", text)
+                    source_link = SOURCE_LINK.search(text)
                     if not source_link:
-                        errors.append(f"concept node {node_id} is missing a compact source-heading/page link")
+                        errors.append(f"concept node {node_id} is missing a compact source-heading link")
                     elif source_link.group(1) not in note_h2:
                         errors.append(f"concept node {node_id} links an unknown source heading: {source_link.group(1)}")
-                    source_page = to_int(source_link.group(2)) if source_link else None
-                    if source_page is not None and not 1 <= source_page <= note_page_count:
-                        errors.append(f"concept node {node_id} source page is outside 1..{note_page_count}")
-                    elif source_link and source_link.group(1) in note_h2_pages and source_page not in note_h2_pages[source_link.group(1)]:
-                        errors.append(
-                            f"concept node {node_id} source heading/page pair does not occur in the note"
-                        )
+                    elif source_link.group(2):
+                        source_page = to_int(source_link.group(2))
+                        if note_page_count and not 1 <= source_page <= note_page_count:
+                            errors.append(f"concept node {node_id} source page is outside 1..{note_page_count}")
+                        elif (
+                            source_link.group(1) in note_h2_pages
+                            and source_page not in note_h2_pages[source_link.group(1)]
+                        ):
+                            errors.append(
+                                f"concept node {node_id} source heading/page pair does not occur in the note"
+                            )
         if node_type == "group":
             group_count += 1
         if node_type == "file":
@@ -367,21 +532,24 @@ def validate_report(path: Path) -> list[str]:
     return errors
 
 
-def validate_assets(assets: Path, markdown_path: Path) -> list[str]:
+def validate_assets(assets: Path, mode: str, page_count: int, referenced: set[str]) -> list[str]:
     errors: list[str] = []
-    props, _ = parse_frontmatter(markdown_path.read_text(encoding="utf-8"))
-    try:
-        page_count = int(props.get("source_pages", "0"))
-    except ValueError:
-        page_count = 0
     sequences: dict[tuple[int, str], list[int]] = {}
+    seen: set[str] = set()
     for path in assets.rglob("*"):
         if not path.is_file() or path.suffix.lower() not in VISUAL_EXTENSIONS:
             continue
         if path.parent != assets:
             errors.append(f"visual asset must be a flat file directly under assets/: {path.relative_to(assets)}")
             continue
-        match = ASSET_NAME.fullmatch(path.name)
+        seen.add(path.name)
+        if mode == "synthesis":
+            if path.name.startswith("page-"):
+                errors.append(f"lecture-notes assets must not use page-number prefixes: {path.name}")
+            elif not SEMANTIC_ASSET_NAME.fullmatch(path.name):
+                errors.append(f"visual asset filename must be a lowercase semantic kebab-case slug: {path.name}")
+            continue
+        match = PAGE_ASSET_NAME.fullmatch(path.name)
         if not match:
             errors.append(f"visual asset filename violates page-PPP-kind-NN.ext: {path.name}")
             continue
@@ -395,8 +563,13 @@ def validate_assets(assets: Path, markdown_path: Path) -> list[str]:
         ordered = sorted(values)
         expected = list(range(1, len(ordered) + 1))
         if ordered != expected:
+            errors.append(f"asset sequence for page {page:03d} {kind} must be contiguous from 01: {ordered}")
+    if mode == "synthesis":
+        orphans = sorted(seen - referenced)
+        if orphans:
             errors.append(
-                f"asset sequence for page {page:03d} {kind} must be contiguous from 01: {ordered}"
+                "lecture-notes assets are not referenced by any note or Canvas file node: "
+                + ", ".join(orphans)
             )
     return errors
 
@@ -424,6 +597,11 @@ def main() -> int:
     parser.add_argument("--vault-root", type=Path)
     parser.add_argument("--fixture-mode", action="store_true", help="Allow document-relative Canvas paths in tests only")
     parser.add_argument("--report", required=True, type=Path, help="Temporary QA report outside the vault")
+    parser.add_argument("--plan", type=Path, help="Finalized note plan from plan-note-structure.py")
+    parser.add_argument("--ledger", type=Path, help="Finalized page ledger from plan-note-structure.py")
+    parser.add_argument("--page-groups", type=Path, help="Normalized MinerU page groups for content conservation")
+    parser.add_argument("--conservation-threshold", type=float, default=0.35)
+    parser.add_argument("--allow-heavy-drop", action="store_true")
     parser.add_argument("--recall-model", type=Path, help="Temporary Agent-authored recall model outside the vault")
     parser.add_argument("--layout-refinement-report", type=Path, help="Optional validated multimodal layout report")
     parser.add_argument("--latex-refinement-report", type=Path, help="Optional validated LaTeX normalization report")
@@ -433,7 +611,7 @@ def main() -> int:
     parser.add_argument(
         "--delete-qa-on-success", "--delete-report-on-success",
         dest="delete_qa_on_success", action="store_true",
-        help="Delete the report and supplied recall model after every check passes",
+        help="Delete the report and supplied staging QA files after every check passes",
     )
     args = parser.parse_args()
 
@@ -453,11 +631,16 @@ def main() -> int:
     render_metrics = render_metrics_input.resolve() if render_metrics_input else None
     render_check_input = args.render_check
     render_check = render_check_input.resolve() if render_check_input else None
+    plan_path = args.plan.resolve() if args.plan else None
+    ledger_path = args.ledger.resolve() if args.ledger else None
+    page_groups_path = args.page_groups.resolve() if args.page_groups else None
     render_metrics_data: dict | None = None
     render_check_data: dict | None = None
     aesthetic_check_data: dict | None = None
     layout_report_data: dict | None = None
     latex_report_data: dict | None = None
+    conservation_rows: list[dict] = []
+    conservation_mode = "not-checked"
     errors: list[str] = []
 
     if vault_root is None and not args.fixture_mode:
@@ -507,17 +690,27 @@ def main() -> int:
         errors.append("document folder is outside --vault-root")
     if inside(report, folder) or (vault_root and inside(report, vault_root)):
         errors.append("temporary conversion report must be outside the document folder and vault")
-    if recall_model is not None and (inside(recall_model, folder) or (vault_root and inside(recall_model, vault_root))):
-        errors.append("temporary recall model must be outside the document folder and vault")
-    if layout_report is not None and (inside(layout_report, folder) or (vault_root and inside(layout_report, vault_root))):
-        errors.append("temporary layout refinement report must be outside the document folder and vault")
-    if latex_report is not None and (inside(latex_report, folder) or (vault_root and inside(latex_report, vault_root))):
-        errors.append("temporary LaTeX refinement report must be outside the document folder and vault")
-    if aesthetic_check is not None and (inside(aesthetic_check, folder) or (vault_root and inside(aesthetic_check, vault_root))):
-        errors.append("temporary aesthetic check must be outside the document folder and vault")
-    for resolved, label in ((render_metrics, "render metrics"), (render_check, "render check")):
-        if resolved is not None and (inside(resolved, folder) or (vault_root and inside(resolved, vault_root))):
-            errors.append(f"temporary {label} must be outside the document folder and vault")
+    for resolved, label in (
+        (recall_model, "temporary recall model"),
+        (layout_report, "temporary layout refinement report"),
+        (latex_report, "temporary LaTeX refinement report"),
+        (aesthetic_check, "temporary aesthetic check"),
+        (render_metrics, "temporary render metrics"),
+        (render_check, "temporary render check"),
+        (plan_path, "temporary note plan"),
+        (ledger_path, "temporary page ledger"),
+        (page_groups_path, "temporary page groups"),
+    ):
+        if resolved is None:
+            continue
+        if inside(resolved, folder) or (vault_root and inside(resolved, vault_root)):
+            errors.append(f"{label} must be outside the document folder and vault")
+    for resolved, label in (
+        (plan_path, "temporary note plan"),
+        (ledger_path, "temporary page ledger"),
+    ):
+        if resolved is not None and not resolved.is_file():
+            errors.append(f"{label} is missing")
     if recall_model is not None:
         if not recall_model.is_file():
             errors.append("temporary recall model is missing")
@@ -528,68 +721,47 @@ def main() -> int:
                     errors.append("temporary recall model must use schema_version 1")
             except (json.JSONDecodeError, UnicodeDecodeError) as exc:
                 errors.append(f"invalid temporary recall model JSON: {exc}")
-    if layout_report is not None:
-        if not layout_report.is_file():
-            errors.append("temporary layout refinement report is missing")
-        else:
-            try:
-                data = json.loads(layout_report.read_text(encoding="utf-8"))
-                if not isinstance(data, dict) or data.get("schema_version") != 1:
-                    errors.append("temporary layout refinement report must use schema_version 1")
-                elif not data.get("valid"):
-                    errors.append("optional multimodal layout refinement did not pass")
-                layout_report_data = data
-            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-                errors.append(f"invalid temporary layout refinement report JSON: {exc}")
-    if latex_report is not None:
-        if not latex_report.is_file():
-            errors.append("temporary LaTeX refinement report is missing")
-        else:
-            try:
-                data = json.loads(latex_report.read_text(encoding="utf-8"))
-                if not isinstance(data, dict) or data.get("schema_version") != 1:
-                    errors.append("temporary LaTeX refinement report must use schema_version 1")
-                elif not data.get("valid"):
-                    errors.append("optional LaTeX refinement did not pass")
-                latex_report_data = data
-            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-                errors.append(f"invalid temporary LaTeX refinement report JSON: {exc}")
-    if aesthetic_check is not None:
-        if not aesthetic_check.is_file():
-            errors.append("temporary aesthetic check is missing")
-        else:
-            try:
-                data = json.loads(aesthetic_check.read_text(encoding="utf-8"))
-                if not isinstance(data, dict) or data.get("schema_version") != 1:
-                    errors.append("temporary aesthetic check must use schema_version 1")
-                elif not data.get("valid") or data.get("score", 0) < data.get("minimum_score", 85):
-                    errors.append("Canvas aesthetic check did not pass")
-                aesthetic_check_data = data
-            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-                errors.append(f"invalid temporary aesthetic check JSON: {exc}")
-    for resolved, label, expected_mode in (
-        (render_metrics, "render metrics", "measure"),
-        (render_check, "render check", "check"),
+    for report_path, label, expected_mode in (
+        (layout_report, "temporary layout refinement report", None),
+        (latex_report, "temporary LaTeX refinement report", None),
+        (aesthetic_check, "temporary aesthetic check", None),
+        (render_metrics, "temporary render metrics", "measure"),
+        (render_check, "temporary render check", "check"),
     ):
-        if resolved is None:
+        if report_path is None:
             continue
-        if not resolved.is_file():
-            errors.append(f"temporary {label} is missing")
+        if not report_path.is_file():
+            errors.append(f"{label} is missing")
             continue
         try:
-            data = json.loads(resolved.read_text(encoding="utf-8"))
-            if not isinstance(data, dict) or data.get("schema_version") != 1:
-                errors.append(f"temporary {label} must use schema_version 1")
-            elif data.get("mode") != expected_mode or not data.get("measurement_complete"):
-                errors.append(f"temporary {label} is incomplete or has the wrong mode")
+            data = json.loads(report_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            errors.append(f"invalid {label} JSON: {exc}")
+            continue
+        if not isinstance(data, dict) or data.get("schema_version") != 1:
+            errors.append(f"{label} must use schema_version 1")
+            continue
+        if report_path is layout_report:
+            if not data.get("valid"):
+                errors.append("optional multimodal layout refinement did not pass")
+            layout_report_data = data
+        elif report_path is latex_report:
+            if not data.get("valid"):
+                errors.append("optional LaTeX refinement did not pass")
+            latex_report_data = data
+        elif report_path is aesthetic_check:
+            if not data.get("valid") or data.get("score", 0) < data.get("minimum_score", 85):
+                errors.append("Canvas aesthetic check did not pass")
+            aesthetic_check_data = data
+        else:
+            if data.get("mode") != expected_mode or not data.get("measurement_complete"):
+                errors.append(f"{label} is incomplete or has the wrong mode")
             elif expected_mode == "check" and not data.get("valid"):
                 errors.append("final Obsidian DOM render check did not pass")
             if expected_mode == "measure":
                 render_metrics_data = data
             else:
                 render_check_data = data
-        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-            errors.append(f"invalid temporary {label} JSON: {exc}")
 
     if not errors:
         hidden_entries = [
@@ -608,75 +780,181 @@ def main() -> int:
         markdown_files = [path for path in folder.glob("*.md") if path.name != "conversion-report.md"]
         canvas_files = list(folder.glob("*.canvas"))
         assets = folder / "assets"
-        if len(markdown_files) != 1:
-            errors.append(f"expected one primary Markdown file, found {len(markdown_files)}")
-        if len(canvas_files) != 1:
-            errors.append(f"expected one Canvas file, found {len(canvas_files)}")
         if (folder / "conversion-report.md").exists():
             errors.append("conversion-report.md is temporary QA state and must not be in the document folder")
         if not report.is_file():
             errors.append("temporary conversion report is missing")
         if not assets.is_dir():
             errors.append("assets directory is missing")
+        if not markdown_files:
+            errors.append("expected at least one primary Markdown file, found 0")
+        if len(canvas_files) != len(markdown_files):
+            errors.append(
+                f"expected one Canvas per note, found {len(canvas_files)} Canvas files for {len(markdown_files)} notes"
+            )
 
-        if len(markdown_files) == 1:
-            errors += validate_markdown(markdown_files[0], folder, vault_root)
-            reports = [report for report in (layout_report_data, latex_report_data) if report is not None]
-            errors += validate_refinement_chain(reports, sha256_file(markdown_files[0]))
-        if len(canvas_files) == 1:
-            errors += validate_canvas(canvas_files[0], folder, vault_root)
-            canvas_hash = sha256_file(canvas_files[0])
+        bodies: dict[str, str] = {}
+        note_texts: dict[str, str] = {}
+        # Content-driven notes carry a plan and a ledger; page markers exist only in the
+        # MinerU faithful-transcription path.
+        marker_free = not any(MARKER.search(note.read_text(encoding="utf-8")) for note in markdown_files)
+        mode = "synthesis" if (plan_path is not None and ledger_path is not None) or marker_free else "legacy"
+        for note in markdown_files:
+            note_errors, _props, body, _markers = validate_markdown(note, folder, vault_root, mode)
+            bodies[note.stem] = body
+            note_texts[note.stem] = note.read_text(encoding="utf-8")
+            errors += note_errors
+
+        if mode == "legacy":
+            if len(markdown_files) != 1:
+                errors.append(f"expected one primary Markdown file, found {len(markdown_files)}")
+            for note in markdown_files:
+                note_props, _ = parse_frontmatter(note.read_text(encoding="utf-8"))
+                page_count = to_int(note_props.get("source_pages", "0"))
+                if page_count <= 0:
+                    errors.append(f"{note.name}: source_pages must be a positive integer")
+                markers = [to_int(value) for value in MARKER.findall(bodies.get(note.stem, ""))]
+                invalid = [value for value in markers if value < 1 or value > page_count]
+                if invalid:
+                    errors.append(f"{note.name}: source-page markers outside 1..{page_count}: {invalid}")
+                errors += validate_refinement_chain(
+                    [entry for entry in (layout_report_data, latex_report_data) if entry is not None],
+                    sha256_file(note),
+                )
+        else:
+            planner = None
+            try:
+                planner = load_planner()
+            except ValidationError as exc:
+                errors.append(str(exc))
+            if planner is not None:
+                if plan_path is None or ledger_path is None:
+                    errors.append(
+                        "a note without page markers requires --plan and --ledger from plan-note-structure.py"
+                    )
+                elif plan_path.is_file() and ledger_path.is_file():
+                    try:
+                        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+                        ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+                    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                        errors.append(f"invalid note plan or page ledger JSON: {exc}")
+                        plan = None
+                        ledger = {}
+                    if plan is not None:
+                        errors += planner.validate_plan(plan)
+                        errors += planner.validate_ledger(ledger, plan, args.allow_heavy_drop)
+                        slugs = [
+                            note["slug"] for note in plan.get("notes", [])
+                            if isinstance(note, dict) and isinstance(note.get("slug"), str)
+                        ]
+                        note_stems = set(bodies)
+                        unexpected = sorted(note_stems - set(slugs))
+                        if unexpected:
+                            errors.append(
+                                "document folder contains notes outside the note plan: " + ", ".join(unexpected)
+                            )
+                        missing = [slug for slug in slugs if slug not in note_stems]
+                        if missing:
+                            errors.append("planned notes are missing from the document folder: " + ", ".join(missing))
+                        for note in plan.get("notes", []):
+                            if not isinstance(note, dict) or note.get("slug") not in bodies:
+                                continue
+                            sections = [
+                                section["heading"]
+                                for section in note.get("sections", [])
+                                if isinstance(section, dict) and isinstance(section.get("heading"), str)
+                            ]
+                            errors += validate_note_sections(note["slug"], bodies[note["slug"]], sections)
+                        errors += validate_page_evidence(ledger, note_texts)
+                        if page_groups_path is None:
+                            conservation_mode = "evidence"
+                        elif not page_groups_path.is_file():
+                            errors.append("temporary page groups file is missing")
+                        else:
+                            try:
+                                page_groups = json.loads(page_groups_path.read_text(encoding="utf-8"))
+                            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                                errors.append(f"invalid page groups JSON: {exc}")
+                            else:
+                                conservation_mode = "evidence+mineru-text"
+                                conservation_errors, conservation_rows = validate_conservation(
+                                    ledger, page_groups, note_texts, args.conservation_threshold
+                                )
+                                errors += conservation_errors
+
+        for canvas_path in canvas_files:
+            note = folder / f"{canvas_path.stem}.md"
+            errors += validate_canvas(canvas_path, folder, vault_root, note if note.is_file() else None)
+            canvas_hash = sha256_file(canvas_path)
             if aesthetic_check_data is not None and aesthetic_check_data.get("canvas_sha256") != canvas_hash:
                 errors.append("aesthetic check does not match the delivered Canvas")
             if render_check_data is not None and render_check_data.get("canvas_sha256") != canvas_hash:
                 errors.append("final render check does not match the delivered Canvas")
             if render_metrics_data is not None and not render_metrics_data.get("nodes"):
                 errors.append("first-pass render metrics contain no text-node measurements")
+
         if report.is_file():
             errors += validate_report(report)
-        if assets.is_dir() and len(markdown_files) == 1:
-            errors += validate_assets(assets, markdown_files[0])
+        if assets.is_dir():
+            referenced: set[str] = set()
+            for text in note_texts.values():
+                referenced.update(Path(raw).name for raw in re.findall(r"!\[\[([^\]|#]+)", text))
+                referenced.update(Path(raw).name for raw in re.findall(r"!\[[^\]]*\]\(([^)]+)\)", text))
+            for canvas_path in canvas_files:
+                try:
+                    canvas_data = json.loads(canvas_path.read_text(encoding="utf-8"))
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    continue
+                for node in canvas_data.get("nodes", []):
+                    if isinstance(node, dict) and node.get("type") == "file":
+                        referenced.add(Path(str(node.get("file", ""))).name)
+            page_count = 0
+            for note in markdown_files:
+                note_props, _ = parse_frontmatter(note.read_text(encoding="utf-8"))
+                page_count = max(page_count, to_int(note_props.get("source_pages", "0")))
+            if ledger_path is not None and ledger_path.is_file():
+                try:
+                    page_count = max(
+                        page_count,
+                        to_int(json.loads(ledger_path.read_text(encoding="utf-8")).get("source_pages", "0")),
+                    )
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    pass
+            errors += validate_assets(assets, mode, page_count, referenced)
 
-    report_deleted = False
-    recall_model_deleted = False
-    layout_report_deleted = False
-    latex_report_deleted = False
-    aesthetic_check_deleted = False
-    render_metrics_deleted = False
-    render_check_deleted = False
+    deleted: dict[str, bool] = {}
     if not errors and args.delete_qa_on_success:
-        report.unlink()
-        report_deleted = True
-        if recall_model is not None:
-            recall_model.unlink()
-            recall_model_deleted = True
-        if layout_report is not None:
-            layout_report.unlink()
-            layout_report_deleted = True
-        if latex_report is not None:
-            latex_report.unlink()
-            latex_report_deleted = True
-        if aesthetic_check is not None:
-            aesthetic_check.unlink()
-            aesthetic_check_deleted = True
-        if render_metrics is not None:
-            render_metrics.unlink()
-            render_metrics_deleted = True
-        if render_check is not None:
-            render_check.unlink()
-            render_check_deleted = True
+        for label, resolved in (
+            ("report", report),
+            ("recall_model", recall_model),
+            ("layout_report", layout_report),
+            ("latex_report", latex_report),
+            ("aesthetic_check", aesthetic_check),
+            ("render_metrics", render_metrics),
+            ("render_check", render_check),
+            ("plan", plan_path),
+            ("ledger", ledger_path),
+            ("page_groups", page_groups_path),
+        ):
+            if resolved is not None:
+                resolved.unlink()
+                deleted[label] = True
     result = {
         "valid": not errors,
         "document_folder": str(folder),
         "temporary_report": str(report),
-        "report_deleted": report_deleted,
+        "report_deleted": deleted.get("report", False),
         "temporary_recall_model": str(recall_model) if recall_model else None,
-        "recall_model_deleted": recall_model_deleted,
-        "layout_refinement_report_deleted": layout_report_deleted,
-        "latex_refinement_report_deleted": latex_report_deleted,
-        "aesthetic_check_deleted": aesthetic_check_deleted,
-        "render_metrics_deleted": render_metrics_deleted,
-        "render_check_deleted": render_check_deleted,
+        "recall_model_deleted": deleted.get("recall_model", False),
+        "layout_refinement_report_deleted": deleted.get("layout_report", False),
+        "latex_refinement_report_deleted": deleted.get("latex_report", False),
+        "aesthetic_check_deleted": deleted.get("aesthetic_check", False),
+        "render_metrics_deleted": deleted.get("render_metrics", False),
+        "render_check_deleted": deleted.get("render_check", False),
+        "note_plan_deleted": deleted.get("plan", False),
+        "page_ledger_deleted": deleted.get("ledger", False),
+        "conservation_mode": conservation_mode,
+        "content_conservation": conservation_rows,
         "errors": errors,
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))

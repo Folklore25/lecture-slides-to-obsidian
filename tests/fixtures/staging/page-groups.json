@@ -1,0 +1,105 @@
+[
+  [
+    {
+      "type": "title",
+      "content": {
+        "title_content": [
+          {
+            "type": "text",
+            "content": "IS6000 Research Methods for the IS Manager"
+          }
+        ],
+        "level": 1
+      }
+    },
+    {
+      "type": "paragraph",
+      "content": {
+        "paragraph_content": [
+          {
+            "type": "text",
+            "content": "Week 3 Qualitative Research Prof Yongjin Park"
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "type": "paragraph",
+      "content": {
+        "paragraph_content": [
+          {
+            "type": "text",
+            "content": "A strategy of inquiry to answer a research question. Qualitative focus on words, quantitative focus on numbers, or mixed. The distinction is problematic and narrow. An interview is a data collection technique, not a method."
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "type": "paragraph",
+      "content": {
+        "paragraph_content": [
+          {
+            "type": "text",
+            "content": "Grounded theory discovers theory from data systematically obtained and analyzed. Open coding develops categories, axial coding interconnects categories, selective coding builds theoretical propositions. Zigzag between data collection and data analysis until categories reach saturation."
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "type": "paragraph",
+      "content": {
+        "paragraph_content": [
+          {
+            "type": "text",
+            "content": "Action research addresses a real world issue and contributes to the development of theory. Each cycle has four steps plan, act, observe, reflect. Researchers work with the host organisation on a change initiative."
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "type": "paragraph",
+      "content": {
+        "paragraph_content": [
+          {
+            "type": "text",
+            "content": "Ethnography studies social interactions, behaviours and perceptions within groups, teams, organisations and communities. The researcher lives with the people and explores rituals and customs. Ethnographers triangulate interview and observation methods."
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "type": "paragraph",
+      "content": {
+        "paragraph_content": [
+          {
+            "type": "text",
+            "content": "A case study is a holistic analysis of persons, events, decisions, periods, projects, policies, institutions. The method is preferred for contemporary events when you do not want to manipulate behaviour. Case studies rely on direct observation and systematic interviewing."
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "type": "paragraph",
+      "content": {
+        "paragraph_content": [
+          {
+            "type": "text",
+            "content": "Guba and Lincoln offered four tests of quality credibility, dependability, transferability, confirmability that reflect the assumptions of the qualitative paradigm."
+          }
+        ]
+      }
+    }
+  ]
+]

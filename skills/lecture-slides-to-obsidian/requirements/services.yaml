@@ -1,11 +1,25 @@
 schema_version: 1
 
-required_services:
+extraction_modes:
+  native:
+    default: true
+    description: "A natively multimodal model reads the source PDF or slide deck directly."
+    network_upload_required: false
+    requires_credentials: false
+    requires_multimodal_model: true
+  mineru:
+    default: false
+    description: "Optional aid: the official MinerU CLI returns structured page groups."
+    network_upload_required: true
+    requires_credentials: true
+
+optional_services:
   - name: "mineru-precision-api"
     provider: "MinerU"
     api_version: "v4"
     base_url: "https://mineru.net"
     docs: "https://mineru.net/apiManage/docs"
+    used_only_with_extraction_mode: "mineru"
     network_upload_required: true
     client:
       name: "mineru-open-api"

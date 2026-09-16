@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "profile": "lecture-notes",
+  "mode": "pre-class",
+  "title": "Week 3 Qualitative Research",
+  "orientation": {
+    "central_question": "How do qualitative research methods help an IS manager investigate how and why organisational phenomena happen?",
+    "one_sentence_answer": "Qualitative research studies meaning in natural settings through four overarching methods, three data collection techniques, and four explicit quality tests.",
+    "takeaways": [
+      "A method is an overarching strategy; an interview is only a data collection technique.",
+      "The four methods differ in unit of analysis and engagement model.",
+      "Quality is argued through credibility, dependability, transferability, and confirmability."
+    ]
+  },
+  "groups": [
+    {"id": "foundations", "title": "Foundations", "summary": "What counts as method versus technique.", "order": 1},
+    {"id": "methods", "title": "Four qualitative methods", "summary": "How each method frames a research question.", "order": 2},
+    {"id": "quality", "title": "Evidence and quality", "summary": "How a qualitative claim is tested.", "order": 3}
+  ],
+  "concepts": [
+    {
+      "id": "methodology", "group": "foundations", "kind": "foundation",
+      "title": "Methodology as strategy",
+      "statement": "A methodology is a strategy of inquiry chosen to answer a research question, and it can be qualitative, quantitative, or mixed.",
+      "details": ["The words versus numbers split is useful but narrow."],
+      "recall_cue": "What does a method actually decide?",
+      "source_heading": "1. Research methodology and the qualitative distinction"
+    },
+    {
+      "id": "technique", "group": "foundations", "kind": "boundary",
+      "title": "Technique is not method",
+      "statement": "An interview is a data collection technique and a questionnaire is part of a survey method, so neither is a method on its own.",
+      "details": ["Confusing the two collapses design into data collection."],
+      "recall_cue": "Which word is being misused?",
+      "source_heading": "1. Research methodology and the qualitative distinction"
+    },
+    {
+      "id": "grounded", "group": "methods", "kind": "method",
+      "title": "Grounded theory",
+      "statement": "Grounded theory discovers theory from systematically obtained data, reversing the traditional order by collecting data before proposing a theory.",
+      "details": ["Choose it to explain a process or stay close to the data."],
+      "recall_cue": "What comes first here?",
+      "source_heading": "2. Grounded theory"
+    },
+    {
+      "id": "coding", "group": "methods", "kind": "process",
+      "title": "Three coding stages",
+      "statement": "Open coding labels phenomena, axial coding interconnects the categories, and selective coding builds the connecting story into propositions.",
+      "details": ["Interviews zigzag toward saturation of categories."],
+      "recall_cue": "What does each coding pass produce?",
+      "source_heading": "2. Grounded theory"
+    },
+    {
+      "id": "action", "group": "methods", "kind": "method",
+      "title": "Action research",
+      "statement": "Action research solves a real world issue while contributing to theory, with each cycle moving through plan, act, observe, and reflect.",
+      "details": ["Researchers design and measure change with the host organisation."],
+      "recall_cue": "Why does this method carry two aims?",
+      "source_heading": "3. Action research"
+    },
+    {
+      "id": "ethnography", "group": "methods", "kind": "method",
+      "title": "Ethnography",
+      "statement": "Ethnography studies social interactions, behaviours, and perceptions within groups and communities by living among the people studied.",
+      "details": ["Interview and observation are triangulated because talk differs from action."],
+      "recall_cue": "What does the fieldworker compare?",
+      "source_heading": "4. Ethnography"
+    },
+    {
+      "id": "casestudy", "group": "methods", "kind": "method",
+      "title": "Case study",
+      "statement": "A case study analyses a person, event, decision, project, or institution holistically as an instance of a class of phenomena.",
+      "details": ["Preferred for contemporary events when behaviour cannot be manipulated."],
+      "recall_cue": "When does the case study win?",
+      "source_heading": "5. Case studies"
+    },
+    {
+      "id": "quality", "group": "quality", "kind": "evidence",
+      "title": "Four quality tests",
+      "statement": "Guba and Lincoln's four tests of quality are credibility, dependability, transferability, and confirmability.",
+      "details": ["They replace statistical validity with assumptions of the qualitative paradigm."],
+      "recall_cue": "Name the four tests.",
+      "source_heading": "6. Evaluating qualitative research"
+    }
+  ],
+  "relations": [
+    {"from": "methodology", "to": "technique", "type": "qualifies", "label": "separates method from technique", "why": "The distinction defines what a methodology does and does not cover."},
+    {"from": "methodology", "to": "grounded", "type": "enables", "label": "frames the qualitative stance", "why": "A qualitative strategy of inquiry is what makes grounded theory available."},
+    {"from": "grounded", "to": "coding", "type": "requires", "label": "needs coding to build theory", "why": "Categories only become theory through the coding passes."},
+    {"from": "grounded", "to": "action", "type": "contrasts", "label": "theory-first versus problem-first", "why": "Action research starts from a real world issue rather than from data alone."},
+    {"from": "action", "to": "casestudy", "type": "contrasts", "label": "intervention versus observation", "why": "Action research changes the setting while the case study studies it."},
+    {"from": "ethnography", "to": "casestudy", "type": "contrasts", "label": "culture versus bounded case", "why": "Both observe in context but differ in the unit of analysis."},
+    {"from": "technique", "to": "casestudy", "type": "applies-to", "label": "interviews become case evidence", "why": "Systematic interviewing feeds the case study evidence base."},
+    {"from": "coding", "to": "quality", "type": "supports", "label": "traceable categories aid credibility", "why": "Credibility asks whether categories connect to the raw data."},
+    {"from": "casestudy", "to": "quality", "type": "requires", "label": "needs explicit quality tests", "why": "Small samples make the four tests the argument for rigour."}
+  ],
+  "coverage": [
+    {"source_heading": "1. Research methodology and the qualitative distinction", "concepts": ["methodology", "technique"]},
+    {"source_heading": "2. Grounded theory", "concepts": ["grounded", "coding"]},
+    {"source_heading": "3. Action research", "concepts": ["action"]},
+    {"source_heading": "4. Ethnography", "concepts": ["ethnography"]},
+    {"source_heading": "5. Case studies", "concepts": ["casestudy"]},
+    {"source_heading": "6. Evaluating qualitative research", "concepts": ["quality"]}
+  ],
+  "synthesis": {
+    "logic_chain": [
+      "Choose a strategy of inquiry for the research question.",
+      "Decide whether the question needs words, numbers, or both.",
+      "Select the method whose unit of analysis fits the question.",
+      "Collect data with interviews, focus groups, or observation.",
+      "Argue quality through the four alternative tests."
+    ],
+    "distinctions": [
+      {"terms": "Method versus technique", "rule": "A method is an overall strategy; an interview or questionnaire only collects data inside it."},
+      {"terms": "Ethnography versus case study", "rule": "Ethnography follows a culture, while a case study bounds one instance of a phenomenon."}
+    ],
+    "recall_prompts": [
+      "Why is an interview not a method?",
+      "What do the three coding stages each produce?",
+      "Which four tests replace statistical validity in qualitative work?"
+    ],
+    "in_class_additions": []
+  },
+  "asset_links": []
+}

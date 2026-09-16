@@ -1,6 +1,14 @@
 schema_version: 1
 install_behavior: "report-only"
 
+extraction_modes:
+  native:
+    default: true
+    requires_multimodal_model: true
+  mineru:
+    default: false
+    requires_mineru_cli: true
+
 required_skills:
   - name: "obsidian-markdown"
     purpose: "Normalize and validate Obsidian properties, wikilinks, embeds, callouts, comments, and Markdown conventions."
@@ -22,12 +30,17 @@ required_skills:
 
 optional_skills:
   - name: "slide-layout-refiner"
-    purpose: "Use a multimodal model to restore page-local slide hierarchy and asset placement without changing content or source-page separation."
+    purpose: "Restore page-local hierarchy and asset placement inside MinerU source-page segments without changing content or page separation."
     source: "../slide-layout-refiner"
-    enabled_by_default: true
+    enabled_by_default: false
+    enabled_only_with_extraction_mode: "mineru"
+    enabled_only_for_profiles:
+      - "policy-document"
+      - "paper"
+    superseded_by: "native-multimodal-synthesis"
     requires_visual_input: true
   - name: "obsidian-latex-refiner"
-    purpose: "Normalize LaTeX math in an Obsidian note so it renders in MathJax, with an agent-driven scan, page-local conservation, and automatic rollback."
+    purpose: "Normalize LaTeX math in an Obsidian note so it renders in MathJax, with an agent-driven scan, conservation checks, and automatic rollback. Marker-free notes are treated as one segment."
     source: "../obsidian-latex-refiner"
     enabled_by_default: false
     requires_multimodal: false

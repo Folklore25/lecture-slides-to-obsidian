@@ -18,6 +18,8 @@ SUPPORTED = {
     ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx",
 }
 PROFILES = {"lecture-notes", "policy-document", "paper"}
+GRANULARITIES = {"single-note", "section-notes"}
+SYNTHESIS_PROFILE = "lecture-notes"
 REQUIRED_SKILLS = {"obsidian-markdown", "obsidian-cli", "obsidian-canvas-designer"}
 MINERU_LANGUAGES = {
     "ch", "ch_server", "en", "japan", "korean", "chinese_cht", "ta",
@@ -50,13 +52,22 @@ def main() -> int:
     parser.add_argument("--vault-root", type=Path)
     parser.add_argument("--course")
     parser.add_argument("--profile", choices=sorted(PROFILES))
+    parser.add_argument("--note-granularity", choices=sorted(GRANULARITIES))
+    parser.add_argument(
+        "--extraction", choices=("native", "mineru"), default="native",
+        help="native: the multimodal model reads the source directly (default). "
+             "mineru: use the official MinerU CLI as an extraction aid.",
+    )
     parser.add_argument("--confirm-profile-mismatch", action="store_true")
     parser.add_argument("--language")
     parser.add_argument("--is-ocr", choices=("true", "false"))
     parser.add_argument("--loaded-skill", action="append", default=[])
     parser.add_argument("--visual-layout-refinement", dest="layout_refinement_on", action="store_true")
     parser.add_argument("--no-visual-layout-refinement", dest="layout_refinement_off", action="store_true")
-    parser.add_argument("--layout-visual-input", choices=("true", "false"))
+    parser.add_argument(
+        "--layout-visual-input", "--visual-input",
+        dest="layout_visual_input", choices=("true", "false"),
+    )
     parser.add_argument("--latex-refinement", action="store_true")
     parser.add_argument("--fixture-mode", action="store_true")
     parser.add_argument(
@@ -78,7 +89,7 @@ def main() -> int:
         checks["source_suffix"] = source.suffix.lower()
         if source.suffix.lower() not in SUPPORTED:
             errors.append(f"unsupported source type: {source.suffix.lower()}")
-        if source.stat().st_size > MAX_BYTES:
+        if args.extraction == "mineru" and source.stat().st_size > MAX_BYTES:
             errors.append("source exceeds MinerU 200 MB limit")
 
     if args.vault_root is None:
@@ -107,12 +118,36 @@ def main() -> int:
             "prompt": f"文件名更像 {suggested_profile}，但当前选择是 {args.profile}；是否确认继续？",
         })
 
-    if args.language is None or args.language.lower() == "auto":
-        questions.append({"id": "language", "prompt": "请确认 MinerU language（例如纯英文用 en，中英混合用 ch）。"})
-    elif args.language not in MINERU_LANGUAGES:
-        errors.append(f"unsupported MinerU language enum: {args.language}")
-    if args.is_ocr is None:
-        questions.append({"id": "is_ocr", "prompt": "是否启用 OCR？请明确回答 true 或 false。"})
+    synthesis_profile = args.profile == SYNTHESIS_PROFILE
+    extraction = args.extraction
+    native_extraction = extraction == "native"
+    checks["extraction"] = extraction
+    checks["content_driven_synthesis"] = synthesis_profile
+    checks["mineru_available_but_optional"] = shutil.which("mineru-open-api") is not None
+    granularity_required = args.profile in (None, SYNTHESIS_PROFILE)
+    if args.note_granularity:
+        checks["note_granularity"] = args.note_granularity
+        if args.note_granularity == "section-notes" and not synthesis_profile:
+            errors.append("section-notes granularity is only supported for the lecture-notes profile")
+    elif granularity_required:
+        questions.append({
+            "id": "note_granularity",
+            "prompt": (
+                "笔记粒度必须由用户决定，不能默认：single-note（整份文档一篇笔记，源文档的节作为 H2）"
+                "或 section-notes（源文档每个节一篇笔记）。读完源文档大纲后给出建议并让用户选择。"
+            ),
+        })
+
+    if extraction == "mineru":
+        if args.language is None or args.language.lower() == "auto":
+            questions.append({"id": "language", "prompt": "请确认 MinerU language（例如纯英文用 en，中英混合用 ch）。"})
+        elif args.language not in MINERU_LANGUAGES:
+            errors.append(f"unsupported MinerU language enum: {args.language}")
+        if args.is_ocr is None:
+            questions.append({"id": "is_ocr", "prompt": "是否启用 OCR？请明确回答 true 或 false。"})
+    else:
+        checks["language"] = "not-applicable"
+        checks["is_ocr"] = "not-applicable"
 
     loaded = set(args.loaded_skill)
     missing_skills = sorted(REQUIRED_SKILLS - loaded)
@@ -120,29 +155,56 @@ def main() -> int:
         errors.append("helper skills not loaded through the Skill tool: " + ", ".join(missing_skills))
     checks["loaded_helper_skills"] = sorted(loaded & REQUIRED_SKILLS)
     checks["loaded_optional_skills"] = sorted(loaded & {"slide-layout-refiner", "obsidian-latex-refiner"})
-    layout_explicit_on = args.layout_refinement_on
-    layout_disabled = args.layout_refinement_off
-    if layout_explicit_on and layout_disabled:
+    layout_superseded = synthesis_profile or native_extraction
+    if args.layout_refinement_on and args.layout_refinement_off:
         errors.append("--visual-layout-refinement and --no-visual-layout-refinement are mutually exclusive")
-    layout_refinement_enabled = not layout_disabled
-    checks["visual_layout_refinement"] = layout_refinement_enabled
-    checks["visual_layout_refinement_source"] = "flag" if (layout_explicit_on or layout_disabled) else "default"
-    if layout_refinement_enabled:
-        if "slide-layout-refiner" not in loaded:
-            errors.append("slide-layout-refiner is enabled by default; load it or pass --no-visual-layout-refinement")
+    if layout_superseded and args.layout_refinement_on:
+        errors.append(
+            "native multimodal synthesis already produces the final layout; "
+            "slide-layout-refiner only applies to MinerU-based transcription"
+        )
+    if layout_superseded:
+        checks["visual_layout_refinement"] = False
+        checks["visual_layout_refinement_source"] = "superseded-by-content-driven-synthesis"
+    else:
+        layout_explicit_on = args.layout_refinement_on
+        layout_disabled = args.layout_refinement_off
+        layout_refinement_enabled = not layout_disabled
+        checks["visual_layout_refinement"] = layout_refinement_enabled
+        checks["visual_layout_refinement_source"] = "flag" if (layout_explicit_on or layout_disabled) else "default"
+        if layout_refinement_enabled:
+            if "slide-layout-refiner" not in loaded:
+                errors.append("slide-layout-refiner is enabled by default; load it or pass --no-visual-layout-refinement")
+            if args.layout_visual_input is None:
+                questions.append({
+                    "id": "layout_visual_input",
+                    "prompt": "当前所选模型是否支持直接查看原PDF或逐页渲染图？请明确回答 true 或 false。",
+                })
+            elif args.layout_visual_input == "false":
+                if layout_explicit_on:
+                    errors.append("visual layout refinement requires a model with visual input")
+                else:
+                    checks["visual_layout_refinement"] = False
+                    checks["visual_layout_refinement_skip"] = "visual-input-unavailable"
+            else:
+                checks["layout_visual_input"] = True
+
+    if native_extraction:
         if args.layout_visual_input is None:
             questions.append({
-                "id": "layout_visual_input",
-                "prompt": "当前所选模型是否支持直接查看原PDF或逐页渲染图？请明确回答 true 或 false。",
+                "id": "native_visual_input",
+                "prompt": (
+                    "原生多模态转换必须由能直接看图的原生多模态模型完成："
+                    "当前模型能否直接查看原 PDF 或逐页渲染图？请回答 true。"
+                ),
             })
-        elif args.layout_visual_input == "false":
-            if layout_explicit_on:
-                errors.append("visual layout refinement requires a model with visual input")
-            else:
-                checks["visual_layout_refinement"] = False
-                checks["visual_layout_refinement_skip"] = "visual-input-unavailable"
+        elif args.layout_visual_input != "true":
+            errors.append(
+                "native extraction requires a natively multimodal model with direct PDF or "
+                "rendered page-image input; otherwise re-run with --extraction mineru"
+            )
         else:
-            checks["layout_visual_input"] = True
+            checks["native_visual_input"] = True
 
     checks["latex_refinement"] = args.latex_refinement
     if args.latex_refinement and "obsidian-latex-refiner" not in loaded:
@@ -177,9 +239,9 @@ def main() -> int:
     elif security:
         checks["keychain_cli"] = security
     mineru_cli = shutil.which("mineru-open-api")
-    if not args.fixture_mode and mineru_cli is None:
+    if extraction == "mineru" and not args.fixture_mode and mineru_cli is None:
         errors.append("official mineru-open-api CLI is unavailable")
-    elif mineru_cli:
+    elif mineru_cli and extraction == "mineru":
         checks["mineru_open_api_cli"] = mineru_cli
         if not args.fixture_mode:
             version = subprocess.run(
@@ -195,7 +257,9 @@ def main() -> int:
                 checks["mineru_open_api_version"] = version.stdout.splitlines()[0].strip()
 
     token_file = args.token_file.resolve()
-    if not token_file.is_file():
+    if extraction != "mineru":
+        checks["mineru_token"] = "not-required"
+    elif not token_file.is_file():
         questions.append({"id": "encrypted_token", "prompt": "尚未配置加密 MinerU token；现在运行 token-store.py set 吗？"})
     else:
         mode = token_file.stat().st_mode & 0o777
@@ -228,6 +292,8 @@ def main() -> int:
             "profile": args.profile,
             "language": None if args.language is None or args.language.lower() == "auto" else args.language,
             "is_ocr": None if args.is_ocr is None else args.is_ocr == "true",
+            "note_granularity": args.note_granularity,
+            "extraction": args.extraction,
         },
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))

@@ -1,55 +1,82 @@
 # Conversion workflow
 
-The official `mineru-open-api` precision CLI is the extraction client. Source originals remain outside the Obsidian vault.
+An external source becomes content-driven Obsidian notes. Native multimodal reading is the default; the official `mineru-open-api` CLI is an optional aid. Source originals stay outside the vault.
 
 ## 1. Intake and routing
 
-Run `scripts/preflight.py` early. Ask its questions in stages: vault root and course first; profile next; language/OCR and credential unlock only when upload is ready. Identify the source file, course, document title, language, and any explicit profile. Resolve semester/course using [course-routing.md](course-routing.md). Confirm near-match course folders instead of silently creating a duplicate.
+Run `scripts/preflight.py` early. Ask its questions in stages: vault root and course first; extraction mode, granularity, and profile next; language, OCR, and credential unlock only when MinerU is actually used.
 
-Reject a source that resolves inside the destination vault. Do not copy or move the original.
+Identify the source file, course, document title, and any explicit profile. Resolve semester/course with [course-routing.md](course-routing.md). Confirm near-match course folders instead of silently creating a duplicate. Reject a source that resolves inside the destination vault, and never copy or move the original.
 
-## 2. Profile and API options
+## 2. Decisions before any writing
 
-Select or confirm `lecture-notes`, `policy-document`, or `paper` using filename/user context before upload. A name such as `example-policy.pdf` should trigger a `policy-document` suggestion immediately. Validate extension and size without parsing the source locally. Infer then confirm the MinerU language enum and confirm an OCR boolean; neither field has a request default.
+1. **Extraction.** Default to `native`. Choose `mineru` when the model wants machine-readable page groups, when the document is long or scanned, or when the user asks for it. Native mode requires a model that can see the pages; otherwise re-run with `--extraction mineru`.
+2. **Granularity.** Ask the user every time: `single-note` or `section-notes`. Offer the rule of thumb (three or more independent sections and sixty or more source pages → `section-notes`). Never default it.
+3. **Profile.** `lecture-notes`, `policy-document`, or `paper` via [document-profiles.md](document-profiles.md).
 
-Load `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`. Verify the Canvas subskill is discoverable, then run `scripts/token-store.py status` from the skill directory to verify encrypted token state and the Keychain wrapping key. If it reports `configured`, reuse the stored token silently without asking. Only on first setup (status `not configured`), store the chat-provided token through `token-store.py set --token-stdin`; later runs unlock automatically without another conversational prompt.
+Load `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer` explicitly. Then run `scripts/token-store.py status` only if MinerU was selected.
 
-## 3. Staging and official CLI extraction
+## 3. Source reading
 
-Create a uniquely named run directory under the system temporary directory; if unavailable, use a non-hidden `tmp/` directory inside the installed skill. It must resolve outside the vault. Never create a dot-prefixed staging/cache/tmp directory in the vault. Preserve the source hash. Run `scripts/mineru-cli-adapter.py`; it unlocks the token, sets `MINERU_TOKEN`, and delegates upload/poll/download to `mineru-open-api extract -f md,json`. Follow [mineru-cli.md](mineru-cli.md). Do not call MinerU HTTP endpoints directly.
+Read the source natively, page by page, before planning. On each page decide: substantive content, structural skeleton (agenda, divider, outline), furniture (title bar, logo, page number, footer), or administrative (welcome, staff, schedule, exercises).
 
-## 4. Page reconstruction
+This pass is what makes the output a note instead of a dump. Record what you saw; do not rely on a text layer to tell you what a page was for.
 
-Prefer page-grouped `content_list_v2.json`. Otherwise group legacy blocks by `page_idx`. Apply [mineru-normalization.md](mineru-normalization.md): no global repeated anchor search, no blanket heading regex, explicit auxiliary-block inventory, and precise marker semantics.
+## 3b. Optional MinerU extraction
 
-### Optional LaTeX normalization
+With `--extraction mineru`: create a uniquely named run directory under the system temporary directory (or the installed skill's non-hidden `tmp/`), outside the vault. Run `scripts/mineru-cli-adapter.py`; it unlocks the token, sets `MINERU_TOKEN`, calls `mineru-open-api extract -f md,json`, and writes page groups plus an asset map. Follow [mineru-cli.md](mineru-cli.md). Never call MinerU over raw HTTP and never parse the PDF locally.
 
-Disabled by default. After the base Markdown reaches its final vault path, load `obsidian-latex-refiner` and run `scripts/normalize-latex.py --target <note> --vault-root <root> --snapshot <run-dir>/before.md --report <run-dir>/latex-refinement-report.json`. The script rewrites only math syntax inside each immutable `<!-- source-page: N -->` segment, runs conservation validation, and restores the snapshot automatically on any failure. It needs no vision model. Delete the snapshot and report after final validation.
+## 4. Skeleton planning
 
-### Optional multimodal layout refinement
+Run `scripts/plan-note-structure.py`:
 
-Enabled by default. First write the base Markdown to its final vault path. Then make a byte-exact snapshot in the outside-vault run directory and delegate the original PDF plus the final Markdown path to `slide-layout-refiner` using a model that supports visual input. The model must inspect the PDF directly or inspect rendered page images. The refiner directly overwrites that file and may change structure only inside each immutable `<!-- source-page: N -->` segment. Pre-existing conversion/fallback Callouts are preserved and do not trigger a user question; only `lecture-layer:` or explicitly known later additions stop refinement. Deterministic validation compares the overwrite with the snapshot. On any failure it restores the snapshot automatically; no second Markdown version is retained.
+```text
+# native reading
+--page-count <pages> --profile <profile> --granularity <mode> --slug <slug> --title <title> \
+  --output <run>/note-plan.json --ledger-output <run>/page-ledger.json
 
-## 5. Derived artifact generation
+# MinerU aid
+--page-groups <run>/<stem>.content-list-v2.compat.json ...
+```
 
-Create the document folder only after extraction/profile decisions are stable. Write:
+It writes a draft `note-plan.json` and `page-ledger.json`. With MinerU it also proposes sections from the document's own outline; with `--page-count` there is nothing to infer, so you author the sections yourself. Correct both files, then set `draft: false`. Re-validate with `--check-plan` and `--check-ledger`.
 
-- complete `<document-slug>.md`;
-- derived `assets/` only;
-- staging `recall-model.json` after reading the complete Markdown;
-- `<document-slug>.canvas` delegated to `obsidian-canvas-designer` using that semantic model;
-- staging `canvas-aesthetic-check.json` from the Canvas subagent;
-- staging `canvas-render-metrics.json` and `canvas-render-check.json` from local Obsidian DOM QA;
+## 5. Note synthesis
+
+Write one note per entry in the plan. Apply [obsidian-style.md](obsidian-style.md). Distil rather than transcribe: keep definitions, mechanisms, formulas, comparison tables, and decision rules; drop furniture. Convert matrices into real Markdown tables. Finish with `## In-class notes` for `lecture-notes`.
+
+Extract only visuals whose structure matters and name them per [asset-naming.md](asset-naming.md). Record one `evidence` phrase per kept page in the ledger.
+
+### Optional deterministic LaTeX normalization
+
+Disabled by default. When enabled, load `obsidian-latex-refiner` and run `scripts/normalize-latex.py --target <note> --vault-root <root> --snapshot <run>/before.md --report <run>/latex-refinement-report.json`. It rewrites only math syntax, keeps visible text and links intact, treats a marker-free note as one segment, and restores the snapshot on any conservation failure. Delete the snapshot and report after success.
+
+### Optional layout refinement (MinerU transcription only)
+
+Load `slide-layout-refiner` only with `--extraction mineru` for `policy-document` or `paper`. It is enabled by default there and may change structure only inside each immutable `<!-- source-page: N -->` segment. Native synthesis and `lecture-notes` already produce the final layout, so the refiner must not run for them.
+
+## 6. Derived artifacts
+
+Write:
+
+- the note or notes;
+- a flat `assets/` directory referenced from the notes;
+- one `<note-slug>.canvas` per note, delegated to `obsidian-canvas-designer`;
+- staging `recall-model.json` per note after reading it;
+- staging `canvas-aesthetic-check.json`, `canvas-render-metrics.json`, and `canvas-render-check.json` per Canvas;
 - a temporary `conversion-report.md` under staging for Agent QA only.
 
-## 6. Validation and delivery
+## 7. Validation and delivery
 
-Require the Canvas subagent to return PASS plus aesthetic, measurement, and final DOM-check files. Then run `scripts/validate-output.py` with all staging QA files, structural alignment checks, and [quality-gates.md](quality-gates.md). Move only validated Markdown/Canvas/assets into the document folder. Extract routing decisions, output paths, zero counts, review items, and not-checked gates for the final response; then delete the temporary report, recall model, aesthetic check, render metrics, and render check before sending that response.
+Require the Canvas subagent to return PASS plus aesthetic, measurement, and final DOM-check files. Then run `scripts/validate-output.py` with the plan, the ledger, and, in MinerU mode, the page groups. Read [validation.md](validation.md) and [quality-gates.md](quality-gates.md).
+
+Extract routing decisions, output paths, extraction mode, granularity, zero counts, review items, and not-checked gates for the final response; then delete the temporary report, recall model, plan, ledger, page groups, and Canvas QA files. Never place QA files in the vault.
 
 ## Failure behavior
 
-- Missing/invalid encrypted token: configure or replace it through `token-store.py` without echo; otherwise stop.
-- Missing CLI, CLI authentication/network/timeout error, or incomplete md/json output: report the redacted CLI error and stop without direct HTTP/local fallback.
-- Ambiguous page order/heading: preserve structured blocks conservatively and record review.
+- Missing/invalid encrypted token in MinerU mode: configure or replace it through `token-store.py` without echo; otherwise stop.
+- Missing CLI, CLI authentication/network/timeout error, or incomplete md/json output: report the redacted CLI error and stop without direct HTTP or local fallback.
+- No multimodal capability but native extraction selected: stop and ask, or re-run with `--extraction mineru`.
+- Ambiguous page order or heading: preserve structured blocks conservatively and record a review item.
 - Existing document folder: use an explicit merge/overwrite decision.
 - Validator failure: do not deliver as complete.

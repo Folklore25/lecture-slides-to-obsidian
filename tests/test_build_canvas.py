@@ -12,8 +12,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "skills/obsidian-canvas-designer/scripts/build-canvas.py"
 SPEC = importlib.util.spec_from_file_location("build_canvas", SCRIPT)
+assert SPEC is not None and SPEC.loader is not None
 BUILD_CANVAS = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
 SPEC.loader.exec_module(BUILD_CANVAS)
 
 
@@ -64,7 +64,7 @@ def recall_model(with_asset: bool = False) -> dict:
     }
     if with_asset:
         model["asset_links"] = [
-            {"concept":"mechanism","path":"assets/page-004-figure-01.png","caption":"Mechanism overview"}
+            {"concept":"mechanism","path":"assets/mechanism-overview.png","caption":"Mechanism overview"}
         ]
     return model
 
@@ -81,7 +81,7 @@ class BuildCanvasTests(unittest.TestCase):
                 "# Example lesson\n\n## Foundations\n\nText.\n\n## Mechanism\n\nText.\n\n"
                 "## Application\n\nText.\n\n## Limits\n\nText.\n\n## In-class notes\n"
             )
-            (assets / "page-004-figure-01.png").write_bytes(b"synthetic")
+            (assets / "mechanism-overview.png").write_bytes(b"synthetic")
             model = recall_model(with_asset=True)
             first = BUILD_CANVAS.build_canvas(note, vault, "lecture-notes", model, assets)
             second = BUILD_CANVAS.build_canvas(note, vault, "lecture-notes", model, assets)
@@ -99,7 +99,7 @@ class BuildCanvasTests(unittest.TestCase):
             paths = {node["file"] for node in file_nodes}
             self.assertIn("COURSE101/Lectures/example-lesson/example-lesson.md", paths)
             self.assertIn(
-                "COURSE101/Lectures/example-lesson/assets/page-004-figure-01.png",
+                "COURSE101/Lectures/example-lesson/assets/mechanism-overview.png",
                 paths,
             )
             texts = [node.get("text", "") for node in first["nodes"]]
@@ -126,10 +126,10 @@ class BuildCanvasTests(unittest.TestCase):
         with self.assertRaisesRegex(BUILD_CANVAS.CanvasBuildError, "fill semantic fields"):
             BUILD_CANVAS.validate_model(model, markdown, "lecture-notes")
 
-    def test_hash_named_asset_is_rejected_by_builder_contract(self):
+    def test_non_semantic_asset_name_is_rejected_by_builder_contract(self):
         model = recall_model()
         model["asset_links"] = [
-            {"concept": "mechanism", "path": "assets/abcdef123456.jpg", "caption": "Diagram"}
+            {"concept": "mechanism", "path": "assets/Diagram_Final.png", "caption": "Diagram"}
         ]
         markdown = "\n".join(
             f"## {value}" for value in ["Foundations", "Mechanism", "Application", "Limits", "In-class notes"]

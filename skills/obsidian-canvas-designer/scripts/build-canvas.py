@@ -31,9 +31,17 @@ BANNED_RELATION_LABELS = {
 }
 KEY_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,47}$")
 HEADING_RE = re.compile(r"(?m)^##\s+(.+?)\s*$")
-ASSET_NAME = re.compile(
+PAGE_ASSET_NAME = re.compile(
     r"^assets/page-\d{3}-(figure|table|equation|chart|fallback)-\d{2}\.(png|jpg|jpeg|webp|gif|bmp|svg)$"
 )
+SEMANTIC_ASSET_NAME = re.compile(
+    r"^assets/[a-z0-9]+(?:-[a-z0-9]+)*\.(png|jpg|jpeg|webp|gif|bmp|svg)$"
+)
+
+
+def valid_asset_path(path: str) -> bool:
+    """Accept both the faithful-transcription and content-driven asset contracts."""
+    return bool(PAGE_ASSET_NAME.fullmatch(path) or SEMANTIC_ASSET_NAME.fullmatch(path))
 TOP_LANE_TO_MODULE_GAP = 80
 LAYOUT_GRID = 10
 
@@ -48,6 +56,13 @@ def inside(path: Path, parent: Path) -> bool:
         return True
     except ValueError:
         return False
+
+
+def as_int(value, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def stable_id(kind: str, value: str) -> str:
@@ -102,7 +117,7 @@ def note_heading_pages(markdown: str) -> dict[str, set[int]]:
     for line in markdown.splitlines():
         marker = re.fullmatch(r"<!--\s*source-page:\s*(\d+)\s*-->", line.strip())
         if marker:
-            current_page = int(marker.group(1))
+            current_page = as_int(marker.group(1))
             continue
         heading = re.fullmatch(r"##\s+(.+?)\s*", line)
         if heading and current_page is not None:
@@ -113,8 +128,8 @@ def note_heading_pages(markdown: str) -> dict[str, set[int]]:
 def note_page_count(markdown: str) -> int | None:
     frontmatter = re.search(r"(?m)^source_pages:\s*[\"']?(\d+)", markdown)
     if frontmatter:
-        return int(frontmatter.group(1))
-    markers = [int(value) for value in re.findall(r"<!--\s*source-page:\s*(\d+)\s*-->", markdown)]
+        return as_int(frontmatter.group(1))
+    markers = [as_int(value) for value in re.findall(r"<!--\s*source-page:\s*(\d+)\s*-->", markdown)]
     return max(markers) if markers else None
 
 
@@ -168,6 +183,7 @@ def validate_model(model: dict, markdown: str, profile: str) -> dict:
     source_headings = set(note_headings(markdown))
     heading_pages = note_heading_pages(markdown)
     page_count = note_page_count(markdown)
+    has_page_provenance = bool(heading_pages)
     for index, concept in enumerate(concepts):
         if not isinstance(concept, dict):
             raise CanvasBuildError(f"concepts[{index}] must be an object")
@@ -196,14 +212,19 @@ def validate_model(model: dict, markdown: str, profile: str) -> dict:
                 f"available_h2=[{available}]; fix: select an existing ## heading or stop for authorized note repair"
             )
         source_page = concept.get("source_page")
-        if not isinstance(source_page, int) or source_page < 1:
-            raise CanvasBuildError(f"concepts[{index}].source_page must be a positive integer")
-        if page_count is not None and source_page > page_count:
-            raise CanvasBuildError(f"concepts[{index}].source_page is outside 1..{page_count}")
-        if clean_heading(heading) in heading_pages and source_page not in heading_pages[clean_heading(heading)]:
+        if has_page_provenance:
+            if not isinstance(source_page, int) or source_page < 1:
+                raise CanvasBuildError(f"concepts[{index}].source_page must be a positive integer")
+            if page_count is not None and source_page > page_count:
+                raise CanvasBuildError(f"concepts[{index}].source_page is outside 1..{page_count}")
+            if source_page not in heading_pages.get(clean_heading(heading), set()):
+                raise CanvasBuildError(
+                    f"concepts[{index}] source heading/page pair does not occur in the note: "
+                    f"{clean_heading(heading)!r} on page {source_page}"
+                )
+        elif source_page is not None and (not isinstance(source_page, int) or source_page < 1):
             raise CanvasBuildError(
-                f"concepts[{index}] source heading/page pair does not occur in the note: "
-                f"{clean_heading(heading)!r} on page {source_page}"
+                f"concepts[{index}].source_page must be a positive integer when supplied"
             )
     if concept_groups != group_ids:
         missing = ", ".join(sorted(group_ids - concept_groups))
@@ -253,7 +274,7 @@ def validate_model(model: dict, markdown: str, profile: str) -> dict:
     if not isinstance(coverage, list):
         raise CanvasBuildError("coverage must inventory every H2 section")
     covered_headings: set[str] = set()
-    covered_sections: set[tuple[str, int]] = set()
+    covered_sections: set[tuple[str, int | None]] = set()
     for index, item in enumerate(coverage):
         if not isinstance(item, dict):
             raise CanvasBuildError(f"coverage[{index}] must be an object")
@@ -261,17 +282,22 @@ def validate_model(model: dict, markdown: str, profile: str) -> dict:
         source_page = item.get("source_page")
         if heading not in source_headings:
             raise CanvasBuildError(f"coverage[{index}] heading is missing from the note: {heading!r}")
-        if not isinstance(source_page, int) or source_page < 1:
-            raise CanvasBuildError(f"coverage[{index}].source_page must be a positive integer")
-        if page_count is not None and source_page > page_count:
-            raise CanvasBuildError(f"coverage[{index}].source_page is outside 1..{page_count}")
-        if heading in heading_pages and source_page not in heading_pages[heading]:
+        if has_page_provenance:
+            if not isinstance(source_page, int) or source_page < 1:
+                raise CanvasBuildError(f"coverage[{index}].source_page must be a positive integer")
+            if page_count is not None and source_page > page_count:
+                raise CanvasBuildError(f"coverage[{index}].source_page is outside 1..{page_count}")
+            if source_page not in heading_pages.get(heading, set()):
+                raise CanvasBuildError(
+                    f"coverage[{index}] heading/page pair does not occur in the note: {heading!r} on page {source_page}"
+                )
+        elif source_page is not None and (not isinstance(source_page, int) or source_page < 1):
             raise CanvasBuildError(
-                f"coverage[{index}] heading/page pair does not occur in the note: {heading!r} on page {source_page}"
+                f"coverage[{index}].source_page must be a positive integer when supplied"
             )
-        section_key = (heading, source_page)
+        section_key = (heading, source_page if has_page_provenance else None)
         if section_key in covered_sections:
-            raise CanvasBuildError(f"coverage[{index}] duplicates a heading/page pair: {heading!r} on page {source_page}")
+            raise CanvasBuildError(f"coverage[{index}] duplicates a section entry: {heading!r}")
         covered_headings.add(heading)
         covered_sections.add(section_key)
         mapped = item.get("concepts", [])
@@ -280,7 +306,7 @@ def validate_model(model: dict, markdown: str, profile: str) -> dict:
             raise CanvasBuildError(f"coverage[{index}].concepts contains an unknown concept")
         if not mapped and not (isinstance(omission, str) and omission.strip()):
             raise CanvasBuildError(f"coverage[{index}] needs mapped concepts or an omission_reason")
-    if heading_pages:
+    if has_page_provenance:
         expected_sections = {
             (heading, source_page)
             for heading, pages in heading_pages.items()
@@ -325,10 +351,10 @@ def validate_model(model: dict, markdown: str, profile: str) -> dict:
         path = require_text(item.get("path"), f"asset_links[{index}].path", maximum=240)
         if Path(path).is_absolute() or ".." in Path(path).parts or Path(path).parts[:1] != ("assets",):
             raise CanvasBuildError(f"asset_links[{index}].path must be document-relative under assets/")
-        if not ASSET_NAME.fullmatch(Path(path).as_posix()):
+        if not valid_asset_path(Path(path).as_posix()):
             raise CanvasBuildError(
                 f"asset_links[{index}].path violates the asset contract: {path!r}; "
-                "fix: use assets/page-PPP-kind-NN.ext or leave asset_links empty"
+                "fix: use a lowercase assets/ slug or assets/page-PPP-kind-NN.ext, or leave asset_links empty"
             )
         if path in asset_paths:
             raise CanvasBuildError(f"asset_links[{index}].path is duplicated: {path}")
@@ -347,7 +373,7 @@ def text_height(text: str, width: int, minimum: int = 160, maximum: int = 900) -
         if raw_line.lstrip().startswith(("- ", "1. ", "2. ", "3. ", "4. ", "5. ", "6. ", "7. ")):
             list_items += 1
     estimated = 70 + lines * 30 + list_items * 6
-    return max(minimum, min(maximum, int(math.ceil(estimated / 10) * 10)))
+    return max(minimum, min(maximum, as_int(math.ceil(estimated / 10) * 10)))
 
 
 def render_height(metrics: dict | None, node_id: str, text: str, width: int, estimated: int) -> int:
@@ -488,7 +514,7 @@ def build_canvas(
         overview_node["y"] + overview_node["height"],
         file_node["y"] + file_node["height"],
     )
-    group_y = int(math.ceil((top_lane_bottom + TOP_LANE_TO_MODULE_GAP) / LAYOUT_GRID) * LAYOUT_GRID)
+    group_y = as_int(math.ceil((top_lane_bottom + TOP_LANE_TO_MODULE_GAP) / LAYOUT_GRID) * LAYOUT_GRID)
 
     for group_index, group in enumerate(groups):
         group_x = group_index * (group_width + group_gap)
@@ -505,7 +531,10 @@ def build_canvas(
             ]
             if details:
                 parts += ["", details]
-            compact_source = f"[[{note_relative}#{source_heading}|Source p.{concept['source_page']}]]"
+            if concept.get("source_page") is None:
+                compact_source = f"[[{note_relative}#{source_heading}|Source]]"
+            else:
+                compact_source = f"[[{note_relative}#{source_heading}|Source p.{concept['source_page']}]]"
             parts += ["", compact_source]
             text = "\n".join(parts)
             node_id = stable_id("concept", f"{note_relative}:{concept['id']}")
@@ -578,7 +607,7 @@ def build_canvas(
     synthesis_y = max(group_bottoms) + 180
     synthesis = model["synthesis"]
     summary_gap = 60
-    summary_width = int((total_width - summary_gap * 2) / 3)
+    summary_width = as_int((total_width - summary_gap * 2) / 3)
     logic_text = "\n".join(
         [
             "<!-- recall-map: synthesis -->",

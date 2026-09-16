@@ -1,25 +1,119 @@
 schema_version: 1
 
+extraction_modes:
+  native:
+    page_markers: "forbidden"
+    plan_ledger: "required"
+    page_groups: "optional"
+    conservation: "evidence"
+  mineru:
+    page_markers: "required-for-transcription"
+    plan_ledger: "required-for-content-driven-notes"
+    page_groups: "available"
+    conservation: "evidence-plus-text-recall"
+
 cases:
   - id: "valid-derived-folder"
     fixture: "fixtures/synthetic/valid-document-folder"
     report: "fixtures/staging/conversion-report.md"
+    contract: "mineru-transcription"
     expected_action: "pass"
+
+  - id: "valid-content-driven-folder"
+    fixture: "fixtures/synthetic/section-notes-folder"
+    plan: "fixtures/staging/note-plan.json"
+    ledger: "fixtures/staging/page-ledger.json"
+    page_groups: "fixtures/staging/page-groups.json"
+    report: "fixtures/staging/conversion-report.md"
+    expected_action: "pass"
+
+  - id: "page-markers-in-content-driven-note"
+    extra_marker_in_note: true
+    expected_action: "fail-page-marker-contract"
+
+  - id: "content-driven-note-without-plan-and-ledger"
+    plan: null
+    ledger: null
+    expected_action: "fail-missing-plan-and-ledger"
+
+  - id: "note-outside-the-plan"
+    extra_note: true
+    expected_action: "fail-note-set-mismatch"
+
+  - id: "planned-section-missing-from-note"
+    renamed_section: true
+    expected_action: "fail-section-coverage"
+
+  - id: "ledger-page-not-listed"
+    removed_page: 3
+    expected_action: "fail-incomplete-page-ledger"
+
+  - id: "ledger-unknown-section"
+    section: "9. Invented section"
+    expected_action: "fail-unplanned-section"
+
+  - id: "ledger-drop-without-supported-reason"
+    reason: "looked boring"
+    expected_action: "fail-drop-reason-vocabulary"
+
+  - id: "ledger-heavy-drop-without-approval"
+    dropped_ratio: 0.7
+    expected_action: "fail-heavy-drop-needs-flag"
+
+  - id: "evidence-phrase-absent-from-note"
+    evidence: "Text that was never written into the delivered note"
+    expected_action: "fail-page-evidence"
+
+  - id: "page-content-missing-from-note"
+    recall: 0.12
+    threshold: 0.35
+    expected_action: "fail-content-conservation"
+
+  - id: "declared-recall-exemption"
+    recall: 0.12
+    recall_exempt: true
+    recall_exempt_reason: "page deliberately condensed into a summary bullet"
+    expected_action: "pass-with-declared-exemption"
+
+  - id: "semantic-asset-name"
+    filename: "coding-stages.png"
+    expected_action: "pass"
+
+  - id: "page-prefixed-asset-in-content-driven-note"
+    filename: "page-004-figure-01.png"
+    expected_action: "fail-semantic-asset-contract"
+
+  - id: "orphan-content-driven-asset"
+    referenced: false
+    expected_action: "fail-unreferenced-asset"
+
+  - id: "standardized-asset-name"
+    contract: "mineru-transcription"
+    filename: "page-004-figure-01.png"
+    expected_action: "pass"
+
+  - id: "asset-sequence-gap"
+    contract: "mineru-transcription"
+    filenames:
+      - "page-004-figure-01.png"
+      - "page-004-figure-03.png"
+    expected_action: "fail-noncontiguous-sequence"
 
   - id: "conversion-report-inside-document-folder"
     report: "fixtures/synthetic/valid-document-folder/conversion-report.md"
     expected_action: "fail-report-must-be-staging-only"
 
-  - id: "delete-temporary-report-after-success"
+  - id: "delete-temporary-qa-after-success"
     report_location: "outside-vault-staging"
     validation: "pass"
-    expected_action: "delete-exact-report"
+    expected_action: "delete-report-plan-ledger-and-canvas-qa"
 
   - id: "source-pdf-inside-vault-folder"
     extra_file: "source.pdf"
     expected_action: "fail-source-original-exclusion"
 
   - id: "page-marker-out-of-range"
+    contract: "mineru-transcription"
     source_pages: 2
     marker: 3
     expected_action: "fail-page-marker-validation"
@@ -38,20 +132,6 @@ cases:
     equations: 0
     fallback_pages: 0
     expected_action: "pass-with-explicit-zero-inventory"
-
-  - id: "standardized-asset-name"
-    filename: "page-004-figure-01.png"
-    expected_action: "pass"
-
-  - id: "unstandardized-asset-name"
-    filename: "figure.png"
-    expected_action: "fail-asset-name-contract"
-
-  - id: "asset-sequence-gap"
-    filenames:
-      - "page-004-figure-01.png"
-      - "page-004-figure-03.png"
-    expected_action: "fail-noncontiguous-sequence"
 
   - id: "structural-pass-visual-not-checked"
     structural_alignment: "PASS"

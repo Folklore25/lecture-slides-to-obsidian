@@ -1,19 +1,26 @@
-# Official MinerU CLI composition
+# Official MinerU CLI composition (optional aid)
+
+**Use this path only with `--extraction mineru`.** Native multimodal reading is the default and needs no CLI, no upload, and no credential.
 
 Canonical client: <https://github.com/opendatalab/MinerU-Ecosystem/tree/main/cli/mineru-open-api>
 
 The official `mineru-open-api` CLI owns authenticated submission, signed upload, polling, backoff, result download, and Markdown/assets extraction. This skill must not reimplement or directly call MinerU HTTP endpoints.
 
-## Installation and verification
+## When to choose it
 
-Install using one supported channel:
+- You want machine-readable page groups instead of reading every page yourself.
+- The document is long, or its text layer is the only reliable source.
+- The user explicitly asks for MinerU.
+- The current model cannot view the source pages. Use `--extraction mineru` rather than guessing from a thumbnail-free reading.
+
+## Installation and verification
 
 ```text
 npm install -g mineru-open-api
 uv tool install mineru-open-api
 ```
 
-Verify with `mineru-open-api version`. `scripts/preflight.py` fails closed when the executable is missing.
+Verify with `mineru-open-api version`. `scripts/preflight.py` fails closed when the executable is missing **and** `--extraction mineru` was selected.
 
 ## Credential composition
 
@@ -46,14 +53,16 @@ The trailing separator on `-o` forces directory output. Do not use `flash-extrac
 
 ## Output boundary
 
-The official CLI saves:
+The official CLI saves `<source-stem>.md` plus downloaded assets, and `<source-stem>.json`, the content-list representation.
 
-- `<source-stem>.md` plus downloaded assets;
-- `<source-stem>.json`, the CLI/SDK content-list representation.
+The adapter groups the CLI JSON by `page_idx` and writes `<source-stem>.content-list-v2.compat.json`. It also renames referenced visuals, copies them into `normalized-assets/`, and writes staging-only `<source-stem>.asset-map.json`. These transformations are deterministic and do not infer new content.
 
-The adapter groups the CLI JSON by `page_idx` and writes `<source-stem>.content-list-v2.compat.json`, a page-grouped compatibility artifact consumed by `reconstruct-note.py`. It renames referenced visuals according to [asset-naming.md](asset-naming.md), copies them into `normalized-assets/`, updates normalized block paths, and writes staging-only `<source-stem>.asset-map.json`. These transformations are deterministic and do not infer new content.
+That page-group file feeds two consumers:
 
-`source_pages` is the normalized page-group count. Preserve the original CLI Markdown and JSON in staging for QA; only normalized Markdown/assets/Canvas enter the vault.
+- `scripts/plan-note-structure.py --page-groups ...`, which proposes a section skeleton and enables per-page text recall during validation.
+- `scripts/reconstruct-note.py`, which produces the marker-based transcription used by `policy-document` and `paper` in MinerU mode.
+
+Preserve the original CLI Markdown and JSON in staging for QA; only the delivered notes, Canvas files, and chosen assets enter the vault.
 
 ## Failure and logging
 

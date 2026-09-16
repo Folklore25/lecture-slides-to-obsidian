@@ -6,7 +6,7 @@ source_filename: sample.pdf
 source_format: pdf
 source_sha256: 0000000000000000000000000000000000000000000000000000000000000000
 source_pages: 2
-conversion_profile: lecture-notes
+conversion_profile: policy-document
 mineru_model: vlm
 status: pre-class
 ---

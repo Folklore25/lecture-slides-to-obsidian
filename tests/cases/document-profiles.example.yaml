@@ -1,13 +1,47 @@
 schema_version: 1
 
+extraction_modes:
+  - id: "native-default"
+    mode: "native"
+    requires_multimodal_model: true
+    mineru_required: false
+    page_markers_allowed: false
+  - id: "mineru-aid"
+    mode: "mineru"
+    requires_multimodal_model: false
+    mineru_required: true
+    page_markers_allowed: true
+
+note_granularity:
+  - id: "always-ask"
+    source_profile: "lecture-notes"
+    expected_action: "ask-user-every-conversion"
+    never_default: true
+  - id: "single-note"
+    requested_granularity: "single-note"
+    notes_per_document: 1
+    sections_as: "h2"
+  - id: "section-notes"
+    requested_granularity: "section-notes"
+    notes_per_document: "one-per-source-section"
+    minimum_sections_to_suggest: 3
+    minimum_pages_to_suggest: 60
+  - id: "section-notes-rejected-elsewhere"
+    requested_granularity: "section-notes"
+    profile: "policy-document"
+    expected_action: "reject"
+
 cases:
   - id: "slide-like-output"
+    extraction_mode: "native"
     signals:
       - "short-page-blocks"
       - "repeated-page-titles"
       - "presentation-page-size"
     expected_profile: "lecture-notes"
     expected_tail_section: "In-class notes"
+    expect_furniture_dropped: true
+    expect_comparison_tables_as_markdown: true
 
   - id: "policy-document-output"
     signals:
