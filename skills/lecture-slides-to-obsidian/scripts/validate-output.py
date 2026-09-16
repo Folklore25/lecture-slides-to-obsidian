@@ -26,6 +26,10 @@ SOURCE_EXTENSIONS = {
     ".zip", ".7z", ".rar", ".tar", ".gz",
 }
 VISUAL_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"}
+# A crop that loses the thing it is named after is the most common silent failure:
+# a table edge or a figure sliver still resolves, still gets embedded, and carries nothing.
+MIN_ASSET_EDGE_PX = 40
+MAX_ASSET_ASPECT = 8.0
 PAGE_ASSET_NAME = re.compile(
     r"^page-(\d{3})-(figure|table|equation|chart|fallback)-(\d{2})\.[a-z0-9]+$"
 )
@@ -570,6 +574,44 @@ def validate_report(path: Path) -> list[str]:
     return errors
 
 
+def image_dimensions(path: Path) -> tuple[int, int] | None:
+    """Read raster dimensions with the stdlib so a degenerate crop can be rejected."""
+    try:
+        head = path.read_bytes()[:32]
+    except OSError:
+        return None
+    try:
+        if head.startswith(b"\x89PNG\r\n\x1a\n"):
+            return int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big")
+        if head[:3] == b"GIF":
+            return int.from_bytes(head[6:8], "little"), int.from_bytes(head[8:10], "little")
+        if head.startswith(b"BM"):
+            return int.from_bytes(head[18:22], "little"), int.from_bytes(head[22:26], "little")
+        if head.startswith(b"\xff\xd8"):
+            with path.open("rb") as handle:
+                handle.read(2)
+                while True:
+                    marker = handle.read(2)
+                    if len(marker) < 2 or marker[0] != 0xFF:
+                        return None
+                    if 0xC0 <= marker[1] <= 0xCF and marker[1] not in (0xC4, 0xC8, 0xCC):
+                        handle.read(3)
+                        return int.from_bytes(handle.read(2), "big"), int.from_bytes(handle.read(2), "big")
+                    size = int.from_bytes(handle.read(2), "big")
+                    handle.read(max(size - 2, 0))
+    except (OSError, ValueError):
+        return None
+    return None
+
+
+def degenerate_asset_reason(width: int, height: int) -> str | None:
+    if min(width, height) < MIN_ASSET_EDGE_PX:
+        return f"only {width}x{height}px; a crop this thin is a sliver, not a figure"
+    if width / height > MAX_ASSET_ASPECT or height / width > MAX_ASSET_ASPECT:
+        return f"{width}x{height}px is a {max(width, height) / max(min(width, height), 1):.1f}:1 strip"
+    return None
+
+
 def validate_assets(
     assets: Path, mode: str, page_count: int, referenced: set[str], ledger: dict | None = None
 ) -> list[str]:
@@ -583,6 +625,14 @@ def validate_assets(
             errors.append(f"visual asset must be a flat file directly under assets/: {path.relative_to(assets)}")
             continue
         seen.add(path.name)
+        size = image_dimensions(path)
+        if size is not None:
+            reason = degenerate_asset_reason(*size)
+            if reason is not None:
+                errors.append(
+                    f"visual asset {path.name} cannot carry its subject: {reason}; "
+                    "re-crop the figure so the asset actually contains what it is named after"
+                )
         if mode == "synthesis":
             if path.name.startswith("page-"):
                 errors.append(f"lecture-notes assets must not use page-number prefixes: {path.name}")

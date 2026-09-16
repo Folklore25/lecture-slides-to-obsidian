@@ -282,6 +282,26 @@ class ValidateOutputTests(unittest.TestCase):
             self.assertNotEqual(code, 0)
             self.assertTrue(any("dot-prefixed" in item for item in result["errors"]))
 
+    def test_degenerate_crop_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / "document"
+            shutil.copytree(FIXTURE, folder)
+            # A 900x30 strip: the classic "table edge" crop that still resolves and embeds.
+            header = b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR" + (900).to_bytes(4, "big") + (30).to_bytes(4, "big")
+            (folder / "assets/page-001-figure-01.png").write_bytes(header + b"\x00" * 16)
+            code, result = run_validator(folder)
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("cannot carry its subject" in item for item in result["errors"]))
+
+    def test_a_normal_figure_size_is_not_flagged(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / "document"
+            shutil.copytree(FIXTURE, folder)
+            header = b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR" + (1200).to_bytes(4, "big") + (700).to_bytes(4, "big")
+            (folder / "assets/page-001-figure-01.png").write_bytes(header + b"\x00" * 16)
+            code, result = run_validator(folder)
+            self.assertEqual(code, 0, result["errors"])
+
     def test_standardized_asset_name_passes(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp) / "document"

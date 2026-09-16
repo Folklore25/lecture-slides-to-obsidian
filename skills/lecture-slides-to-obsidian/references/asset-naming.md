@@ -46,6 +46,14 @@ point in the note where it belongs.
 - The Canvas cap of six memory-critical visuals applies to the **Canvas only**. It never limits what
   the note itself keeps.
 
+### A crop must contain the thing it is named after
+
+The quietest failure in this pipeline is a crop that misses its subject: a thin strip of table edge still resolves, still gets embedded, and still passes every filename and reference rule while carrying nothing. `validate-output.py` rejects an asset whose shorter side is under `40px` or whose aspect ratio exceeds `8:1`. When that fires, re-crop the page instead of renaming the file — an asset called `what-is-data-table.png` that shows four labels and the edge of a table is worse than no asset, because the note then reads as if the example were present.
+
+### Tables and equations are not visuals
+
+A source table becomes a Markdown table; a source equation becomes LaTeX. Both are text, which is searchable, editable, and checkable, while an image of a formula is none of those. Embedding either as an image is an exception that needs a stated reason in the ledger; the default is transcription.
+
 ### Drop without hesitation
 
 Deck furniture and artwork that carries no information. Each one still gets a declared reason in the

@@ -30,6 +30,7 @@ Content-driven topic notes. **This profile is a synthesis task, not a transcript
 - A Markdown table replaces a visual only when the text carries exactly the same information, which in practice means a legible numeric data table. Declare that in the page ledger as `superseded-by-table`.
 - Record every visual decision per page: kept with an asset name, or dropped with a controlled reason.
 - Record one `evidence` phrase per kept page: a short quotation that actually appears in the delivered note.
+- **Never add a fact, table row, or bullet the source does not contain.** Decks are often themselves incomplete: a slide promising three items and listing two, a table with placeholder cells. Record a review item for that gap instead of quietly completing it, so a reader can tell what came from the lecturer.
 - Keep `## In-class notes` at the end when the learner will take notes in class.
 - The Canvas reconstructs the lesson through foundations, mechanisms/processes, applications/evidence, boundaries/misconceptions, and active-recall questions, following conceptual dependency rather than page order.
 

@@ -33,7 +33,7 @@ ASSET_NAME = "qualitative-research-cycle.png"
 VAULT_PREFIX = "COURSE101/Lectures/week3/"
 
 
-def png_bytes(width: int = 8, height: int = 8) -> bytes:
+def png_bytes(width: int = 640, height: int = 360) -> bytes:
     raw = b"".join(b"\x00" + bytes([30, 90, 160] * width) for _ in range(height))
 
     def chunk(tag: bytes, data: bytes) -> bytes:

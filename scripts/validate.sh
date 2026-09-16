@@ -281,6 +281,14 @@ if ! grep -q 'SECTION_ORDINAL' "$skill_dir/scripts/plan-note-structure.py" ||
  exit 1
 fi
 
+if ! grep -q 'MIN_ASSET_EDGE_PX' "$skill_dir/scripts/validate-output.py" ||
+ ! grep -q 'A crop must contain the thing it is named after' "$skill_dir/references/asset-naming.md" ||
+ ! grep -q 'Tables and equations are not visuals' "$skill_dir/references/asset-naming.md" ||
+ ! grep -q 'Never add a fact, table row, or bullet' "$skill_dir/references/document-profiles.md"; then
+ printf 'crop-sanity or text-transcription contract is missing\n' >&2
+ exit 1
+fi
+
 if ! grep -q 'Never summarize a visual in prose and drop it' "$skill_dir/references/asset-naming.md" ||
  ! grep -q '"visuals"' "$skill_dir/references/output-contract.md" ||
  ! grep -q 'VISUAL_DROP_REASONS' "$skill_dir/scripts/plan-note-structure.py" ||
