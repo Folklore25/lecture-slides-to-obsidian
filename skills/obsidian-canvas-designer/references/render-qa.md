@@ -44,7 +44,7 @@ The lower bound prevents clipping. The upper bound prevents stale or overly gene
 The local experiment reproduced the supplied failure:
 
 | Card | Measured bottom | Exact required | Profile height |
-|---|---:|---:|---:|
+| --- | ---: | ---: | ---: |
 | Legacy long policy card | 525 | 559 | 570 |
 | Plagiarism card | 434 | 468 | 480 |
 | Public-interest card | 436 | 470 | 480 |
@@ -84,6 +84,41 @@ Obsidian must be running with its CLI enabled.
 
 The script never activates the Obsidian application and never requires it to be frontmost. It takes the shared GUI lease, opens the Canvas leaf only when it is not already mounted, and then measures through `eval`. A mounted node with no rendered Markdown children or zero content height is a hard failure; never treat it as an empty 50px card.
 
+1. Build the first Canvas normally.
+
+2. Measure actual DOM layout:
+
+   ```text
+   scripts/canvas-render-qa.py measure \
+     --canvas <document.canvas> \
+     --vault-root <vault-root> \
+     --output <staging>/canvas-render-metrics.json
+   ```
+
+3. Rebuild and reflow with the measured heights:
+
+   ```text
+   scripts/build-canvas.py \
+     --note <document.md> \
+     --vault-root <vault-root> \
+     --profile <conversion-profile> \
+     --model <staging>/recall-model.json \
+     --render-metrics <staging>/canvas-render-metrics.json \
+     --output <document.canvas> \
+     --overwrite
+   ```
+
+4. Verify the delivered file in Obsidian:
+
+   ```text
+   scripts/canvas-render-qa.py check \
+     --canvas <document.canvas> \
+     --vault-root <vault-root> \
+     --output <staging>/canvas-render-check.json
+   ```
+
+5. For standalone Canvas-only work, retain or clean the QA files according to the user's request after reporting PASS. For delegated work, return both files plus the final aesthetic check to the parent skill; its package validator owns final cleanup.
+
 ## Shared GUI lease
 
 The Obsidian application is single-instance shared state, so the DOM step is wrapped in an exclusive cross-process lease from `scripts/obsidian-gui-lock.py`. Concurrent agents queue for it instead of conflicting:
@@ -100,40 +135,6 @@ The lease covers only the DOM step, which takes roughly 2-3 seconds per Canvas. 
 ## Concurrency
 
 Any number of agents may prepare Canvases at the same time. The DOM step is the only serialized part, and the lease is what serializes it. Two processes must never mount nodes or move the viewport at once, which is exactly what the lease prevents.
-
-1. Build the first Canvas normally.
-2. Measure actual DOM layout:
-
-```text
-scripts/canvas-render-qa.py measure \
-  --canvas <document.canvas> \
-  --vault-root <vault-root> \
-  --output <staging>/canvas-render-metrics.json
-```
-
-3. Rebuild and reflow with the measured heights:
-
-```text
-scripts/build-canvas.py \
-  --note <document.md> \
-  --vault-root <vault-root> \
-  --profile <conversion-profile> \
-  --model <staging>/recall-model.json \
-  --render-metrics <staging>/canvas-render-metrics.json \
-  --output <document.canvas> \
-  --overwrite
-```
-
-4. Verify the delivered file in Obsidian:
-
-```text
-scripts/canvas-render-qa.py check \
-  --canvas <document.canvas> \
-  --vault-root <vault-root> \
-  --output <staging>/canvas-render-check.json
-```
-
-5. For standalone Canvas-only work, retain or clean the QA files according to the user's request after reporting PASS. For delegated work, return both files plus the final aesthetic check to the parent skill; its package validator owns final cleanup.
 
 ## Acceptance rules
 
