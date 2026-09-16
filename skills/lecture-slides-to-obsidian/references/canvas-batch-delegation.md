@@ -1,66 +1,38 @@
-# Multi-file Canvas delegation
+# Canvas lane
 
-The main Agent owns batch coordination. The Canvas designer subagents own exactly one document each.
+Canvas is a **single exclusive lane**: exactly one Canvas is built, measured, and checked at a time, and the main Agent owns the lane.
 
-## Trigger
+## Why it is serial
 
-Count unique Canvas work items after routing and before drawing:
+Canvas QA drives the local Obsidian application through `canvas-render-qa.py` — DOM measurement, measured rebuild/reflow, and the final render check. The Obsidian app is single-instance shared state. Two Canvas tasks in flight at once fight over it, and the measured heights stop meaning anything. This is a hard resource constraint, not a tuning knob.
 
-- `N = 0`: no Canvas delegation.
-- `N = 1`: direct `obsidian-canvas-designer` execution or one subagent is allowed.
-- `N >= 2`: subagent delegation is mandatory. Announce that each file will receive an isolated Canvas task; do not ask for additional permission when delegation remains inside the user's requested files.
+## Rules
 
-Run `scripts/plan-canvas-batch.py --manifest <batch.json> --max-parallel <available-slots> --output <staging>/canvas-batch-plan.json`. The planner records the mandatory task split and waves; it does not create agents by itself. With `--output`, stdout stays compact and the full per-file task list remains in staging.
+- **Parallelism is always 1**, for one note or twenty. There is no parallel-safe authoring phase either: a Canvas task that is only "authoring" still holds the recall model, the Canvas path, and the designer skill state for that note, and the lane must stay clear.
+- **The main Agent runs the lane.** It loads `obsidian-canvas-designer` and drives it one Canvas at a time. Handing a Canvas to a helper is allowed only one at a time — never two concurrently, and never a fan-out.
+- **Never run `canvas-render-qa.py` concurrently with any other Canvas work.**
+- **Per-Canvas isolation is still mandatory:** one note, one recall model, one Canvas path, one assets directory, one staging directory. Validate it and get the serial order with:
 
-Use the current environment's native subagent/task mechanism. If it cannot create subagents, report that the mandatory multi-file Canvas contract is unavailable; do not silently draw the entire batch in the main Agent. A capacity of one still uses separate subagent tasks in sequential waves.
+```text
+scripts/plan-canvas-batch.py --manifest <batch.json> --output <staging>/canvas-batch-plan.json
+```
 
-## One item per subagent
+That planner validates isolation and emits `canvas_lane.order`. It creates no agents and no fan-out.
 
-Each task receives only:
+## Who owns the drawing
 
-- one complete note;
-- one recall-model/staging directory;
-- one Canvas output path;
-- that document's assets directory;
-- vault root, profile, and overwrite decision;
-- the Canvas designer's delegated-task template.
+Layout, hierarchy, colour, edge routing, DOM sizing, and Canvas QA belong to `obsidian-canvas-designer`. The main Agent drives that skill; it does not hand-author Canvas JSON, and it must not redraw or restyle a returned Canvas. The semantic recall model is authored from the complete note, one note per Canvas.
 
-Never send several notes to one Canvas subagent. Never share recall-model, Canvas, aesthetic, metric, or render-check paths between tasks.
+## Process order and cleanup
 
-## Two-phase coordination
+1. Take the next id from `canvas_lane.order`.
+2. Build the recall model from that complete note.
+3. Build, measure, reflow, and run the final aesthetic and DOM checks for that Canvas.
+4. Validate it with the package validator and record the result.
+5. Release the lane, then start the next Canvas.
 
-### Phase A — parallel-safe
-
-Start one task per document, up to the environment's subagent limit. Queue remaining tasks in later waves without merging them. Each subagent performs:
-
-1. H2/page inspection and recall skeleton;
-2. semantic model authoring;
-3. first Canvas build;
-4. aesthetic QA and revisions.
-
-It then returns `READY_FOR_RENDER` with its file paths and aesthetic result. It must not call real DOM QA yet.
-
-### Phase B — exclusive renderer lane
-
-The local Obsidian app is shared state. Grant a renderer slot to only one Canvas subagent at a time. Send that existing subagent a follow-up to perform:
-
-1. DOM measure;
-2. measured rebuild/reflow;
-3. final aesthetic check;
-4. final DOM check;
-5. SHA-bound PASS/FAIL return.
-
-Wait for release before granting the slot to the next item. Do not run `canvas-render-qa.py` concurrently across subagents.
-
-## Collection and failure behavior
-
-- Validate every returned Canvas independently with the parent package validator.
-- One failed item does not invalidate unrelated PASS items; report per-file status.
-- Retry only the same document task and preserve its isolated staging evidence.
-- The main Agent must not redraw or cosmetically edit a returned Canvas. Send revisions back to its owning subagent.
-- Delete each staging directory only after that file passes final package validation and its result has been summarized.
-- Delete the batch manifest and batch plan after every file reaches a terminal PASS/FAIL summary.
+Delete each staging directory only after that Canvas passes final package validation and its result has been summarized. Delete the batch manifest and batch plan once every Canvas has a terminal PASS/FAIL row.
 
 ## Completion summary
 
-Report one row per input file: note, Canvas, aesthetic score, DOM status, review items, and cleanup state. Do not collapse a partial batch into a single unqualified PASS.
+Report one row per note: Canvas path, aesthetic score, DOM status, review items, and cleanup state. Never collapse a partial batch into a single unqualified PASS.

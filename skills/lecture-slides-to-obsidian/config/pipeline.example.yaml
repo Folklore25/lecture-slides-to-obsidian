@@ -59,6 +59,29 @@ output:
     - "chart"
     - "fallback"
 
+dispatch:
+  multi_file_requires_subagents: true
+  one_subagent_per_source_file: true
+  shared_state_owner: "main-agent"
+  shared_state:
+    - "course-routing"
+    - "course-registry"
+    - "slug-decisions"
+    - "mineru-token-state"
+  per_file_isolation:
+    - "source"
+    - "document_folder"
+    - "staging"
+  conversion_parallelism: "environment-subagent-limit"
+
+canvas_lane:
+  owner: "main-agent"
+  parallelism: 1
+  fan_out_forbidden: true
+  exclusive_resource: "obsidian-app-gui"
+  reason: "Canvas DOM QA drives the single local Obsidian application"
+  phase: "after-conversion"
+
 staging:
   root: "system-temporary-directory"
   fallback_root: "installed-skill/tmp"

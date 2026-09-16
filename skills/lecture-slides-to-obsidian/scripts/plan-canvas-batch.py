@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Validate and plan one-subagent-per-document Canvas batch delegation."""
+"""Validate per-Canvas isolation and emit the exclusive serial Canvas lane.
+
+Canvas work is never fanned out. Canvas QA drives the local Obsidian GUI through
+`canvas-render-qa.py`, so two Canvas tasks running at the same time fight over one
+application. The lane therefore has parallelism 1 and is owned by the main Agent,
+which runs one Canvas to completion before starting the next.
+
+This planner validates that every Canvas task has its own isolated paths and returns the
+order in which the main Agent must process them. It creates no agents.
+"""
 
 from __future__ import annotations
 
@@ -9,6 +18,13 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+
+
+REQUIRED_FIELDS = (
+    "id", "note", "recall_model", "canvas", "staging", "assets", "profile", "overwrite"
+)
+UNIQUE_PATH_FIELDS = ("note", "recall_model", "canvas", "staging", "assets")
+EXCLUSIVE_RESOURCE = "obsidian-app-gui"
 
 
 class BatchPlanError(RuntimeError):
@@ -31,23 +47,20 @@ def write_json_atomic(path: Path, value: dict) -> None:
             temporary.unlink()
 
 
-def plan_batch(manifest: dict, max_parallel: int) -> dict:
+def plan_batch(manifest: dict) -> dict:
     if not isinstance(manifest, dict) or manifest.get("schema_version") != 1:
-        raise BatchPlanError("batch manifest must be an object with schema_version 1")
+        raise BatchPlanError("canvas batch manifest must be an object with schema_version 1")
     items = manifest.get("items")
     if not isinstance(items, list) or not items:
-        raise BatchPlanError("batch manifest items must contain at least one document")
-    if not isinstance(max_parallel, int) or max_parallel < 1:
-        raise BatchPlanError("max_parallel must be a positive integer")
+        raise BatchPlanError("canvas batch items must contain at least one Canvas")
 
-    required = {"id", "note", "recall_model", "canvas", "staging", "assets", "profile", "overwrite"}
-    ids = set()
-    unique_paths = {key: set() for key in ("note", "recall_model", "canvas", "staging", "assets")}
-    normalized = []
+    ids: set[str] = set()
+    unique_paths = {key: set() for key in UNIQUE_PATH_FIELDS}
+    normalized: list[dict] = []
     for index, item in enumerate(items):
         if not isinstance(item, dict):
             raise BatchPlanError(f"items[{index}] must be an object")
-        missing = sorted(required - item.keys())
+        missing = sorted(set(REQUIRED_FIELDS) - item.keys())
         if missing:
             raise BatchPlanError(f"items[{index}] missing fields: {', '.join(missing)}")
         item_id = item["id"]
@@ -64,19 +77,24 @@ def plan_batch(manifest: dict, max_parallel: int) -> dict:
             unique_paths[key].add(resolved)
         normalized.append(item)
 
-    count = len(normalized)
-    author_parallelism = min(max_parallel, count)
-    waves = [
-        [item["id"] for item in normalized[start : start + author_parallelism]]
-        for start in range(0, count, author_parallelism)
-    ]
+    order = [item["id"] for item in normalized]
     return {
         "schema_version": 1,
-        "item_count": count,
-        "spawn_required": count >= 2,
-        "strategy": "one-subagent-per-document" if count >= 2 else "direct-or-single-subagent",
+        "item_count": len(normalized),
+        "canvas_lane": {
+            "owner": "main-agent",
+            "parallelism": 1,
+            "exclusive_resource": EXCLUSIVE_RESOURCE,
+            "reason": (
+                "Canvas QA drives the local Obsidian GUI; concurrent Canvas work conflicts"
+            ),
+            "order": order,
+        },
+        "fan_out_forbidden": True,
+        "merge_forbidden": True,
+        "isolation_verified": True,
         "prompt_template": "skills/obsidian-canvas-designer/templates/delegated-task.md",
-        "subagent_tasks": [
+        "tasks": [
             {
                 "id": item["id"],
                 "note": item["note"],
@@ -86,34 +104,28 @@ def plan_batch(manifest: dict, max_parallel: int) -> dict:
                 "assets": item["assets"],
                 "profile": item["profile"],
                 "overwrite": item["overwrite"],
-                "phase_a_return": "READY_FOR_RENDER",
             }
             for item in normalized
         ],
-        "authoring_parallelism": author_parallelism,
-        "authoring_waves": waves,
-        "renderer_parallelism": 1,
-        "renderer_order": [item["id"] for item in normalized],
     }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", required=True, type=Path)
-    parser.add_argument("--max-parallel", required=True, type=int)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-        plan = plan_batch(manifest, args.max_parallel)
+        plan = plan_batch(manifest)
         if args.output is not None:
             write_json_atomic(args.output.resolve(), plan)
             response = {
                 "plan": str(args.output.resolve()),
                 "item_count": plan["item_count"],
-                "spawn_required": plan["spawn_required"],
-                "authoring_waves": plan["authoring_waves"],
-                "renderer_parallelism": plan["renderer_parallelism"],
+                "canvas_lane_owner": plan["canvas_lane"]["owner"],
+                "canvas_parallelism": plan["canvas_lane"]["parallelism"],
+                "process_order": plan["canvas_lane"]["order"],
             }
         else:
             response = plan

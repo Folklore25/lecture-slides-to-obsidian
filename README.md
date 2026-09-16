@@ -185,7 +185,9 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 如果完整 Markdown 已存在而只缺 Canvas，直接调用 `obsidian-canvas-designer`。这一入口不加载提取、token、课程路由或 conversion report。
 
-如果一次需要为两篇或更多笔记生成 Canvas，主 Agent 必须创建“一笔记一任务”的 Canvas subagents。semantic authoring、初版布局和 aesthetic QA 可按可用容量并行；共享的本机 Obsidian DOM measure/reflow/check 必须单通道串行，避免不同 Canvas 互相抢 active renderer。批计划由 `plan-canvas-batch.py` 生成，单笔记失败按笔记报告，不得把整批笼统标成 PASS/FAIL。
+如果一次要处理两个或更多源文件，主 Agent 必须**先派发**：一个文件一个 subagent 任务，课程路由与注册表由主 Agent 预先解析一次，每个文件一个独立 staging 目录（`plan-conversion-batch.py` 校验隔离性，会拒绝重复的源路径、文档目录、staging 目录，以及 vault 内/外的越界路径）。
+
+**Canvas 不能并行。** Canvas 的 DOM 实测/重排/终检会驱动本机 Obsidian 这个单实例 GUI，两个 Canvas 同时进行会互相抢应用、实测高度失去意义。因此 Canvas 是**唯一串行通道**：任意时刻只有一个 Canvas 在进行，且由主 Agent 拥有该通道——可以自己驱动 `obsidian-canvas-designer`，也可以一次只交给一个 helper，但绝不并发。转换阶段的并行**不等于** Canvas 可以并行。串行顺序由 `plan-canvas-batch.py` 生成，单笔记失败按笔记报告，不得把整批笼统标成 PASS/FAIL。
 
 ## 本地验证
 

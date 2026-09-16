@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "vault_root": "/path/to/vault",
+  "items": [
+    {
+      "id": "l03-week3",
+      "source": "/external/materials/IS6000_Week3.pdf",
+      "document_folder": "/path/to/vault/IS6000/Lectures/l03-week3",
+      "staging": "/tmp/convert-l03-week3",
+      "profile": "lecture-notes"
+    },
+    {
+      "id": "l04-week4",
+      "source": "/external/materials/IS6000_Week4.pdf",
+      "document_folder": "/path/to/vault/IS6000/Lectures/l04-week4",
+      "staging": "/tmp/convert-l04-week4",
+      "profile": "lecture-notes"
+    }
+  ]
+}

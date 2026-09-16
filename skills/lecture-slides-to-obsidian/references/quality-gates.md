@@ -37,6 +37,15 @@ A conversion is complete only when the required gates pass, or the report marks 
 - Plaintext token, Authorization header, signed URLs, and secret-bearing responses are absent from registry, reports, logs, staging, output, and Git.
 - Encrypted token state exists only at `state/mineru-api-token.enc.json`, has mode `0600`, passes HMAC verification, and uses the matching macOS Keychain wrapping key.
 
+## Batch dispatch and the Canvas lane
+
+- With two or more source files, one subagent task was created per file, and `scripts/plan-conversion-batch.py` verified their isolation.
+- Course routing, the registry, and slug decisions were resolved once by the main Agent before dispatch; no two workers wrote shared state.
+- Each file had its own document folder and its own staging directory.
+- Exactly one Canvas was in flight at any moment, `canvas-render-qa.py` never ran concurrently with other Canvas work, and the main Agent owned the lane.
+- Every Canvas kept its own recall model, Canvas path, aesthetic check, render metrics, and render check.
+- Per-file status was reported; no partial batch was collapsed into a single PASS.
+
 ## MinerU transcription gates (only with `--extraction mineru`)
 
 - Page reconstruction used V2 page groups or legacy `page_idx`, never global `md` anchors.

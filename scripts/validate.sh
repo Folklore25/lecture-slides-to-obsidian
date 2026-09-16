@@ -31,6 +31,7 @@ references/obsidian-style.md
 references/quality-gates.md
 references/validation.md
 scripts/README.md
+scripts/plan-conversion-batch.py
 scripts/plan-canvas-batch.py
 scripts/fill-report.py
 scripts/mineru-cli-adapter.py
@@ -42,6 +43,7 @@ scripts/token-store.py
 scripts/validate-output.py
 state/README.md
 state/course-registry.example.yaml
+templates/conversion-batch-manifest.example.json
 templates/report-context.example.json
 templates/canvas-batch-manifest.example.json'
 

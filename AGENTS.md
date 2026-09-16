@@ -15,6 +15,8 @@
 - Deterministic LaTeX normalization overwrites the final Markdown math-spans-only: it may change only math delimiters, environments, and CJK-in-math wrapping. Visible non-math text, links, assets, Callouts, and any source-page marker lines are immutable, and the outside-vault snapshot is restored automatically on any conservation failure.
 - Pre-existing Callouts are valid conversion artifacts, not evidence of user authorship. Preserve their exact headers and `conversion-layer:` provenance; stop only for `lecture-layer:` or explicitly known later additions.
 - Never create a workflow-owned dot-prefixed directory or file in the Obsidian vault. Do not modify an existing `.obsidian/` directory as part of conversion.
+- Two or more requested source files must be dispatched as one subagent task per file, with course routing and the registry resolved once by the main Agent beforehand, and one isolated staging directory per file.
+- Canvas is a single exclusive lane owned by the main Agent: exactly one Canvas at a time, never a fan-out, because Canvas DOM QA drives the local Obsidian GUI. Conversion parallelism never implies Canvas parallelism.
 - Canvas learning modules must start from the final top-lane bottom plus 80px; never restore the old fixed `y = 520` placement after overview DOM reflow.
 - Keep structural alignment separate from pixel-level visual comparison; mark unperformed rendering `NOT-CHECKED`.
 - Keep course routing behavior aligned across `course-routing.md`, the registry example, output contract, examples, and routing test cases.

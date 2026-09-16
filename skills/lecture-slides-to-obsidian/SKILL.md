@@ -34,7 +34,8 @@ Turn an external course document into readable, content-driven Obsidian notes wh
 - Write one note per entry in `note-plan.json`. H2 headings must equal the planned section headings, so the Canvas keeps a real anchor.
 - Assets use lowercase semantic kebab-case names (`qualitative-research-cycle.png`). `page-PPP-kind-NN.ext` survives only in MinerU-mode transcription.
 - Canvas: delegate to `obsidian-canvas-designer` with the note, semantic model, assets, paths, and overwrite boundary; consume only its artifacts and PASS/FAIL evidence.
-- Multi-note Canvas rule: one Canvas per note, one subagent per note for two or more notes. Follow [references/canvas-batch-delegation.md](references/canvas-batch-delegation.md).
+- Multi-file rule: two or more source files in one request must be dispatched as one subagent task per file. Resolve course routing and the registry once before dispatch. Follow [references/multi-file-conversion.md](references/multi-file-conversion.md).
+- Canvas rule: Canvas is a single exclusive lane owned by the main Agent -- exactly one Canvas at a time, no fan-out, because DOM QA drives the local Obsidian GUI. Follow [references/canvas-batch-delegation.md](references/canvas-batch-delegation.md).
 - Put all staging/QA state under the system temporary directory or a non-hidden `tmp/` directory inside the installed skill. Validate with `--report ... --delete-qa-on-success` and never copy QA state into the vault.
 
 ## Prerequisite preflight
@@ -52,7 +53,7 @@ Read [requirements/skills.yaml](requirements/skills.yaml), [requirements/service
 7. Write the note or notes. Apply [references/obsidian-style.md](references/obsidian-style.md) and [references/output-contract.md](references/output-contract.md).
 8. Extract and place every meaningful visual at its point of use, and name each one semantically. Record the per-page visual decision in the ledger. See [references/asset-naming.md](references/asset-naming.md).
 9. Optional deterministic LaTeX normalization: run `obsidian-latex-refiner` when enabled; it handles marker-free notes as a single segment.
-10. Read each note and allocate one isolated staging/output tuple per Canvas. Run `scripts/plan-canvas-batch.py`. With one note, direct execution or one subagent is allowed; with two or more, create one subagent task per note.
+10. If the request covers two or more source files, dispatch one subagent task per file before converting anything, then own the Canvas lane yourself. Read each note and allocate one isolated staging/output tuple per Canvas. Run `scripts/plan-conversion-batch.py` for the file split and `scripts/plan-canvas-batch.py` for the serial Canvas order. Never build two Canvases at once.
 11. Render temporary QA with `scripts/fill-report.py`, run [references/validation.md](references/validation.md), extract the facts needed for the final response, delete all QA state on success, then send the concise summary.
 
 ## Non-negotiable boundaries
@@ -62,7 +63,9 @@ Read [requirements/skills.yaml](requirements/skills.yaml), [requirements/service
 - Never summarize a visual in prose and drop it. Extract the image and place it where it belongs; replace it with text only when the text carries exactly the same information, and declare that in the ledger.
 - Do not invent missing content or normalize an uncertain equation into a confident-looking result.
 - Do not keep slide furniture: agendas, section dividers, course-admin pages, exercise pages, repeated chrome, page numbers, and decorative slides belong in the ledger as `dropped`, not in the note.
-- Never decide note granularity silently. Ask the user on every conversion.
+- Never decide note granularity silently.
+- Never convert two or more requested files serially in the main Agent when dispatch is available.
+- Never build or check two Canvases concurrently. Canvas QA owns the local Obsidian GUI, and that resource cannot be shared. Ask the user on every conversion.
 - Never run native conversion on a model that cannot see the source pages; re-run with `--extraction mineru` instead.
 - Resolve every destination under the registered semester root. Reject absolute child paths, `..` traversal, or a resolved path that escapes the course folder.
 - Do not copy, move, embed, or symlink source PDFs, presentations, office documents, or archives into the Obsidian vault.
@@ -83,6 +86,7 @@ Read [requirements/skills.yaml](requirements/skills.yaml), [requirements/service
 - [references/validation.md](references/validation.md) — the validator invocation and checks.
 - [references/mineru-cli.md](references/mineru-cli.md) and [references/mineru-normalization.md](references/mineru-normalization.md) — only when `--extraction mineru`.
 - [references/course-routing.md](references/course-routing.md) — registering and matching course folders.
-- [references/canvas-batch-delegation.md](references/canvas-batch-delegation.md) — one subagent per note.
+- [references/multi-file-conversion.md](references/multi-file-conversion.md) — one subagent per source file when two or more files are requested.
+- [references/canvas-batch-delegation.md](references/canvas-batch-delegation.md) — the single exclusive Canvas lane.
 - [../obsidian-canvas-designer/SKILL.md](../obsidian-canvas-designer/SKILL.md) — delegated Canvas design.
 - [../obsidian-latex-refiner/SKILL.md](../obsidian-latex-refiner/SKILL.md) — optional deterministic math normalization.
