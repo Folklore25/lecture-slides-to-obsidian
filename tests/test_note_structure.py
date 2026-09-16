@@ -324,8 +324,8 @@ class NoteStructureTests(unittest.TestCase):
             "schema_version": 1, "draft": False, "source_pages": 2,
             "pages": [
                 {"page": 1, "disposition": "kept", "note": "l04", "section": "Lecture 4",
-                 "evidence": "A reasonably long opening paragraph", "visuals": []},
-                {"page": 2, "disposition": "dropped", "reason": "non-substantive"},
+                 "evidence": "A reasonably long opening paragraph", "visual": False, "visuals": []},
+                {"page": 2, "disposition": "dropped", "reason": "non-substantive", "visual": True},
             ],
         }
         return planner, plan, ledger
@@ -344,7 +344,7 @@ class NoteStructureTests(unittest.TestCase):
 
     def test_a_furniture_page_without_visuals_can_still_be_non_substantive(self):
         planner, plan, ledger = self.image_only_plan_and_ledger()
-        ledger["pages"][1] = {"page": 2, "disposition": "dropped", "reason": "non-substantive"}
+        ledger["pages"][1] = {"page": 2, "disposition": "dropped", "reason": "non-substantive", "visual": False}
         plan["_signals"]["page_signals"][1]["visual_count"] = 0
         errors = planner.validate_ledger(ledger, plan, False)
         self.assertEqual([e for e in errors if "carries" in e], [])
@@ -387,7 +387,8 @@ class NoteStructureTests(unittest.TestCase):
         ledger = json.loads(LEDGER.read_text())
         for item in ledger["pages"][:5]:
             item.clear()
-            item.update({"page": ledger["pages"].index(item) + 1, "disposition": "dropped", "reason": "page-furniture"})
+            item.update({"page": ledger["pages"].index(item) + 1, "disposition": "dropped",
+                         "reason": "page-furniture", "visual": False})
         self.assertTrue(any("drops" in item for item in planner.validate_ledger(ledger, plan, False)))
         self.assertEqual(planner.validate_ledger(ledger, plan, True), [])
 

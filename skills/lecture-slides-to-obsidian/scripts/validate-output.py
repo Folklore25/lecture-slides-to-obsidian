@@ -312,8 +312,21 @@ def validate_page_evidence(ledger: dict, note_texts: dict[str, str]) -> list[str
         if not isinstance(item, dict) or item.get("disposition") == "dropped":
             continue
         slug = item.get("note")
+        if slug not in note_texts:
+            continue
+        # A page whose teaching signal is its figure has no prose to quote; an
+        # evidence_asset naming an image the note actually embeds is equivalent.
+        raw_asset = item.get("evidence_asset")
+        if isinstance(raw_asset, str) and raw_asset.strip():
+            name = raw_asset.strip()
+            if f"![[assets/{name}" not in note_texts[slug] and f"![[{name}" not in note_texts[slug]:
+                errors.append(
+                    f"page {item.get('page')} evidence_asset {name!r} is not embedded by {slug}; "
+                    "the note must actually show the figure it claims as evidence"
+                )
+            continue
         evidence = item.get("evidence")
-        if slug not in note_texts or not isinstance(evidence, str) or not evidence.strip():
+        if not isinstance(evidence, str) or not evidence.strip():
             continue
         needle = normalize_for_match(evidence)
         haystack = normalize_for_match(note_texts[slug])

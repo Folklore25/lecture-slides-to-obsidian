@@ -281,6 +281,13 @@ if ! grep -q 'SECTION_ORDINAL' "$skill_dir/scripts/plan-note-structure.py" ||
  exit 1
 fi
 
+if ! grep -q 'must declare visual: true or false' "$skill_dir/scripts/plan-note-structure.py" ||
+ ! grep -q 'evidence_asset' "$skill_dir/scripts/plan-note-structure.py" ||
+ ! grep -qi 'triage starts from' "$skill_dir/references/document-profiles.md"; then
+ printf 'visual-first triage contract is missing\n' >&2
+ exit 1
+fi
+
 if ! grep -q 'MIN_ASSET_EDGE_PX' "$skill_dir/scripts/validate-output.py" ||
  ! grep -q 'A crop must contain the thing it is named after' "$skill_dir/references/asset-naming.md" ||
  ! grep -q 'Tables and equations are not visuals' "$skill_dir/references/asset-naming.md" ||

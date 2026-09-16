@@ -283,7 +283,12 @@ def draft_ledger(signals: list[dict], note_slug: str, sections: list[dict]) -> d
         elif not item["titles"] and not item["body"].strip() and item["visual_count"] == 0:
             reason = "page-furniture"
         if reason:
-            pages.append({"page": page, "disposition": "dropped", "reason": reason})
+            pages.append({
+                "page": page,
+                "disposition": "dropped",
+                "reason": reason,
+                "visual": bool(item["visual_count"]),
+            })
         else:
             pages.append({
                 "page": page,
@@ -291,6 +296,7 @@ def draft_ledger(signals: list[dict], note_slug: str, sections: list[dict]) -> d
                 "note": note_slug,
                 "section": owner.get(page, sections[0]["heading"] if sections else ""),
                 "evidence": "",
+                "visual": bool(item["visual_count"]),
                 # Extracting a detected visual is the default; the Agent names it, or
                 # declares a controlled drop reason. Repeated template chrome is already
                 # classified here so a logo does not have to be dismissed page by page.
@@ -349,7 +355,10 @@ def build_plan_from_page_count(
         "draft": True,
         "source_pages": page_count,
         "pages": [
-            {"page": page, "disposition": "kept", "note": slug, "section": "", "evidence": "", "visuals": []}
+            {
+                "page": page, "disposition": "kept", "note": slug, "section": "",
+                "evidence": "", "visual": None, "visuals": [],
+            }
             for page in range(1, page_count + 1)
         ],
     }
@@ -427,6 +436,8 @@ def build_plan(pages: list, profile: str, granularity: str, slug: str, title: st
                 "Drop agenda, divider, course-admin, exercise, and page-furniture pages in the ledger.",
                 "A page whose content is a figure or a wide data table is a content page, not furniture.",
                 "Check _signals.image_only_pages by hand before dropping any of them.",
+                "Every page needs visual: true or false. Answer it by looking at the page, not by measuring its text: a text-light page is more likely to be a figure than furniture.",
+                "A page whose teaching signal is the figure may use evidence_asset instead of a quoted phrase.",
                 "Set draft=false on both the plan and the ledger when they are final.",
             ],
         },
@@ -624,16 +635,29 @@ def validate_ledger(ledger: dict, plan: dict, allow_heavy_drop: bool) -> list[st
         if disposition not in {"kept", "merged", "dropped"}:
             errors.append(f"page {page} has an unsupported disposition: {disposition!r}")
             continue
+        # Triage must start from "is there a visual?", not from "is there enough text?"
+        # A teaching deck's most teachable pages are the text-light ones, so the visual
+        # question is a required declaration rather than an optional note.
+        visual = item.get("visual")
+        if not isinstance(visual, bool):
+            errors.append(
+                f"page {page} must declare visual: true or false - look at the page and say "
+                "whether it carries an image, chart, table, or drawing before choosing a disposition"
+            )
+            visual = bool(detected_visuals.get(page))
         if disposition == "dropped":
             dropped += 1
             reason = item.get("reason")
             detected = detected_visuals.get(page)
-            if detected and reason in CONTENT_ASSERTING_DROP_REASONS:
+            if (visual or detected) and reason in CONTENT_ASSERTING_DROP_REASONS:
+                detail = (
+                    f"{detected} detected visual(s)" if detected
+                    else "a declared visual"
+                )
                 errors.append(
-                    f"page {page} carries {detected} detected visual(s) but is dropped as "
-                    f"{reason!r}, which asserts the page had no content; keep the page and "
-                    "extract its figure, or drop it for a visual-aware reason such as "
-                    "duplicate, repeated-chrome, or illegible"
+                    f"page {page} carries {detail} but is dropped as {reason!r}, which asserts "
+                    "the page had no content; keep the page and extract its figure, or drop it for "
+                    "a visual-aware reason such as duplicate, repeated-chrome, or illegible"
                 )
             if reason not in DROP_REASONS:
                 errors.append(
@@ -649,11 +673,32 @@ def validate_ledger(ledger: dict, plan: dict, allow_heavy_drop: bool) -> list[st
         if section not in plan_sections[note_slug]:
             errors.append(f"page {page} maps to an unknown section of {note_slug}: {section!r}")
         evidence = item.get("evidence")
-        if not isinstance(evidence, str) or not 8 <= len(evidence.strip()) <= 200:
+        raw_asset_evidence = item.get("evidence_asset")
+        asset_evidence = raw_asset_evidence.strip() if isinstance(raw_asset_evidence, str) else ""
+        if not asset_evidence and (
+            not isinstance(evidence, str) or not 8 <= len(evidence.strip()) <= 200
+        ):
             errors.append(
-                f"page {page} needs an 8..200 character evidence phrase quoted from its target note"
+                f"page {page} needs an 8..200 character evidence phrase quoted from its target "
+                "note, or an evidence_asset naming an image the note embeds - a page whose "
+                "teaching signal lives in its figure has no prose to quote"
             )
-        errors += validate_page_visuals(page, item.get("visuals"))
+        if asset_evidence and not ASSET_FILE.fullmatch(asset_evidence):
+            errors.append(
+                f"page {page} evidence_asset must be a lowercase semantic kebab-case filename: "
+                f"{raw_asset_evidence!r}"
+            )
+        kept_assets = validate_page_visuals(page, item.get("visuals"))
+        errors += kept_assets
+        if visual and disposition in {"kept", "merged"}:
+            entries = item.get("visuals")
+            # The figure must be accounted for, not necessarily kept: superseded-by-table
+            # and duplicate are legitimate outcomes. Silence is not.
+            if not isinstance(entries, list) or not entries:
+                errors.append(
+                    f"page {page} declares a visual but accounts for none; extract the figure, "
+                    "or record why it was dropped, because a page cannot be both visual and empty"
+                )
     if source_pages:
         missing = [page for page in range(1, source_pages + 1) if page not in seen]
         if missing:

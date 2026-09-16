@@ -25,6 +25,8 @@ A conversion is complete only when the required gates pass, or the report marks 
 - The page ledger accounts for every source page exactly once.
 - Every kept or merged page carries an `evidence` phrase that literally occurs in its target note. `--extraction mineru` additionally checks per-page text recall; any exemption is declared in the ledger with a reason.
 - Visual assets use lowercase semantic kebab-case names and every asset is referenced by a note embed or a Canvas file node.
+- Triage ran visual-first: every page declares `visual: true|false`, and no page was dropped for a text-based reason while carrying a figure.
+- Pages whose teaching signal is a figure used `evidence_asset` rather than being forced into a prose quote or dropped.
 - Every meaningful source visual is extracted, named, and embedded at its point of use. No visual was reduced to a prose description and discarded.
 - The page ledger declares a visual disposition for every kept or merged page: kept with an asset name, or dropped with a controlled reason. `superseded-by-table` additionally states `rendered_as`.
 - No asset is a degenerate crop: every extracted visual has both sides at least `40px` and an aspect ratio at or below `8:1`.

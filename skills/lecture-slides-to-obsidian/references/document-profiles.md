@@ -20,6 +20,8 @@ Non-slide signals: dense paragraphs, policy numbering, references, abstracts, co
 
 Content-driven topic notes. **This profile is a synthesis task, not a transcription task.**
 
+**Page triage starts from "is there a visual?", not from "is there enough text?"** A slide with 60 characters of extractable text and one embedded figure is a content page: a business framing, a worked example, an in-class quiz. Text-based triage reads it as empty and drops it, and the pages it eats are the deck's most teachable ones. Ask the visual question first, answer it per page in the ledger, and only then consider dropping.
+
 - The note's H2 headings are the source document's own sections, never slide titles, slide numbers, or page furniture.
 - Choose `single-note` (one note, sections as H2) or `section-notes` (one note per source section) with the user, on every conversion. Rule of thumb to offer: three or more independent sections *and* sixty or more source pages → suggest `section-notes`; otherwise suggest `single-note`.
 - **Section notes keep source order in their filenames.** Every slug is `<document-slug>-<NN>-<section-slug>`, numbered from `01`. A plain filename sort must reproduce the order of the source document, because that listing is what a learner browses. `scripts/plan-note-structure.py` drafts these slugs, and the plan contract rejects a section note whose slug has no ordinal, whose ordinals are not contiguous `01..NN`, or whose notes are not listed in ascending source-page order.

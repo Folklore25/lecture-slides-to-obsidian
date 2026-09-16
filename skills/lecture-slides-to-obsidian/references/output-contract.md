@@ -115,7 +115,8 @@ Rules:
 - `disposition` is `kept`, `merged`, or `dropped`.
 - `dropped` requires a reason from: `title-slide`, `section-divider`, `agenda`, `course-admin`, `exercise`, `repeated-chrome`, `page-furniture`, `duplicate`, `illegible`, `non-substantive`.
 - Dropping more than half of the source pages needs `--allow-heavy-drop`.
-- `kept` and `merged` require `note`, `section`, and an `evidence` phrase that must literally appear in that note.
+- **Every page declares `visual`: true or false.** Answer it by looking at the page, not by measuring its text: a text-light page is more likely to be a figure than furniture. A page that declares a visual but accounts for none is rejected.
+- `kept` and `merged` require `note`, `section`, and either an `evidence` phrase that must literally appear in that note, or an `evidence_asset` naming an image the note embeds. A page whose teaching signal lives in its figure has no prose to quote, and forcing a quote is how those pages get dropped instead.
 - When MinerU page groups are available, page-level text recall is checked on top of the evidence phrase. A legitimately distilled page may set `recall_exempt` plus `recall_exempt_reason`; nothing is skipped silently.
 
 ### Visuals
