@@ -302,6 +302,53 @@ class NoteStructureTests(unittest.TestCase):
         errors = planner.validate_ledger(ledger, plan, False)
         self.assertTrue(any("unknown section" in item for item in errors))
 
+    def image_only_plan_and_ledger(self):
+        planner = planner_module()
+
+        def title(text, level=2):
+            return {"type": "title", "content": {"title_content": [{"type": "text", "content": text}], "level": level}}
+
+        def para(text):
+            return {"type": "paragraph", "content": {"paragraph_content": [{"type": "text", "content": text}]}}
+
+        def figure(bbox):
+            return {"type": "image", "bbox": bbox, "content": {"image_caption": [{"type": "text", "content": "PCA"}]}}
+
+        pages = [
+            [title("Lecture 4", 1), para("A reasonably long opening paragraph that is well over the divider threshold so this page reads as prose content rather than a title slide in the heuristic.")],
+            [title("PCA"), figure([100, 150, 800, 600])],
+        ]
+        plan, _ = planner.build_plan(pages, "lecture-notes", "single-note", "l04", "Lecture 4")
+        plan["draft"] = False
+        ledger = {
+            "schema_version": 1, "draft": False, "source_pages": 2,
+            "pages": [
+                {"page": 1, "disposition": "kept", "note": "l04", "section": "Lecture 4",
+                 "evidence": "A reasonably long opening paragraph", "visuals": []},
+                {"page": 2, "disposition": "dropped", "reason": "non-substantive"},
+            ],
+        }
+        return planner, plan, ledger
+
+    def test_a_visual_page_cannot_be_dropped_as_non_substantive(self):
+        planner, plan, ledger = self.image_only_plan_and_ledger()
+        self.assertEqual(plan["_signals"]["image_only_pages"], [2])
+        errors = planner.validate_ledger(ledger, plan, False)
+        self.assertTrue(any("carries 1 detected visual" in item for item in errors))
+
+    def test_a_visual_page_may_be_dropped_for_a_visual_aware_reason(self):
+        planner, plan, ledger = self.image_only_plan_and_ledger()
+        ledger["pages"][1]["reason"] = "duplicate"
+        errors = planner.validate_ledger(ledger, plan, False)
+        self.assertEqual([e for e in errors if "carries" in e], [])
+
+    def test_a_furniture_page_without_visuals_can_still_be_non_substantive(self):
+        planner, plan, ledger = self.image_only_plan_and_ledger()
+        ledger["pages"][1] = {"page": 2, "disposition": "dropped", "reason": "non-substantive"}
+        plan["_signals"]["page_signals"][1]["visual_count"] = 0
+        errors = planner.validate_ledger(ledger, plan, False)
+        self.assertEqual([e for e in errors if "carries" in e], [])
+
     def test_kept_page_must_declare_its_visuals(self):
         planner = planner_module()
         plan = json.loads(PLAN.read_text())

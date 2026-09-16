@@ -44,6 +44,12 @@ EXERCISE_HINTS = re.compile(
 VISUAL_TYPES = {"image", "chart", "table"}
 # Why a visual may be dropped. "repeated-chrome" is detected deterministically by the
 # planner; the rest are Agent judgements that must be stated explicitly.
+# Drop reasons that assert a page carried no substantive content. A page that holds a
+# detected visual may not use these: that combination is how an image-only slide gets
+# triaged away by a text-based judgement.
+CONTENT_ASSERTING_DROP_REASONS = {
+    "title-slide", "section-divider", "agenda", "course-admin", "exercise", "non-substantive",
+}
 VISUAL_DROP_REASONS = {
     "repeated-chrome",      # logo, crest, watermark, template ornament, footer bar
     "decorative",           # clipart, stock imagery, ornament carrying no information
@@ -407,12 +413,20 @@ def build_plan(pages: list, profile: str, granularity: str, slug: str, title: st
             "outline_page": outline[0] if outline else None,
             "outline_entries": outline[1] if outline else [],
             "suggested_section_count": len(sections),
+            # Image-only pages carry their content in a figure, so a text-based triage
+            # misreads them as empty. The Agent must resolve each one explicitly.
+            "image_only_pages": [
+                item["page"] for item in signals
+                if item["visual_count"] > 0 and item["char_count"] < 45
+            ],
             "granularity_recommendation": recommend_granularity(len(sections), len(signals)),
             "page_signals": signals,
             "instructions": [
                 "Read the source visually and correct this draft before writing any note.",
                 "Section headings are content headings, never slide titles or slide numbers.",
                 "Drop agenda, divider, course-admin, exercise, and page-furniture pages in the ledger.",
+                "A page whose content is a figure or a wide data table is a content page, not furniture.",
+                "Check _signals.image_only_pages by hand before dropping any of them.",
                 "Set draft=false on both the plan and the ledger when they are final.",
             ],
         },
@@ -583,6 +597,16 @@ def validate_ledger(ledger: dict, plan: dict, allow_heavy_drop: bool) -> list[st
     if not isinstance(pages, list) or not pages:
         errors.append("page ledger must list every source page")
         return errors
+    # Page signals are an optional, MinerU-only aid; when present they make the
+    # image-only-page rule mechanically checkable.
+    detected_visuals: dict[int, int] = {}
+    signals = plan.get("_signals", {}).get("page_signals", []) if isinstance(plan, dict) else []
+    if isinstance(signals, list):
+        for signal in signals:
+            if isinstance(signal, dict) and isinstance(signal.get("page"), int):
+                count = signal.get("visual_count")
+                if isinstance(count, int) and count > 0:
+                    detected_visuals[signal["page"]] = count
     seen: dict[int, dict] = {}
     dropped = 0
     for index, item in enumerate(pages):
@@ -603,6 +627,14 @@ def validate_ledger(ledger: dict, plan: dict, allow_heavy_drop: bool) -> list[st
         if disposition == "dropped":
             dropped += 1
             reason = item.get("reason")
+            detected = detected_visuals.get(page)
+            if detected and reason in CONTENT_ASSERTING_DROP_REASONS:
+                errors.append(
+                    f"page {page} carries {detected} detected visual(s) but is dropped as "
+                    f"{reason!r}, which asserts the page had no content; keep the page and "
+                    "extract its figure, or drop it for a visual-aware reason such as "
+                    "duplicate, repeated-chrome, or illegible"
+                )
             if reason not in DROP_REASONS:
                 errors.append(
                     f"page {page} is dropped without a supported reason: {reason!r}; "
