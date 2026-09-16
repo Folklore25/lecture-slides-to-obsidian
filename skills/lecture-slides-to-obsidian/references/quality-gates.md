@@ -27,6 +27,7 @@ A conversion is complete only when the required gates pass, or the report marks 
 - Visual assets use lowercase semantic kebab-case names and every asset is referenced by a note embed or a Canvas file node.
 - Every meaningful source visual is extracted, named, and embedded at its point of use. No visual was reduced to a prose description and discarded.
 - The page ledger declares a visual disposition for every kept or merged page: kept with an asset name, or dropped with a controlled reason. `superseded-by-table` additionally states `rendered_as`.
+- Repeated template chrome is classified by the planner's footprint detection and lands as `repeated-chrome` rather than being re-decided page by page. Logos, watermarks, template ornaments, and footer art never reach `assets/`.
 - Every asset listed as kept in the ledger exists under `assets/` and is referenced by a note embed or a Canvas file node, and every file in `assets/` is listed in the ledger.
 
 ## CLI and secret safety (MinerU mode only)

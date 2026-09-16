@@ -262,7 +262,10 @@ fi
 
 if ! grep -q 'Never summarize a visual in prose and drop it' "$skill_dir/references/asset-naming.md" ||
  ! grep -q '"visuals"' "$skill_dir/references/output-contract.md" ||
- ! grep -q 'VISUAL_DROP_REASONS' "$skill_dir/scripts/plan-note-structure.py"; then
+ ! grep -q 'VISUAL_DROP_REASONS' "$skill_dir/scripts/plan-note-structure.py" ||
+ ! grep -q 'repeated-chrome' "$skill_dir/scripts/plan-note-structure.py" ||
+ ! grep -q 'Drop without hesitation' "$skill_dir/references/asset-naming.md" ||
+ ! grep -q 'redundant-with-text' "$skill_dir/references/asset-naming.md"; then
  printf 'visual extraction contract is missing or out of sync\n' >&2
  exit 1
 fi

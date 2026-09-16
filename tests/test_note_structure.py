@@ -117,6 +117,59 @@ class NoteStructureTests(unittest.TestCase):
         self.assertNotEqual(planner.recommend_granularity(2, 40), "section-notes")
         self.assertEqual(planner.recommend_granularity(4, 120), "section-notes")
 
+    def test_repeated_template_chrome_is_detected_and_dropped(self):
+        planner = planner_module()
+
+        def visual(x0, y0, x1, y1):
+            return {"type": "image", "bbox": [x0, y0, x1, y1], "content": {"image_caption": []}}
+
+        def title(text):
+            return {"type": "title", "content": {"title_content": [{"type": "text", "content": text}], "level": 2}}
+
+        def paragraph(text):
+            return {"type": "paragraph", "content": {"paragraph_content": [{"type": "text", "content": text}]}}
+
+        logo = visual(10, 10, 120, 60)
+        pages = [
+            [title("Week 3"), logo],
+            [title("Methodology"), paragraph("A strategy of inquiry. 1. Grounded theory 2. Action research"), logo],
+            [title("Grounded theory"), paragraph("Open coding. Axial coding."), logo],
+            [title("Action research"), paragraph("Plan, act, observe, reflect."), logo, visual(100, 150, 600, 400)],
+            [title("Ethnography"), paragraph("Studying a culture in the field."), logo],
+            [title("Case studies"), paragraph("Holistic analysis of one instance."), logo],
+        ]
+        plan, ledger = planner.build_plan(pages, "lecture-notes", "single-note", "week3", "Week 3")
+        self.assertEqual(ledger["detected_repeated_chrome"], 1)
+        by_page = {item["page"]: item for item in ledger["pages"]}
+        for page in (2, 3, 4, 5, 6):
+            visuals = by_page[page].get("visuals", [])
+            self.assertIn({"disposition": "dropped", "reason": "repeated-chrome"}, visuals)
+        # The one real diagram on page 4 survives as a kept visual awaiting a name.
+        kept = [v for v in by_page[4]["visuals"] if v["disposition"] == "kept"]
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(kept[0]["asset"], "")
+
+    def test_a_unique_visual_on_every_page_is_not_called_chrome(self):
+        planner = planner_module()
+
+        def visual(index):
+            return {"type": "image", "bbox": [0, 0, 100 + index * 10, 200], "content": {"image_caption": []}}
+
+        pages = [[visual(index)] for index in range(6)]
+        signals = [planner.page_signals(index, page) for index, page in enumerate(pages)]
+        self.assertEqual(planner.chrome_signatures(signals), set())
+
+    def test_chrome_needs_a_minimum_number_of_pages(self):
+        planner = planner_module()
+
+        def visual():
+            return {"type": "image", "bbox": [10, 10, 120, 60], "content": {"image_caption": []}}
+
+        pages = [[visual()] for _ in range(3)]
+        signals = [planner.page_signals(index, page) for index, page in enumerate(pages)]
+        self.assertEqual(len(planner.chrome_signatures(signals)), 1)
+        self.assertEqual(planner.chrome_signatures(signals[:2]), set())
+
     def test_draft_plan_is_rejected_until_reviewed(self):
         planner = planner_module()
         plan = json.loads(PLAN.read_text())

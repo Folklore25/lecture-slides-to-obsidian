@@ -121,7 +121,9 @@ Rules:
 **Extracting a visual is the default.** Every kept or merged page declares `visuals`: a list, possibly empty, saying what happened to each visual on that page.
 
 - `{"disposition": "kept", "asset": "<semantic-name>.<ext>"}` — the visual was extracted, named, and embedded at its point of use. The file must exist under `assets/` and be embedded by its note or attached to a Canvas concept.
-- `{"disposition": "dropped", "reason": "<reason>"}` — the visual was genuinely not worth keeping. Allowed reasons: `decorative`, `duplicate`, `illegible`, `page-furniture`, `superseded-by-table`.
+- `{"disposition": "dropped", "reason": "<reason>"}` — the visual was genuinely not worth keeping. Allowed reasons: `repeated-chrome` (logo, watermark, template ornament, footer bar), `decorative`, `redundant-with-text`, `duplicate`, `illegible`, `superseded-by-table`.
+
+The planner pre-classifies repeated chrome: a visual block whose position and size recur on at least half the pages is marked `repeated-chrome` in the draft ledger, so template furniture is dismissed once rather than page by page. Everything else starts as `kept` with an empty asset name, which cannot validate until you name it or give a reason.
 - `superseded-by-table` must also state `"rendered_as": "markdown-table"`, so replacing a visual with text is an explicit, auditable choice rather than a silent omission.
 
 Describing a diagram, chart, matrix, or annotated figure in prose and then dropping it is not allowed. A prose description accompanies a visual; it never replaces one.

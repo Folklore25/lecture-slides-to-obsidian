@@ -38,9 +38,21 @@ EXERCISE_HINTS = re.compile(
     re.I,
 )
 VISUAL_TYPES = {"image", "chart", "table"}
+# Why a visual may be dropped. "repeated-chrome" is detected deterministically by the
+# planner; the rest are Agent judgements that must be stated explicitly.
 VISUAL_DROP_REASONS = {
-    "decorative", "duplicate", "illegible", "page-furniture", "superseded-by-table",
+    "repeated-chrome",      # logo, crest, watermark, template ornament, footer bar
+    "decorative",           # clipart, stock imagery, ornament carrying no information
+    "redundant-with-text",  # a diagram whose content the surrounding text fully states
+    "duplicate",            # the same visual is already kept elsewhere
+    "illegible",            # unreadable scan or unrenderable image
+    "superseded-by-table",  # replaced by a Markdown table; requires rendered_as
 }
+
+# A visual block whose position and size recur on at least this share of pages is
+# template chrome rather than page content.
+CHROME_PAGE_SHARE = 0.5
+CHROME_MIN_PAGES = 3
 AUX_TYPES = {"page_header", "page_footer", "page_number", "page_aside_text", "page_footnote"}
 
 
@@ -92,11 +104,43 @@ def normalize_text(value: str) -> str:
     return text
 
 
+def format_number(value) -> str:
+    try:
+        return f"{round(float(value), 3):g}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def visual_signature(block: dict) -> str:
+    """Identify a visual block by footprint so repeated template art collapses to one key."""
+    bbox = block.get("bbox")
+    if isinstance(bbox, list) and len(bbox) == 4:
+        numbers = [value for value in bbox if isinstance(value, (int, float))]
+        if len(numbers) == 4:
+            # Normalized (0..1) and absolute coordinates both round to a stable key.
+            parts = [format_number(value) for value in numbers]
+            return "bbox:" + ",".join(parts)
+    return f"type:{block.get('type')}"
+
+
+def chrome_signatures(signals: list[dict]) -> set[str]:
+    """Visual footprints that repeat across the deck are template chrome, not content."""
+    counts: dict[str, int] = {}
+    for item in signals:
+        for signature in set(item.get("visual_signatures", [])):
+            counts[signature] = counts.get(signature, 0) + 1
+    if not signals:
+        return set()
+    threshold = max(CHROME_MIN_PAGES, round(len(signals) * CHROME_PAGE_SHARE))
+    return {signature for signature, count in counts.items() if count >= threshold}
+
+
 def page_signals(index: int, page) -> dict:
     blocks = [block for block in page_blocks(page) if block.get("type") not in AUX_TYPES]
     titles: list[str] = []
     body_parts: list[str] = []
     visual_types: list[str] = []
+    visual_signatures: list[str] = []
     visual_count = 0
     for block in blocks:
         block_type = block.get("type")
@@ -108,6 +152,7 @@ def page_signals(index: int, page) -> dict:
         if block_type in VISUAL_TYPES:
             visual_count += 1
             visual_types.append(block_type)
+            visual_signatures.append(visual_signature(block))
         if text:
             body_parts.append(text)
     body = "\n".join(body_parts)
@@ -121,6 +166,7 @@ def page_signals(index: int, page) -> dict:
         "char_count": len(body) + sum(len(title) for title in titles),
         "visual_count": visual_count,
         "visual_types": visual_types,
+        "visual_signatures": visual_signatures,
         "body": body,
         "numbered": numbered,
         "divider_like": len(blocks) <= 3 and len(body) < 140 and visual_count == 0,
@@ -197,6 +243,7 @@ def recommend_granularity(granularity_entries: int, source_pages: int) -> str:
 
 
 def draft_ledger(signals: list[dict], note_slug: str, sections: list[dict]) -> dict:
+    chrome = chrome_signatures(signals)
     owner: dict[int, str] = {}
     for section in sections:
         for page in section["pages"]:
@@ -227,14 +274,25 @@ def draft_ledger(signals: list[dict], note_slug: str, sections: list[dict]) -> d
                 "note": note_slug,
                 "section": owner.get(page, sections[0]["heading"] if sections else ""),
                 "evidence": "",
-                # Extracting a detected visual is the default; the Agent names it or
-                # declares a controlled drop reason. An empty asset name cannot validate.
+                # Extracting a detected visual is the default; the Agent names it, or
+                # declares a controlled drop reason. Repeated template chrome is already
+                # classified here so a logo does not have to be dismissed page by page.
                 "visuals": [
-                    {"disposition": "kept", "asset": "", "kind": kind}
-                    for kind in item["visual_types"]
+                    (
+                        {"disposition": "dropped", "reason": "repeated-chrome"}
+                        if signature in chrome
+                        else {"disposition": "kept", "asset": "", "kind": kind}
+                    )
+                    for kind, signature in zip(item["visual_types"], item["visual_signatures"])
                 ],
             })
-    return {"schema_version": 1, "draft": True, "source_pages": len(signals), "pages": pages}
+    return {
+        "schema_version": 1,
+        "draft": True,
+        "source_pages": len(signals),
+        "detected_repeated_chrome": len(chrome),
+        "pages": pages,
+    }
 
 
 def build_plan_from_page_count(
