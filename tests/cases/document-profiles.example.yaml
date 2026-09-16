@@ -26,6 +26,13 @@ note_granularity:
     notes_per_document: "one-per-source-section"
     minimum_sections_to_suggest: 3
     minimum_pages_to_suggest: 60
+  - id: "section-note-slug-keeps-source-order"
+    requested_granularity: "section-notes"
+    slug_pattern: "<document-slug>-<NN>-<section-slug>"
+    ordinals_contiguous_from: "01"
+    filename_sort_matches_source_order: true
+    rejected_when: "missing ordinal, non-contiguous ordinals, or notes out of source page order"
+
   - id: "section-notes-rejected-elsewhere"
     requested_granularity: "section-notes"
     profile: "policy-document"

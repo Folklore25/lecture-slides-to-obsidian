@@ -95,6 +95,8 @@ staging:
   report_name: "conversion-report.md"
   note_plan_name: "note-plan.json"
   page_ledger_name: "page-ledger.json"
+  section_note_slug_pattern: "{document_slug}-{ordinal:02d}-{section_slug}"
+  section_note_ordinal_required: true
   page_groups_name: "{source_stem}.content-list-v2.compat.json"
   latex_refinement_report_name: "latex-refinement-report.json"
   recall_model_name: "recall-model.json"

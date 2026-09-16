@@ -274,6 +274,13 @@ if ! grep -q 'obsidian-gui-lock.py' "$canvas_skill_dir/scripts/canvas-render-qa.
  exit 1
 fi
 
+if ! grep -q 'SECTION_ORDINAL' "$skill_dir/scripts/plan-note-structure.py" ||
+ ! grep -q 'section_note_ordinal_required: true' "$skill_dir/config/pipeline.example.yaml" ||
+ ! grep -q 'keep source order in their filenames' "$skill_dir/references/document-profiles.md"; then
+ printf 'section-note source-order naming contract is missing\n' >&2
+ exit 1
+fi
+
 if ! grep -q 'Never summarize a visual in prose and drop it' "$skill_dir/references/asset-naming.md" ||
  ! grep -q '"visuals"' "$skill_dir/references/output-contract.md" ||
  ! grep -q 'VISUAL_DROP_REASONS' "$skill_dir/scripts/plan-note-structure.py" ||

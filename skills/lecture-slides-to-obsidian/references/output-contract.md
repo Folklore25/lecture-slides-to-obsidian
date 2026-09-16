@@ -28,6 +28,8 @@ Each note is a complete, readable knowledge artifact:
 6. Explicit uncertainty markers only where review is required.
 7. `## In-class notes` last, for `lecture-notes` only.
 
+For `section-notes` granularity the files are named `<document-slug>-<NN>-<section-slug>.md`, for example `l04-feature-engineering-01-introduction.md`. The two-digit ordinal is mandatory: without it an alphabetical listing silently reorders the material. The matching Canvas is `<note-slug>.canvas`.
+
 A note produced by native reading must not contain `<!-- source-page: N -->` markers. Markers are part of the MinerU faithful-transcription contract only, and page coverage is carried by `page-ledger.json` instead.
 
 Every `## H2` is a Canvas anchor: keep headings stable, unique inside a note, and free of page furniture.

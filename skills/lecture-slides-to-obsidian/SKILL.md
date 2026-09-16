@@ -31,7 +31,7 @@ Turn an external course document into readable, content-driven Obsidian notes wh
 - Run `scripts/preflight.py` first; ask its `questions[]` in stages. It always emits a `note_granularity` question for `lecture-notes` and a `native_visual_input` question when extraction is native.
 - MinerU token handling applies only with `--extraction mineru`. Run `scripts/token-store.py status` before asking for a token; `configured` means unlock and use it silently.
 - Anchor the outline with `scripts/plan-note-structure.py`. Pass `--page-count` for native reading or `--page-groups` when MinerU ran. It drafts `note-plan.json` plus `page-ledger.json`; the Agent corrects both and sets `draft: false`.
-- Write one note per entry in `note-plan.json`. H2 headings must equal the planned section headings, so the Canvas keeps a real anchor.
+- Write one note per entry in `note-plan.json`. H2 headings must equal the planned section headings, so the Canvas keeps a real anchor. For `section-notes` the slug is `<document>-<NN>-<section>`, so a filename listing keeps source order.
 - Assets use lowercase semantic kebab-case names (`qualitative-research-cycle.png`). `page-PPP-kind-NN.ext` survives only in MinerU-mode transcription.
 - Canvas: delegate to `obsidian-canvas-designer` with the note, semantic model, assets, paths, and overwrite boundary; consume only its artifacts and PASS/FAIL evidence.
 - Multi-file rule: two or more source files in one request must be dispatched as one subagent task per file. Resolve course routing and the registry once before dispatch. Follow [references/multi-file-conversion.md](references/multi-file-conversion.md).

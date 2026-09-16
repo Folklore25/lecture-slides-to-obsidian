@@ -117,6 +117,92 @@ class NoteStructureTests(unittest.TestCase):
         self.assertNotEqual(planner.recommend_granularity(2, 40), "section-notes")
         self.assertEqual(planner.recommend_granularity(4, 120), "section-notes")
 
+    def section_pages(self):
+        def title(text, level=2):
+            return {"type": "title", "content": {"title_content": [{"type": "text", "content": text}], "level": level}}
+
+        def paragraph(text):
+            return {"type": "paragraph", "content": {"paragraph_content": [{"type": "text", "content": text}]}}
+
+        return [
+            [title("Lecture 4 - Feature Engineering", 1)],
+            [paragraph("1. Introduction\\n2. Quick review\\n3. Feature importance\\n4. Selection and reduction")],
+            [title("1. Introduction"), paragraph("Feature engineering turns raw columns into representations a model can use, and it decides most of the achievable accuracy before any algorithm is chosen.")],
+            [title("2. Quick review"), paragraph("The previous lecture covered linear regression, least squares, and the interpretation of coefficients in a model with a single explanatory variable.")],
+            [title("3. Feature importance"), paragraph("Importance ranks how much each feature contributes to a fitted model, and the ranking depends on whether it is measured by impurity, by coefficient size, or by permutation.")],
+            [title("4. Selection and reduction"), paragraph("Selection keeps a subset of the original columns while reduction projects them into fewer dimensions, and the two families are chosen by whether interpretability matters.")],
+        ]
+
+    def test_section_note_slugs_carry_a_source_order_ordinal(self):
+        planner = planner_module()
+        plan, _ = planner.build_plan(
+            self.section_pages(), "lecture-notes", "section-notes",
+            "l04-feature-engineering", "Lecture 4",
+        )
+        slugs = [note["slug"] for note in plan["notes"]]
+        self.assertEqual(slugs, [
+            "l04-feature-engineering-01-introduction",
+            "l04-feature-engineering-02-quick-review",
+            "l04-feature-engineering-03-feature-importance",
+            "l04-feature-engineering-04-selection-and-reduction",
+        ])
+        # A plain filename sort now matches the order of the source document.
+        self.assertEqual(slugs, sorted(slugs))
+
+    def test_section_slug_strips_the_headings_own_numbering(self):
+        planner = planner_module()
+        self.assertEqual(
+            planner.section_note_slug("doc", 0, "1. Introduction"), "doc-01-introduction"
+        )
+        self.assertEqual(
+            planner.section_note_slug("doc", 2, "A. Interviews"), "doc-03-interviews"
+        )
+
+    def test_non_latin_heading_gets_a_readable_fallback(self):
+        planner = planner_module()
+        self.assertEqual(
+            planner.section_note_slug("doc", 0, "第一节 指数的概念"), "doc-01-section"
+        )
+
+    def test_a_heading_starting_with_c_keeps_its_first_letter(self):
+        # The list-marker alternative must not eat the leading letter of a real word.
+        planner = planner_module()
+        self.assertEqual(planner.section_note_slug("doc", 0, "Content"), "doc-01-content")
+        self.assertEqual(
+            planner.section_note_slug("doc", 1, "Case studies"), "doc-02-case-studies"
+        )
+
+    def test_section_note_without_an_ordinal_is_rejected(self):
+        planner = planner_module()
+        pages = self.section_pages()
+        plan, _ = planner.build_plan(
+            pages, "lecture-notes", "section-notes", "doc", "Doc"
+        )
+        plan["draft"] = False
+        plan["notes"][0]["slug"] = "doc-introduction"
+        errors = planner.validate_plan(plan)
+        self.assertTrue(any("two-digit source-order ordinal" in item for item in errors))
+
+    def test_non_contiguous_section_ordinals_are_rejected(self):
+        planner = planner_module()
+        plan, _ = planner.build_plan(
+            self.section_pages(), "lecture-notes", "section-notes", "doc", "Doc"
+        )
+        plan["draft"] = False
+        plan["notes"][1]["slug"] = "doc-07-quick-review"
+        errors = planner.validate_plan(plan)
+        self.assertTrue(any("ordinals must be 01.." in item for item in errors))
+
+    def test_section_notes_must_stay_in_source_page_order(self):
+        planner = planner_module()
+        plan, _ = planner.build_plan(
+            self.section_pages(), "lecture-notes", "section-notes", "doc", "Doc"
+        )
+        plan["draft"] = False
+        plan["notes"].reverse()
+        errors = planner.validate_plan(plan)
+        self.assertTrue(any("source page order" in item for item in errors))
+
     def test_repeated_template_chrome_is_detected_and_dropped(self):
         planner = planner_module()
 

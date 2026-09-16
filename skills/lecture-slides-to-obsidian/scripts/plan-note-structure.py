@@ -15,6 +15,7 @@ import os
 import re
 import sys
 import tempfile
+import unicodedata
 from pathlib import Path
 
 
@@ -25,6 +26,9 @@ DROP_REASONS = {
     "repeated-chrome", "page-furniture", "duplicate", "illegible", "non-substantive",
 }
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+# Section notes must carry a two-digit source-order ordinal so a plain filename sort
+# still matches the order of the source document.
+SECTION_ORDINAL = re.compile(r"(?:^|-)(\d{2})(?:-|$)")
 ASSET_FILE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*\.(?:png|jpg|jpeg|webp|gif|bmp|svg)$")
 NUMBERED = re.compile(r"^\s*(?:(\d{1,2}(?:\.\d{1,2})*)|([A-Z]))\s*[.、)]?\s+(\S.*)$")
 CJK = re.compile(r"[\u3400-\u9fff]")
@@ -102,6 +106,13 @@ def normalize_text(value: str) -> str:
     text = re.sub(r"^(?:\d+(?:\.\d+)*|[a-d])[\s.、)]+", "", text)
     text = re.sub(r"[\s:：\-—–_.,，、()（）\[\]【】'\"“”]+$", "", text)
     return text
+
+
+def as_int(value, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def format_number(value) -> str:
@@ -339,6 +350,26 @@ def build_plan_from_page_count(
     return plan, ledger
 
 
+def slugify(text: str, fallback: str, maximum: int = 40) -> str:
+    """ASCII kebab-case for a heading, falling back when the heading is not Latin."""
+    ascii_text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    tokens = re.findall(r"[a-z0-9]+", ascii_text.lower())
+    slug = "-".join(tokens)[:maximum].strip("-")
+    return slug or fallback
+
+
+def section_note_slug(document_slug: str, index: int, heading: str) -> str:
+    """<document>-<NN>-<section>, so the ordinal keeps source order in a file listing.
+
+    The heading's own numbering is stripped first: the ordinal already encodes order,
+    and keeping both produced names like `course-01-1-introduction`.
+    """
+    # The separator is required: without it a heading like "Content" loses its "C"
+    # to the [A-D] list-marker alternative.
+    cleaned = re.sub(r"^\s*(?:\d+(?:\.\d+)*|[A-D])[\s.、)、)]+", "", heading)
+    return f"{document_slug}-{index + 1:02d}-{slugify(cleaned, 'section')}"
+
+
 def build_plan(pages: list, profile: str, granularity: str, slug: str, title: str) -> tuple[dict, dict]:
     if profile != PROFILE:
         raise PlanError(
@@ -357,7 +388,7 @@ def build_plan(pages: list, profile: str, granularity: str, slug: str, title: st
     if granularity == "section-notes":
         notes = [
             {
-                "slug": f"{slug}-{index + 1:02d}",
+                "slug": section_note_slug(slug, index, section["heading"]),
                 "title": section["heading"],
                 "sections": [{"heading": section["heading"], "pages": section["pages"], "subtopics": []}],
             }
@@ -415,6 +446,9 @@ def validate_plan(plan: dict) -> list[str]:
     if plan.get("granularity") == "section-notes" and len(notes) < 2:
         errors.append("section-notes granularity must declare two or more notes")
     slugs: set[str] = set()
+    section_notes = plan.get("granularity") == "section-notes"
+    ordinals: list[int] = []
+    pages_seen: list[int] = []
     for index, note in enumerate(notes):
         if not isinstance(note, dict):
             errors.append(f"notes[{index}] must be an object")
@@ -424,6 +458,15 @@ def validate_plan(plan: dict) -> list[str]:
             errors.append(f"notes[{index}].slug must be a unique lowercase kebab-case slug")
         else:
             slugs.add(slug)
+        if section_notes and isinstance(slug, str):
+            ordinal = SECTION_ORDINAL.search(slug)
+            if ordinal is None:
+                errors.append(
+                    f"notes[{index}].slug must carry a two-digit source-order ordinal, "
+                    f"as in <document>-01-<section>: {slug!r}"
+                )
+            else:
+                ordinals.append(as_int(ordinal.group(1)))
         title = note.get("title")
         if not isinstance(title, str) or not title.strip():
             errors.append(f"notes[{index}].title must be non-empty text")
@@ -457,6 +500,20 @@ def validate_plan(plan: dict) -> list[str]:
             for page in section_pages:
                 if not isinstance(page, int) or page < 1 or (source_pages and page > source_pages):
                     errors.append(f"{label}.pages contains an invalid page: {page!r}")
+            numeric_pages = [page for page in section_pages if isinstance(page, int)]
+            if numeric_pages:
+                pages_seen.append(min(numeric_pages))
+    if section_notes and ordinals:
+        expected = list(range(1, len(notes) + 1))
+        if ordinals != expected:
+            errors.append(
+                f"section-note ordinals must be 01..{len(notes):02d} in source order: {ordinals}"
+            )
+    if section_notes and len(pages_seen) == len(notes) and pages_seen != sorted(pages_seen):
+        errors.append(
+            "section notes must be listed in source page order: "
+            + ", ".join(str(page) for page in pages_seen)
+        )
     return errors
 
 
