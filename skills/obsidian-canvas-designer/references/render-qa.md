@@ -16,7 +16,7 @@ This repository intentionally supports one measured environment for now:
 - rendered Canvas Markdown: `16px` font, `27.2px` line height;
 - file-navigation/sidebar text: `13px`.
 
-The machine-readable profile is [../config/render-profile.mbp14-composer.json](../config/render-profile.mbp14-composer.json). `canvas-render-qa.py` fails closed if version, screen, theme, font, line height, pixel ratio, or compactness thresholds differ. Do not guess substitute parameters and do not claim cross-machine compatibility.
+The machine-readable profile is [../config/render-profile.mbp14-composer.json](../config/render-profile.mbp14-composer.json). `canvas-render-qa.py` fails closed if version, screen, theme, font, line height, pixel ratio, or compactness thresholds differ. Window focus is deliberately **not** one of those thresholds. Do not guess substitute parameters and do not claim cross-machine compatibility.
 
 ## Measured height formula
 
@@ -82,7 +82,24 @@ The supported reading viewport is `zoom = 0` (`1:1`), producing an effective `16
 
 Obsidian must be running with its CLI enabled.
 
-The script brings Obsidian to the foreground on the supported Mac before measuring. A mounted node with no rendered Markdown children or zero content height is a hard failure; never treat it as an empty 50px card.
+The script never activates the Obsidian application and never requires it to be frontmost. It takes the shared GUI lease, opens the Canvas leaf only when it is not already mounted, and then measures through `eval`. A mounted node with no rendered Markdown children or zero content height is a hard failure; never treat it as an empty 50px card.
+
+## Shared GUI lease
+
+The Obsidian application is single-instance shared state, so the DOM step is wrapped in an exclusive cross-process lease from `scripts/obsidian-gui-lock.py`. Concurrent agents queue for it instead of conflicting:
+
+- the lease is keyed by vault path, so separate vaults never block each other;
+- a lease whose holder pid is gone is reclaimed automatically, so a crashed agent cannot wedge the lane;
+- `--owner` labels the holder and defaults to `<host>:<pid>`; give each agent a distinct label;
+- `--lock-timeout` bounds the wait (default `120s`) and a timeout reports who held the lease.
+
+The lease covers only the DOM step, which takes roughly 2-3 seconds per Canvas. Authoring, model writing, first build, and the static aesthetic check are pure file work and need no lease at all.
+
+`document.hasFocus()` is recorded in the environment block as a **diagnostic**, never as a gate. Layout values come from a synchronous reflow and are identical whether or not the window is key, so requiring focus only made QA fail whenever another agent or the user touched another application. Set `requires_foreground: true` in a profile only if a future renderer genuinely needs a key window; the shipped profile sets `focus_policy: "diagnostic-only"`.
+
+## Concurrency
+
+Any number of agents may prepare Canvases at the same time. The DOM step is the only serialized part, and the lease is what serializes it. Two processes must never mount nodes or move the viewport at once, which is exactly what the lease prevents.
 
 1. Build the first Canvas normally.
 2. Measure actual DOM layout:
@@ -127,4 +144,5 @@ scripts/canvas-render-qa.py check \
 - The final check's Canvas SHA-256 matches the delivered `.canvas` file.
 - Reading zoom is `0`; effective Canvas body text is `16px`, not smaller than the `13px` sidebar reference.
 - Screenshots are not part of the default gate. They cost context and introduce model-dependent judgment.
+- The DOM step ran under the shared GUI lease, and `document_has_focus` was recorded rather than required.
 - If the local DOM contract changes or the render profile mismatches, stop and recalibrate instead of falling back to image inspection or the old character-count estimate.

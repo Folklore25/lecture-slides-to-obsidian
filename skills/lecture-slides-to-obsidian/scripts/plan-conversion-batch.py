@@ -115,11 +115,11 @@ def plan_batch(manifest: dict, max_parallel: int, vault_root: Path | None = None
         "shared_state_owner": "main-agent",
         "shared_state": ["course-routing", "course-registry", "semester-resolution"],
         "canvas_lane": {
-            "owner": "main-agent",
-            "parallelism": 1,
-            "exclusive_resource": "obsidian-app-gui",
-            "phase": "after-conversion",
-            "reason": "Canvas QA drives the local Obsidian GUI; concurrent Canvas work conflicts",
+            "phase": "per-file-or-after-conversion",
+            "authoring_parallelism": "unbounded",
+            "dom_step_guard": "exclusive-lease",
+            "lease_name": "obsidian-gui",
+            "lease_tool": "skills/obsidian-canvas-designer/scripts/obsidian-gui-lock.py",
         },
         "isolation_verified": True,
         "subagent_tasks": [
@@ -129,8 +129,11 @@ def plan_batch(manifest: dict, max_parallel: int, vault_root: Path | None = None
                 "document_folder": item["document_folder"],
                 "staging": item["staging"],
                 "profile": item["profile"],
-                "returns": "note, note-plan.json, page-ledger.json, assets, package validation evidence",
-                "must_not": "build or check a Canvas",
+                "returns": (
+                    "notes, note-plan.json, page-ledger.json, assets, Canvas files, "
+                    "and package validation evidence"
+                ),
+                "must_not": "write outside its own document folder and staging directory",
             }
             for item in normalized
         ],

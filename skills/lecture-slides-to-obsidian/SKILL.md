@@ -35,7 +35,7 @@ Turn an external course document into readable, content-driven Obsidian notes wh
 - Assets use lowercase semantic kebab-case names (`qualitative-research-cycle.png`). `page-PPP-kind-NN.ext` survives only in MinerU-mode transcription.
 - Canvas: delegate to `obsidian-canvas-designer` with the note, semantic model, assets, paths, and overwrite boundary; consume only its artifacts and PASS/FAIL evidence.
 - Multi-file rule: two or more source files in one request must be dispatched as one subagent task per file. Resolve course routing and the registry once before dispatch. Follow [references/multi-file-conversion.md](references/multi-file-conversion.md).
-- Canvas rule: Canvas is a single exclusive lane owned by the main Agent -- exactly one Canvas at a time, no fan-out, because DOM QA drives the local Obsidian GUI. Follow [references/canvas-batch-delegation.md](references/canvas-batch-delegation.md).
+- Canvas rule: Canvas authoring parallelises freely, and the DOM step is serialized by an exclusive cross-process GUI lease that `canvas-render-qa.py` takes itself. Never activate the Obsidian window. Follow [references/canvas-batch-delegation.md](references/canvas-batch-delegation.md).
 - Put all staging/QA state under the system temporary directory or a non-hidden `tmp/` directory inside the installed skill. Validate with `--report ... --delete-qa-on-success` and never copy QA state into the vault.
 
 ## Prerequisite preflight
@@ -65,7 +65,7 @@ Read [requirements/skills.yaml](requirements/skills.yaml), [requirements/service
 - Do not keep slide furniture: agendas, section dividers, course-admin pages, exercise pages, repeated chrome, page numbers, and decorative slides belong in the ledger as `dropped`, not in the note.
 - Never decide note granularity silently.
 - Never convert two or more requested files serially in the main Agent when dispatch is available.
-- Never build or check two Canvases concurrently. Canvas QA owns the local Obsidian GUI, and that resource cannot be shared. Ask the user on every conversion.
+- Never measure two Canvases concurrently outside the GUI lease, and never activate the Obsidian window. The lease, not a policy ban, is what keeps concurrent agents safe. Ask the user on every conversion.
 - Never run native conversion on a model that cannot see the source pages; re-run with `--extraction mineru` instead.
 - Resolve every destination under the registered semester root. Reject absolute child paths, `..` traversal, or a resolved path that escapes the course folder.
 - Do not copy, move, embed, or symlink source PDFs, presentations, office documents, or archives into the Obsidian vault.

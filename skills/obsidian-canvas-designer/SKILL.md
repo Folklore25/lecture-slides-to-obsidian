@@ -36,7 +36,7 @@ For a direct Canvas-only request without an explicit vault root, run `obsidian v
 5. Keep every concept card atomic and scannable: H3 title, one short statement, at most two details, and one compact source link. Put recall questions in the shared active-recall zone instead of repeating them in every card.
 6. Run `scripts/build-canvas.py` for the first layout.
 7. Run `scripts/canvas-aesthetic-qa.py`; revise until its hard gates pass and score is at least 85. Run it again after DOM-driven reflow and return only the final SHA-bound aesthetic check.
-8. Run `scripts/canvas-render-qa.py measure`, rebuild with `--render-metrics`, and run `check` against the real local Obsidian DOM. Do not use screenshots as the default gate.
+8. Run `scripts/canvas-render-qa.py measure`, rebuild with `--render-metrics`, and run `check` against the real local Obsidian DOM. The DOM step takes the shared GUI lease itself, so several agents may prepare Canvases concurrently and only the measurement queues. Never activate the Obsidian window or require it to be frontmost. Do not use screenshots as the default gate.
 9. Delegated work returns the Canvas plus staging aesthetic/measurement/check JSON files without deleting them; the orchestrator owns package validation and cleanup. Standalone Canvas-only work reports the same PASS evidence, then deletes its temporary authoring/QA files unless the user asks to preserve them.
 
 ## Non-negotiable visual rules
@@ -48,6 +48,7 @@ For a direct Canvas-only request without an explicit vault root, run `obsidian v
 - Keep edge labels active and short. Minimize crossings and reject edges that pass through unrelated cards.
 - At fit-all zoom, judge only structure. At the supported reading zoom, body text must meet the local sidebar reference and every card must retain the measured height margin.
 - Card height is a two-sided contract: after subtracting the local `34px` renderer chrome, effective headroom must be `8–12px`. Do not accept cards with large empty tails simply because they are not clipped.
+- Do not call `open -a Obsidian`, do not raise the Obsidian window, and do not add a foreground requirement to a render profile. Concurrency is handled by the shared GUI lease, not by demanding the user's screen.
 - Do not add or use an offline-estimate completion flag. If the supported Obsidian renderer is unavailable, return FAIL with the first-pass Canvas unaccepted.
 - Never replace the complete Markdown with Canvas prose. The Canvas is a retrieval map with compact links back to detail.
 

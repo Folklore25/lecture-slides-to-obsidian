@@ -1,38 +1,44 @@
-# Canvas lane
+# Canvas concurrency and delegation
 
-Canvas is a **single exclusive lane**: exactly one Canvas is built, measured, and checked at a time, and the main Agent owns the lane.
+Canvas work is **lease-guarded, not forbidden to run concurrently**. The reason the lane used to be limited to one agent was a spurious focus requirement, not a real resource limit; that is fixed. What remains real is that the DOM step drives a single shared Obsidian application.
 
-## Why it is serial
+## What is parallel and what is not
 
-Canvas QA drives the local Obsidian application through `canvas-render-qa.py` — DOM measurement, measured rebuild/reflow, and the final render check. The Obsidian app is single-instance shared state. Two Canvas tasks in flight at once fight over it, and the measured heights stop meaning anything. This is a hard resource constraint, not a tuning knob.
+| Stage | Shared resource | Concurrency |
+| --- | --- | --- |
+| Recall model authoring | none (files) | unbounded |
+| First Canvas build | none (files) | unbounded |
+| Static aesthetic QA | none (files) | unbounded |
+| DOM measure / reflow / final check | the Obsidian app | one at a time, queued by `obsidian-gui-lock.py` |
+
+The DOM step takes 2–3 seconds per Canvas. Everything else is file work. So parallelising Canvas work across agents is both safe and cheap: they queue only for the measurement.
+
+## The lease
+
+`scripts/canvas-render-qa.py` takes the lease itself; agents do not coordinate by hand. To inspect or drive it directly:
+
+```text
+skills/obsidian-canvas-designer/scripts/obsidian-gui-lock.py status  --vault-root <vault>
+skills/obsidian-canvas-designer/scripts/obsidian-gui-lock.py acquire --vault-root <vault> --owner <agent-label> --timeout 120
+skills/obsidian-canvas-designer/scripts/obsidian-gui-lock.py release --vault-root <vault> --owner <agent-label>
+```
+
+- Keyed by vault path, so separate vaults never block each other.
+- A lease whose holder pid is gone is reclaimed automatically, so a crashed agent cannot wedge the lane.
+- Re-entrant for the same owner, so a nested call cannot deadlock.
+- Give every agent a distinct `--owner` label so a timeout message names the blocker.
 
 ## Rules
 
-- **Parallelism is always 1**, for one note or twenty. There is no parallel-safe authoring phase either: a Canvas task that is only "authoring" still holds the recall model, the Canvas path, and the designer skill state for that note, and the lane must stay clear.
-- **The main Agent runs the lane.** It loads `obsidian-canvas-designer` and drives it one Canvas at a time. Handing a Canvas to a helper is allowed only one at a time — never two concurrently, and never a fan-out.
-- **Never run `canvas-render-qa.py` concurrently with any other Canvas work.**
-- **Per-Canvas isolation is still mandatory:** one note, one recall model, one Canvas path, one assets directory, one staging directory. Validate it and get the serial order with:
+- Never activate the Obsidian application. Do not call `open -a Obsidian`, do not raise its window, and do not add a foreground requirement to a render profile.
+- Never measure two Canvases at once outside the lease. The lease is the only sanctioned way to serialize the DOM step.
+- Per-Canvas isolation stays mandatory: one note, one recall model, one Canvas path, one assets directory, one staging directory. Validate it and get a suggested order with `scripts/plan-canvas-batch.py --manifest <batch.json> --output <staging>/canvas-batch-plan.json`.
+- Layout, hierarchy, colour, edge routing, and QA discipline belong to `obsidian-canvas-designer`. Driving that skill is not the same as hand-authoring Canvas JSON, and a returned Canvas must never be restyled by the caller.
 
-```text
-scripts/plan-canvas-batch.py --manifest <batch.json> --output <staging>/canvas-batch-plan.json
-```
+## Process and cleanup
 
-That planner validates isolation and emits `canvas_lane.order`. It creates no agents and no fan-out.
-
-## Who owns the drawing
-
-Layout, hierarchy, colour, edge routing, DOM sizing, and Canvas QA belong to `obsidian-canvas-designer`. The main Agent drives that skill; it does not hand-author Canvas JSON, and it must not redraw or restyle a returned Canvas. The semantic recall model is authored from the complete note, one note per Canvas.
-
-## Process order and cleanup
-
-1. Take the next id from `canvas_lane.order`.
-2. Build the recall model from that complete note.
-3. Build, measure, reflow, and run the final aesthetic and DOM checks for that Canvas.
-4. Validate it with the package validator and record the result.
-5. Release the lane, then start the next Canvas.
-
-Delete each staging directory only after that Canvas passes final package validation and its result has been summarized. Delete the batch manifest and batch plan once every Canvas has a terminal PASS/FAIL row.
-
-## Completion summary
-
-Report one row per note: Canvas path, aesthetic score, DOM status, review items, and cleanup state. Never collapse a partial batch into a single unqualified PASS.
+1. Prepare as many Canvases in parallel as capacity allows.
+2. Let the measurement queue on the lease.
+3. Validate each Canvas independently with the package validator.
+4. Report one row per note: Canvas, aesthetic score, DOM status, review items, cleanup state. Never collapse a partial batch into a single PASS.
+5. Delete each staging directory only after its Canvas passes final validation.

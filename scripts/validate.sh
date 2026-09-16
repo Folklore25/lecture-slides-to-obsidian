@@ -61,6 +61,7 @@ requirements/tools.yaml
 scripts/build-canvas.py
 scripts/canvas-aesthetic-qa.py
 scripts/canvas-render-qa.py
+scripts/obsidian-gui-lock.py
 scripts/recall-skeleton.py
 templates/delegated-task.md
 templates/recall-model.lecture-notes.example.json
@@ -259,6 +260,17 @@ if ! grep -q 'mode: "native"' "$skill_dir/config/pipeline.example.yaml" ||
  ! grep -q 'page_markers_allowed: false' "$repo_dir/tests/cases/document-profiles.example.yaml" ||
  ! grep -q 'expected_action: "ask-user-every-conversion"' "$repo_dir/tests/cases/document-profiles.example.yaml"; then
  printf 'native-default extraction or mandatory note-granularity contract is missing\n' >&2
+ exit 1
+fi
+
+if grep -rIn '"-a", "Obsidian"' "$canvas_skill_dir" >/dev/null 2>&1; then
+ printf 'Canvas QA must not activate the Obsidian window\n' >&2
+ exit 1
+fi
+
+if ! grep -q 'obsidian-gui-lock.py' "$canvas_skill_dir/scripts/canvas-render-qa.py" ||
+ ! grep -q 'diagnostic-only' "$canvas_skill_dir/config/render-profile.mbp14-composer.json"; then
+ printf 'shared GUI lease contract is missing\n' >&2
  exit 1
 fi
 

@@ -1,12 +1,13 @@
 schema_version: 1
 
 cases:
-  - id: "canvas-lane-is-always-serial"
-    canvas_work_items: 1
-    canvas_lane_owner: "main-agent"
-    canvas_parallelism: 1
-    exclusive_resource: "obsidian-app-gui"
-    expected_action: "run-one-canvas-to-completion"
+  - id: "canvas-authoring-parallelises-dom-step-does-not"
+    canvas_work_items: 5
+    authoring_parallelism: "unbounded"
+    dom_step_guard: "exclusive-lease"
+    lease_name: "obsidian-gui"
+    focus_required: false
+    expected_action: "queue-for-gui-lease-instead-of-serializing-agents"
 
   - id: "many-canvases-are-never-fanned-out"
     canvas_work_items: 5

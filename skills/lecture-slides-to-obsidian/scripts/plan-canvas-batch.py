@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate per-Canvas isolation and emit the exclusive serial Canvas lane.
+"""Validate per-Canvas isolation and describe the lease-guarded Canvas lane.
 
 Canvas work is never fanned out. Canvas QA drives the local Obsidian GUI through
 `canvas-render-qa.py`, so two Canvas tasks running at the same time fight over one
@@ -24,7 +24,8 @@ REQUIRED_FIELDS = (
     "id", "note", "recall_model", "canvas", "staging", "assets", "profile", "overwrite"
 )
 UNIQUE_PATH_FIELDS = ("note", "recall_model", "canvas", "staging", "assets")
-EXCLUSIVE_RESOURCE = "obsidian-app-gui"
+GUI_LEASE_NAME = "obsidian-gui"
+GUI_LEASE_TOOL = "scripts/obsidian-gui-lock.py"
 
 
 class BatchPlanError(RuntimeError):
@@ -82,15 +83,15 @@ def plan_batch(manifest: dict) -> dict:
         "schema_version": 1,
         "item_count": len(normalized),
         "canvas_lane": {
-            "owner": "main-agent",
-            "parallelism": 1,
-            "exclusive_resource": EXCLUSIVE_RESOURCE,
-            "reason": (
-                "Canvas QA drives the local Obsidian GUI; concurrent Canvas work conflicts"
-            ),
+            "authoring_parallelism": "unbounded",
+            "dom_step_concurrency": 1,
+            "dom_step_guard": "exclusive-lease",
+            "lease_name": GUI_LEASE_NAME,
+            "lease_tool": GUI_LEASE_TOOL,
+            "focus_required": False,
+            "queues_instead_of_failing": True,
             "order": order,
         },
-        "fan_out_forbidden": True,
         "merge_forbidden": True,
         "isolation_verified": True,
         "prompt_template": "skills/obsidian-canvas-designer/templates/delegated-task.md",
@@ -123,8 +124,9 @@ def main() -> int:
             response = {
                 "plan": str(args.output.resolve()),
                 "item_count": plan["item_count"],
-                "canvas_lane_owner": plan["canvas_lane"]["owner"],
-                "canvas_parallelism": plan["canvas_lane"]["parallelism"],
+                "authoring_parallelism": plan["canvas_lane"]["authoring_parallelism"],
+                "dom_step_guard": plan["canvas_lane"]["dom_step_guard"],
+                "lease_name": plan["canvas_lane"]["lease_name"],
                 "process_order": plan["canvas_lane"]["order"],
             }
         else:

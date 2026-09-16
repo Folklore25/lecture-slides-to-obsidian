@@ -187,7 +187,11 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 如果一次要处理两个或更多源文件，主 Agent 必须**先派发**：一个文件一个 subagent 任务，课程路由与注册表由主 Agent 预先解析一次，每个文件一个独立 staging 目录（`plan-conversion-batch.py` 校验隔离性，会拒绝重复的源路径、文档目录、staging 目录，以及 vault 内/外的越界路径）。
 
-**Canvas 不能并行。** Canvas 的 DOM 实测/重排/终检会驱动本机 Obsidian 这个单实例 GUI，两个 Canvas 同时进行会互相抢应用、实测高度失去意义。因此 Canvas 是**唯一串行通道**：任意时刻只有一个 Canvas 在进行，且由主 Agent 拥有该通道——可以自己驱动 `obsidian-canvas-designer`，也可以一次只交给一个 helper，但绝不并发。转换阶段的并行**不等于** Canvas 可以并行。串行顺序由 `plan-canvas-batch.py` 生成，单笔记失败按笔记报告，不得把整批笼统标成 PASS/FAIL。
+**Canvas 的 DOM 步骤不能并行，但画布本身可以并行。** Canvas 实测/重排/终检会驱动本机 Obsidian 这个单实例 GUI，这一步必须独占；而召回模型撰写、首次构图、静态美术评分都只是文件操作，可以任意并行。
+
+独占由 `obsidian-gui-lock.py` 提供的**跨进程租约**实现：`canvas-render-qa.py` 自己取租约，多个 agent 在 DOM 步骤排队而不是互相抢应用，单次约 2–3 秒。租约按 vault 路径分片（不同 vault 互不阻塞），持锁进程崩溃后会被自动回收，同一 owner 可重入。
+
+**不再要求 Obsidian 处于前台。** 实测数据证明 `document.hasFocus() == false` 时布局数值与前台完全一致（19/19 节点、主题/字号/阅读视口全部匹配），旧的前台硬门禁只是让 QA 在任何 agent 或用户切换窗口时随机失败。前台状态现在只作为诊断字段记录。实际调用还会顺带移除显式的 `open -a Obsidian` 激活调用：**不会再抢你的窗口焦点**。
 
 ## 本地验证
 

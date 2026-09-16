@@ -54,15 +54,17 @@ class ConversionDispatchTests(unittest.TestCase):
         self.assertEqual(plan["shared_state_owner"], "main-agent")
         self.assertIn("course-registry", plan["shared_state"])
 
-    def test_canvas_is_outside_the_fan_out(self):
+    def test_canvas_dom_steps_are_lease_guarded_not_forbidden(self):
         plan = PLANNER.plan_batch(manifest(1, 2), 4)
         lane = plan["canvas_lane"]
-        self.assertEqual(lane["owner"], "main-agent")
-        self.assertEqual(lane["parallelism"], 1)
-        self.assertEqual(lane["phase"], "after-conversion")
+        self.assertEqual(lane["authoring_parallelism"], "unbounded")
+        self.assertEqual(lane["dom_step_guard"], "exclusive-lease")
+        self.assertEqual(lane["lease_name"], "obsidian-gui")
         for task in plan["subagent_tasks"]:
-            self.assertEqual(task["must_not"], "build or check a Canvas")
-            self.assertNotIn("canvas", task)
+            self.assertIn("Canvas files", task["returns"])
+            self.assertEqual(
+                task["must_not"], "write outside its own document folder and staging directory"
+            )
 
     def test_duplicate_source_is_rejected(self):
         first, second = item(1), item(2)

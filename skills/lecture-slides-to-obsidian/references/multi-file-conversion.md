@@ -43,9 +43,9 @@ The planner rejects a batch that would let two workers collide. It fails on a du
 
 One staging directory per file. Never share note, plan, ledger, or asset paths between tasks. The planner emits `parallelism` and `waves`; a capacity of one still means one subagent task per file, just in sequential waves.
 
-## Canvas stays serial
+## Canvas
 
-Even with `N >= 2` files, exactly one Canvas is built and checked at a time, by the main Agent, after conversion. Conversion parallelism never implies Canvas parallelism.
+A per-file subagent may produce its own note and its own Canvas; the file split and the Canvas split are the same split. Canvas authoring parallelises with everything else, and only the DOM step is serialized by the shared GUI lease, which `canvas-render-qa.py` takes itself. See [canvas-batch-delegation.md](canvas-batch-delegation.md).
 
 ## Failure behavior
 

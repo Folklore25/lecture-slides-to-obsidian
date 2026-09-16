@@ -42,7 +42,7 @@ A conversion is complete only when the required gates pass, or the report marks 
 - With two or more source files, one subagent task was created per file, and `scripts/plan-conversion-batch.py` verified their isolation.
 - Course routing, the registry, and slug decisions were resolved once by the main Agent before dispatch; no two workers wrote shared state.
 - Each file had its own document folder and its own staging directory.
-- Exactly one Canvas was in flight at any moment, `canvas-render-qa.py` never ran concurrently with other Canvas work, and the main Agent owned the lane.
+- Every DOM measurement ran under the shared GUI lease, no two measurements overlapped, and no agent activated or foregrounded the Obsidian window. Window focus was recorded as a diagnostic, not required.
 - Every Canvas kept its own recall model, Canvas path, aesthetic check, render metrics, and render check.
 - Per-file status was reported; no partial batch was collapsed into a single PASS.
 

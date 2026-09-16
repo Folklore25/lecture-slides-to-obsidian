@@ -75,12 +75,17 @@ dispatch:
   conversion_parallelism: "environment-subagent-limit"
 
 canvas_lane:
-  owner: "main-agent"
-  parallelism: 1
-  fan_out_forbidden: true
-  exclusive_resource: "obsidian-app-gui"
-  reason: "Canvas DOM QA drives the single local Obsidian application"
-  phase: "after-conversion"
+  authoring_parallelism: "unbounded"
+  dom_step_concurrency: 1
+  dom_step_guard: "exclusive-lease"
+  lease_name: "obsidian-gui"
+  lease_tool: "skills/obsidian-canvas-designer/scripts/obsidian-gui-lock.py"
+  lease_scope: "per-vault"
+  stale_lease_reclaimed: true
+  focus_required: false
+  focus_policy: "diagnostic-only"
+  queues_instead_of_failing: true
+  activate_obsidian_window: false
 
 staging:
   root: "system-temporary-directory"

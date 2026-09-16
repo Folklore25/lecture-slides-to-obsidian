@@ -26,32 +26,31 @@ def item(index: int) -> dict:
 
 
 class CanvasLaneTests(unittest.TestCase):
-    def test_a_single_canvas_still_uses_the_serial_lane(self):
+    def test_lane_is_lease_guarded_not_serialized_by_policy(self):
         plan = PLANNER.plan_batch({"schema_version": 1, "items": [item(1)]})
-        self.assertEqual(plan["canvas_lane"]["owner"], "main-agent")
-        self.assertEqual(plan["canvas_lane"]["parallelism"], 1)
-        self.assertEqual(plan["canvas_lane"]["exclusive_resource"], "obsidian-app-gui")
-        self.assertEqual(plan["canvas_lane"]["order"], ["lesson-1"])
+        lane = plan["canvas_lane"]
+        self.assertEqual(lane["authoring_parallelism"], "unbounded")
+        self.assertEqual(lane["dom_step_guard"], "exclusive-lease")
+        self.assertEqual(lane["lease_name"], "obsidian-gui")
+        self.assertEqual(lane["lease_tool"], "scripts/obsidian-gui-lock.py")
+        self.assertFalse(lane["focus_required"])
+        self.assertTrue(lane["queues_instead_of_failing"])
+        self.assertEqual(lane["order"], ["lesson-1"])
 
-    def test_many_canvases_are_never_fanned_out(self):
+    def test_many_canvases_are_allowed_but_the_dom_step_stays_single_lane(self):
         plan = PLANNER.plan_batch(
             {"schema_version": 1, "items": [item(index) for index in range(1, 6)]}
         )
         self.assertEqual(plan["item_count"], 5)
-        self.assertEqual(plan["canvas_lane"]["parallelism"], 1)
-        self.assertTrue(plan["fan_out_forbidden"])
-        self.assertFalse("authoring_parallelism" in plan)
-        self.assertFalse("authoring_waves" in plan)
-        self.assertFalse("spawn_required" in plan)
+        self.assertEqual(plan["canvas_lane"]["dom_step_concurrency"], 1)
+        self.assertFalse("fan_out_forbidden" in plan)
         self.assertEqual(
             plan["canvas_lane"]["order"], [f"lesson-{index}" for index in range(1, 6)]
         )
         self.assertEqual(len(plan["tasks"]), 5)
 
     def test_every_canvas_keeps_isolated_paths(self):
-        plan = PLANNER.plan_batch(
-            {"schema_version": 1, "items": [item(1), item(2)]}
-        )
+        plan = PLANNER.plan_batch({"schema_version": 1, "items": [item(1), item(2)]})
         self.assertTrue(plan["isolation_verified"])
         self.assertTrue(plan["merge_forbidden"])
         staging = {task["staging"] for task in plan["tasks"]}
@@ -66,6 +65,12 @@ class CanvasLaneTests(unittest.TestCase):
     def test_shared_canvas_path_is_rejected(self):
         first, second = item(1), item(2)
         second["canvas"] = first["canvas"]
+        with self.assertRaisesRegex(PLANNER.BatchPlanError, "collides"):
+            PLANNER.plan_batch({"schema_version": 1, "items": [first, second]})
+
+    def test_shared_recall_model_path_is_rejected(self):
+        first, second = item(1), item(2)
+        second["recall_model"] = first["recall_model"]
         with self.assertRaisesRegex(PLANNER.BatchPlanError, "collides"):
             PLANNER.plan_batch({"schema_version": 1, "items": [first, second]})
 

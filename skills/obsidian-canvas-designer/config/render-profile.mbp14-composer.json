@@ -2,7 +2,8 @@
   "schema_version": 1,
   "profile_id": "mbp14-1512x982-composer-obsidian-1.13.7",
   "scope": "single-maintainer-workstation",
-  "requires_foreground": true,
+  "requires_foreground": false,
+  "focus_policy": "diagnostic-only",
   "obsidian_version": "1.13.7",
   "installer_version": "1.12.4",
   "screen_css_width": 1512,
@@ -21,5 +22,6 @@
   "maximum_headroom_px": 12,
   "round_to_px": 4,
   "top_lane_to_modules_gap_px": 80,
-  "render_wait_ms": 800
+  "render_wait_ms": 800,
+  "open_wait_ms": 15000
 }

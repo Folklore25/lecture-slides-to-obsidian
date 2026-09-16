@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import math
 import os
@@ -44,6 +45,20 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def as_int(value, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def as_float(value, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def rounded_required_height(
     max_child_bottom: float,
     vertical_chrome_px: int,
@@ -51,7 +66,7 @@ def rounded_required_height(
     round_to_px: int,
 ) -> int:
     raw = max_child_bottom + vertical_chrome_px + safety_margin_px
-    return int(math.ceil(raw / round_to_px) * round_to_px)
+    return as_int(math.ceil(raw / round_to_px) * round_to_px)
 
 
 def contains(group: dict, node: dict) -> bool:
@@ -98,6 +113,17 @@ def write_json_atomic(path: Path, value: dict) -> None:
     finally:
         if temporary is not None and temporary.exists():
             temporary.unlink()
+
+
+def load_gui_lock():
+    """Load the sibling GUI lease helper the same way the course skill loads its own."""
+    path = Path(__file__).resolve().parent / "obsidian-gui-lock.py"
+    spec = importlib.util.spec_from_file_location("obsidian_gui_lock", path)
+    if spec is None or spec.loader is None:
+        raise RenderQaError("cannot load obsidian-gui-lock.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def run_cli(arguments: list[str], cwd: Path) -> str:
@@ -151,11 +177,16 @@ def environment_errors(profile: dict, environment: dict) -> list[str]:
     for key, actual in comparisons.items():
         expected = profile.get(key)
         if isinstance(expected, float) and isinstance(actual, (int, float)):
-            matches = abs(expected - float(actual)) < 0.05
+            matches = abs(expected - as_float(actual)) < 0.05
         else:
             matches = expected == actual
         if not matches:
             errors.append(f"render profile mismatch for {key}: expected {expected!r}, found {actual!r}")
+    # Focus is recorded as a diagnostic, never as a gate. Layout metrics come from a
+    # synchronous reflow and are identical whether or not the window is key, so
+    # requiring focus only made QA fail whenever another agent or the user touched
+    # another application. Set requires_foreground only for a profile that genuinely
+    # depends on the window being key.
     if profile.get("requires_foreground") and not environment.get("document_has_focus"):
         errors.append("Obsidian must be foreground and focused during DOM measurement")
     return errors
@@ -245,13 +276,72 @@ return JSON.stringify({{zoom:canvas.zoom,anchor:anchor.id}});
     return obsidian_eval(javascript, vault_root)
 
 
-def measure_canvas(canvas: Path, vault_root: Path, profile: dict, mode: str) -> dict:
+def canvas_is_open(relative: str, vault_root: Path) -> bool:
+    """Check the leaf without touching the workspace, so a measurement never re-opens it."""
+    target = json.dumps(relative)
+    javascript = f"""(()=>{{
+const target={target};
+const open=app.workspace.getLeavesOfType('canvas').some(l=>l.view?.file?.path===target);
+return JSON.stringify({{open}});
+}})()"""
+    return bool(obsidian_eval(javascript, vault_root).get("open"))
+
+
+def wait_for_canvas_open(
+    relative: str, vault_root: Path, timeout: float = 15.0, poll: float = 0.4
+) -> bool:
+    """Poll until the Canvas leaf is mounted.
+
+    Obsidian opens files in the *active* leaf, so a concurrent agent opening one of its
+    own files can evict the leaf we just opened. A single fixed sleep is therefore not
+    enough; wait for the leaf we actually asked for.
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        if canvas_is_open(relative, vault_root):
+            return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(poll)
+
+
+def measure_canvas(
+    canvas: Path,
+    vault_root: Path,
+    profile: dict,
+    mode: str,
+    owner: str | None = None,
+    lock_timeout: float = 120.0,
+) -> dict:
     relative = canvas.relative_to(vault_root).as_posix()
-    run_cli(["obsidian", "open", f"path={relative}"], vault_root)
-    if sys.platform == "darwin":
-        subprocess.run(["open", "-a", "Obsidian"], check=False, capture_output=True, text=True)
+    gui_lock = load_gui_lock()
+
+    # The GUI step is the only shared resource. Queue for it instead of requiring
+    # foreground focus: focus is not needed for layout measurement and cannot be
+    # held reliably when several agents run at once.
+    with gui_lock.hold(vault_root, owner, lock_timeout) as lease:
+        opened_by_us = False
+        if not canvas_is_open(relative, vault_root):
+            run_cli(["obsidian", "open", f"path={relative}"], vault_root)
+            opened_by_us = True
+        open_timeout = as_float(profile.get("open_wait_ms", 15000), 15000.0) / 1000
+        if not wait_for_canvas_open(relative, vault_root, open_timeout):
+            raise RenderQaError(
+                f"the Canvas leaf for {relative} did not mount within {open_timeout:.0f}s; "
+                "another process may be re-opening files in the shared Obsidian window"
+            )
+        measured = _measure_open_canvas(relative, vault_root, profile, mode)
+        measured["gui_lease"] = {
+            "owner": lease.get("owner"),
+            "waited_seconds": lease.get("waited_seconds"),
+            "reentrant": lease.get("reentrant"),
+            "opened_canvas_in_this_step": opened_by_us,
+        }
+    return measured
+
+
+def _measure_open_canvas(relative: str, vault_root: Path, profile: dict, mode: str) -> dict:
     wait_seconds = profile.get("render_wait_ms", 800) / 1000
-    time.sleep(wait_seconds)
     setup = obsidian_eval(setup_javascript(relative), vault_root)
     if setup.get("mounted") != setup.get("textNodes"):
         raise RenderQaError(
@@ -270,7 +360,10 @@ def measure_canvas(canvas: Path, vault_root: Path, profile: dict, mode: str) -> 
 
 def build_result(canvas: Path, profile: dict, measured: dict, mode: str) -> dict:
     env_errors = environment_errors(profile, measured)
-    canvas_data = json.loads(canvas.read_text(encoding="utf-8"))
+    try:
+        canvas_data = json.loads(canvas.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise RenderQaError(f"cannot read the Canvas JSON at {canvas}: {exc}") from exc
     top_gap = top_lane_clearance(canvas_data)
     layout_errors = []
     minimum_top_gap = profile.get("top_lane_to_modules_gap_px", 80)
@@ -366,6 +459,14 @@ def main() -> int:
     parser.add_argument("--vault-root", required=True, type=Path)
     parser.add_argument("--profile", type=Path, default=DEFAULT_PROFILE)
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--owner", default=None,
+        help="Lease owner label; defaults to <host>:<pid>. Give each agent a distinct label.",
+    )
+    parser.add_argument(
+        "--lock-timeout", type=float, default=120.0,
+        help="Seconds to queue for the shared Obsidian GUI before failing.",
+    )
     args = parser.parse_args()
 
     try:
@@ -382,7 +483,9 @@ def main() -> int:
             raise RenderQaError("render profile must use schema_version 1")
         if args.output is not None and inside(args.output.resolve(), vault_root):
             raise RenderQaError("render QA output must remain outside the vault")
-        measured = measure_canvas(canvas, vault_root, profile, args.mode)
+        measured = measure_canvas(
+            canvas, vault_root, profile, args.mode, args.owner, args.lock_timeout
+        )
         result = build_result(canvas, profile, measured, args.mode)
         if args.output is not None:
             write_json_atomic(args.output.resolve(), result)
