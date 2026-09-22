@@ -16,7 +16,6 @@ import tempfile
 import time
 from pathlib import Path
 
-
 DEFAULT_PROFILE = Path(__file__).resolve().parent.parent / "config/render-profile.mbp14-composer.json"
 OVERVIEW_MARKER = "<!-- recall-map: overview -->"
 
@@ -340,6 +339,24 @@ def measure_canvas(
     return measured
 
 
+def installed_obsidian_version() -> tuple[str, str]:
+    """Read the app version from the installed bundle instead of asking the app.
+
+    The `obsidian version` command is a CLI call, and every CLI call activates the
+    Obsidian window. The version already exists on disk, so read it there.
+    """
+    import plistlib
+
+    plist_path = Path("/Applications/Obsidian.app/Contents/Info.plist")
+    try:
+        with plist_path.open("rb") as handle:
+            data = plistlib.load(handle)
+    except (OSError, ValueError):
+        return ("unknown", "unknown")
+    app_version = str(data.get("CFBundleShortVersionString") or "unknown")
+    return (app_version, app_version)
+
+
 def _measure_open_canvas(relative: str, vault_root: Path, profile: dict, mode: str) -> dict:
     wait_seconds = profile.get("render_wait_ms", 800) / 1000
     setup = obsidian_eval(setup_javascript(relative), vault_root)
@@ -349,8 +366,7 @@ def _measure_open_canvas(relative: str, vault_root: Path, profile: dict, mode: s
         )
     time.sleep(wait_seconds)
     measured = obsidian_eval(measure_javascript(relative), vault_root)
-    version_output = run_cli(["obsidian", "version"], vault_root)
-    app_version, installer_version = split_version(version_output)
+    app_version, installer_version = installed_obsidian_version()
     measured["obsidian_version"] = app_version
     measured["installer_version"] = installer_version
     if mode == "check":

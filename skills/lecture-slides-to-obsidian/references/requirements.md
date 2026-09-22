@@ -10,9 +10,10 @@ This skill orchestrates note/CLI skills, the independent Canvas designer subskil
 | `mineru-open-api` CLI | not required | **required** |
 | OpenSSL, macOS Keychain, encrypted token state | not required | **required** |
 | MinerU language and OCR confirmation | not applicable | **required** |
-| Obsidian CLI + skills, Canvas designer | **required** | **required** |
+| Obsidian skills + Canvas designer | **required** | **required** |
+| Obsidian CLI binary (Canvas DOM measurement only) | **required** | **required** |
 
-Native mode removes the upload, the credential, and the text-layer dependency. It does not remove the Obsidian CLI, the Canvas designer, or the renderer QA.
+Native mode removes the upload, the credential, and the text-layer dependency. It does not remove the Canvas designer or the renderer QA. The Obsidian CLI binary survives only because the renderer QA measures a real rendered DOM.
 
 ## Required skills
 
@@ -20,7 +21,9 @@ Native mode removes the upload, the credential, and the text-layer dependency. I
 
 Normalize and verify Obsidian Flavored Markdown: properties, wikilinks, embeds, callouts, comments, math delimiters, and vault-relative references. It does not read PDFs, call MinerU, or decide course destinations.
 
-### `obsidian-cli`
+### `obsidian-cli` (Canvas DOM measurement only)
+
+Scope: the Canvas renderer QA. Every `obsidian` invocation activates the Obsidian window - measured directly, where `obsidian version` alone moved focus from the terminal to Obsidian - so there is no read-only subset that is safe to call elsewhere. Note and vault operations use the filesystem instead.
 
 Vault-native note operations and final artifact verification. The delegated Canvas designer also loads it for real DOM measurement.
 
@@ -40,20 +43,20 @@ Use only authenticated precision extraction through the official `mineru-open-ap
 
 ## Required local tools
 
-- Always: Obsidian CLI for renderer QA.
+- Only for Canvas DOM measurement: the Obsidian CLI. No other step in any skill may call it.
 - MinerU mode only: `mineru-open-api`, OpenSSL with `aes-256-cbc`, and macOS Keychain's `security` CLI.
 
 ## Preflight
 
-1. Inspect the available skill list for exact names `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`, then explicitly invoke all three. Invoke `obsidian-latex-refiner` only when LaTeX normalization is enabled.
+1. Inspect the available skill list for exact names `obsidian-markdown` and `obsidian-canvas-designer`, then explicitly invoke both. Invoke `obsidian-latex-refiner` only when LaTeX normalization is enabled.
 2. Confirm the extraction mode and, when native, that the current model can view the source pages.
 3. Resolve every path against the installed skill directory (the directory containing the loaded SKILL.md).
 4. In MinerU mode, run `scripts/token-store.py status` before asking for a token: `configured` means proceed silently. Only when status reports `not configured`, send the chat-provided token through stdin to `scripts/token-store.py set --token-stdin`. Never place the token in command arguments or environment profiles.
 5. Validate the local file type and size without parsing its content locally.
 6. If any requirement for the selected mode is unavailable, stop and report the exact requirement. Do not inline Canvas drawing, use screenshot QA, store plaintext secrets, or fall back to local parsing.
 
-Run `scripts/preflight.py` and pass `--loaded-skill obsidian-markdown --loaded-skill obsidian-cli --loaded-skill obsidian-canvas-designer`; its JSON output is the machine-readable record of the decisions and helper skills.
+Run `scripts/preflight.py` and pass `--loaded-skill obsidian-markdown --loaded-skill obsidian-canvas-designer`; its JSON output is the machine-readable record of the decisions and helper skills.
 
 ## Invocation boundary
 
-`mineru-cli-adapter.py` imports `load_token_auto()`, injects plaintext only into the CLI child environment, and never prints it. Use `obsidian-markdown` for note shaping, `obsidian-cli` for vault operations, and `obsidian-canvas-designer` for the delegated Canvas artifact. Preserve CLI warnings and provenance instead of hiding uncertainty.
+`mineru-cli-adapter.py` imports `load_token_auto()`, injects plaintext only into the CLI child environment, and never prints it. Use `obsidian-markdown` for note shaping, plain filesystem reads and writes for vault operations, and `obsidian-canvas-designer` for the delegated Canvas artifact. Preserve CLI warnings and provenance instead of hiding uncertainty.

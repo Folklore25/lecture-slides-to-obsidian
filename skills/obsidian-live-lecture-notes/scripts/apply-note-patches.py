@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Apply idempotent student/teacher callout patches to an Obsidian course note via a filesystem or Obsidian CLI backend."""
+"""Apply idempotent student/teacher callout patches to an Obsidian course note on the filesystem.
+
+There is a single backend because every Obsidian CLI call activates the Obsidian window."""
 
 from __future__ import annotations
 
@@ -8,12 +10,10 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-
 
 ENTRY_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,80}$")
 STUDENT_KINDS = {
@@ -213,8 +213,7 @@ def run_cli(arguments: list[str], vault_root: Path) -> str:
     return completed.stdout
 
 
-def obsidian_read(note: str, vault_root: Path) -> str:
-    return run_cli(["obsidian", "read", f"path={note}"], vault_root)
+
 
 
 def resolve_note_path(note: str, vault_root: Path) -> Path:
@@ -234,12 +233,8 @@ def fs_read(note: str, vault_root: Path) -> str:
         raise PatchError(f"note not found in vault: {note}") from exc
 
 
-def read_note(note: str, vault_root: Path, backend: str) -> str:
-    if backend == "fs":
-        return fs_read(note, vault_root)
-    if shutil.which("obsidian") is None:
-        raise PatchError("Obsidian CLI is unavailable")
-    return obsidian_read(note, vault_root)
+def read_note(note: str, vault_root: Path) -> str:
+    return fs_read(note, vault_root)
 
 
 def write_atomic(path: Path, content: str) -> None:
@@ -265,36 +260,21 @@ def fs_write(note: str, original: str, modified: str, vault_root: Path) -> str:
     return "filesystem-atomic"
 
 
-def cli_write(note: str, original: str, modified: str, vault_root: Path) -> str:
-    latest = obsidian_read(note, vault_root)
-    if sha256_text(latest) != sha256_text(original):
-        raise PatchError("note changed after planning; re-read and rebuild the patch before writing")
-    arg_limit = os.sysconf("SC_ARG_MAX") if hasattr(os, "sysconf") else 262144
-    encoded_size = len(modified.encode("utf-8"))
-    if encoded_size < min(180000, arg_limit // 2):
-        run_cli(["obsidian", "create", f"path={note}", f"content={modified}", "overwrite"], vault_root)
-        writer = "obsidian-cli-create"
-    else:
-        write_atomic(resolve_note_path(note, vault_root), modified)
-        writer = "atomic-large-file-fallback"
-    verified = obsidian_read(note, vault_root)
-    if sha256_text(verified) != sha256_text(modified):
-        raise PatchError("post-write Obsidian readback does not match the intended note")
-    return writer
 
 
-def write_note(note: str, original: str, modified: str, vault_root: Path, backend: str) -> str:
-    if backend == "fs":
-        return fs_write(note, original, modified, vault_root)
-    return cli_write(note, original, modified, vault_root)
+
+def write_note(note: str, original: str, modified: str, vault_root: Path) -> str:
+    return fs_write(note, original, modified, vault_root)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--vault-root", required=True, type=Path)
     parser.add_argument("--patch", required=True, type=Path)
-    parser.add_argument("--backend", required=True, choices=["fs", "obsidian-cli"],
-                        help="fs reads/writes the vault file directly; obsidian-cli drives the Obsidian CLI plugin")
+    parser.add_argument("--backend", required=True, choices=["fs"],
+                        help="fs reads and writes the vault file directly. The former "
+                             "obsidian-cli backend is gone: every obsidian call activates "
+                             "the Obsidian window.")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     try:
@@ -303,13 +283,13 @@ def main() -> int:
             raise PatchError("vault root is not an existing directory")
         patch = json.loads(args.patch.read_text(encoding="utf-8"))
         note, entries = validate_patch(patch)
-        original = read_note(note, vault_root, args.backend)
+        original = read_note(note, vault_root)
         if frontmatter_type(original) != "course-material":
             raise PatchError("target note frontmatter type must be course-material")
         modified, outcomes = apply_entries(original, entries)
         writer = "dry-run"
         if not args.dry_run and modified != original:
-            writer = write_note(note, original, modified, vault_root, args.backend)
+            writer = write_note(note, original, modified, vault_root)
         print(
             json.dumps(
                 {

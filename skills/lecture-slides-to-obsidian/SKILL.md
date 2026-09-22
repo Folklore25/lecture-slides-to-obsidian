@@ -2,7 +2,7 @@
 name: lecture-slides-to-obsidian
 description: Convert an external course document into content-driven Obsidian notes by reading the source natively with a multimodal model, optionally aided by the official MinerU Open API CLI, and delegate a knowledge-recall Canvas. Use for extraction or Markdown reconstruction; when complete Markdown already exists and only Canvas is requested, invoke obsidian-canvas-designer directly instead.
 metadata:
-  required-skills: "obsidian-markdown, obsidian-cli, obsidian-canvas-designer"
+  required-skills: "obsidian-markdown, obsidian-canvas-designer"
   optional-skills: "obsidian-latex-refiner"
   required-services: "Native multimodal source reading; official mineru-open-api CLI used only as an optional extraction aid"
 ---
@@ -26,7 +26,8 @@ Turn an external course document into readable, content-driven Obsidian notes wh
 ## Quick reference
 
 - Route by requested artifact before preflight: external source requiring conversion → full workflow; complete Markdown requiring only Canvas → stop and invoke `obsidian-canvas-designer` directly.
-- Explicitly load `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer`; availability alone is not loading. Pass all three to `preflight.py --loaded-skill`.
+- Explicitly load `obsidian-markdown` and `obsidian-canvas-designer`; availability alone is not loading. Pass both to `preflight.py --loaded-skill`.
+- **Do not load or call `obsidian-cli` in this skill.** Every `obsidian` invocation activates the Obsidian window, including read-only ones like `obsidian version`; there is no non-activating subset. It is used in exactly one place: the Canvas DOM measurement inside `obsidian-canvas-designer/scripts/canvas-render-qa.py`.
 - `<installed-skill-directory>` is the directory containing this SKILL.md; every `scripts/` and `state/` path resolves against it.
 - Run `scripts/preflight.py` first; ask its `questions[]` in stages. It always emits a `note_granularity` question for `lecture-notes` and a `native_visual_input` question when extraction is native.
 - MinerU token handling applies only with `--extraction mineru`. Run `scripts/token-store.py status` before asking for a token; `configured` means unlock and use it silently.
@@ -40,7 +41,7 @@ Turn an external course document into readable, content-driven Obsidian notes wh
 
 ## Prerequisite preflight
 
-Read [requirements/skills.yaml](requirements/skills.yaml), [requirements/services.yaml](requirements/services.yaml), [requirements/tools.yaml](requirements/tools.yaml), and [references/requirements.md](references/requirements.md). In native mode the hard requirements are the note/CLI skills, the Canvas designer, Obsidian CLI for DOM QA, and a natively multimodal model. MinerU, OpenSSL, Keychain, and token state are required only for `--extraction mineru`.
+Read [requirements/skills.yaml](requirements/skills.yaml), [requirements/services.yaml](requirements/services.yaml), [requirements/tools.yaml](requirements/tools.yaml), and [references/requirements.md](references/requirements.md). In native mode the hard requirements are the note skills, the Canvas designer, the Obsidian CLI binary (touched only by the Canvas DOM-measurement step), and a natively multimodal model. MinerU, OpenSSL, Keychain, and token state are required only for `--extraction mineru`.
 
 ## Core workflow
 

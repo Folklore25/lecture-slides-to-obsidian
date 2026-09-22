@@ -17,7 +17,8 @@ required_skills:
       skill_name: "obsidian-markdown"
 
   - name: "obsidian-cli"
-    purpose: "Perform vault-native note operations and support final package verification."
+    purpose: "Canvas DOM measurement only. Every call activates the
+      Obsidian window, so no other purpose may use it."
     source: "https://github.com/kepano/obsidian-skills/tree/main/skills/obsidian-cli"
     verify:
       skill_name: "obsidian-cli"

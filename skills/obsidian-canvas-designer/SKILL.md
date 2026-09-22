@@ -25,11 +25,11 @@ When a document produced several notes, each note gets its own task, its own Can
 
 If delegated by another Agent, follow [references/delegation-contract.md](references/delegation-contract.md). Do not re-interpret course routing, extraction-mode, or profile decisions.
 
-For a direct Canvas-only request without an explicit vault root, run `obsidian vault info=path` and verify that the note resolves inside that path. Do not infer the vault root from an arbitrary ancestor folder or use a bare filename when paths may be ambiguous.
+A vault root must be supplied explicitly. Do not discover it with `obsidian vault info=path`: every CLI call activates the Obsidian window, and this would fire once per Canvas task before any measurement is needed. If the caller did not supply one, ask for it. Never infer the root from an arbitrary ancestor folder and never fall back to a bare filename.
 
 ## Workflow
 
-1. Explicitly load `json-canvas` and `obsidian-cli`.
+1. Explicitly load `json-canvas`. Load `obsidian-cli` only to understand the DOM commands; **never call `obsidian` yourself.** The single permitted caller is `scripts/canvas-render-qa.py`.
 2. Run `scripts/recall-skeleton.py` before semantic authoring. It inventories exact H2 anchors, H3 review candidates, coverage rows, and whether the note carries page provenance. `concept.source_heading` may reference only a real `## H2`; never promote or edit the user's headings inside this skill.
 3. Read the complete note and fill the recall-model draft. Reject unsupported relationships. Omit `source_page` for a note without page markers; require it, and the matching heading/page pair, when markers are present.
 4. Read [references/axton-aesthetics.md](references/axton-aesthetics.md) and choose a layout pattern from the semantic graph, not from source section order.

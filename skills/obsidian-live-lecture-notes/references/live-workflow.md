@@ -2,7 +2,7 @@
 
 ## Note binding
 
-The user normally has the course note and terminal open together. The terminal can be the active leaf, so discover Markdown leaves with `obsidian eval`, not `obsidian file` alone. Prefer an already open note whose frontmatter has `type: course-material` and `conversion_profile: lecture-notes`.
+The user normally has the course note and terminal open together. Take the note path from the caller or the open document rather than enumerating leaves through Obsidian; a CLI query here activates the Obsidian window mid-lecture. Prefer an already open note whose frontmatter has `type: course-material` and `conversion_profile: lecture-notes`.
 
 Bind once per chat. Re-resolve only when the user explicitly changes course/note or the bound path disappears.
 
@@ -10,7 +10,7 @@ Bind once per chat. Re-resolve only when the user explicitly changes course/note
 
 For each thought:
 
-1. obtain the outline with `obsidian outline path=<path> format=json`;
+1. obtain the outline by parsing the note's headings from disk;
 2. read only plausible sections when possible;
 3. route to the narrowest exact H2/H3 with strong semantic overlap;
 4. otherwise append under `## In-class notes` as unresolved.

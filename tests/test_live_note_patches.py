@@ -3,10 +3,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "skills/obsidian-live-lecture-notes/scripts/apply-note-patches.py"
 SPEC = importlib.util.spec_from_file_location("apply_note_patches", SCRIPT)
+assert SPEC is not None
 PATCHES = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(PATCHES)
@@ -105,11 +105,11 @@ class FilesystemBackendTests(unittest.TestCase):
             destination = vault / note
             destination.parent.mkdir(parents=True)
             destination.write_text(NOTE, encoding="utf-8")
-            original = PATCHES.read_note(note, vault, "fs")
+            original = PATCHES.read_note(note, vault)
             self.assertEqual(original, NOTE)
             modified, outcomes = PATCHES.apply_entries(original, [student_entry()])
             self.assertEqual(outcomes[0]["status"], "inserted")
-            writer = PATCHES.write_note(note, original, modified, vault, "fs")
+            writer = PATCHES.write_note(note, original, modified, vault)
             self.assertEqual(writer, "filesystem-atomic")
             self.assertEqual(destination.read_text(encoding="utf-8"), modified)
 
@@ -121,7 +121,8 @@ class FilesystemBackendTests(unittest.TestCase):
                 (vault / "a" / "b.md").resolve(),
             )
         with self.assertRaisesRegex(PATCHES.PatchError, "escapes"):
-            PATCHES.resolve_note_path("../outside.md", Path("/tmp"))
+            # /tmp is deliberate here: any path outside the vault must be rejected.
+            PATCHES.resolve_note_path("../outside.md", Path("/tmp"))  # noqa: S108
 
     def test_fs_read_reports_missing_note(self):
         with tempfile.TemporaryDirectory() as tmp:

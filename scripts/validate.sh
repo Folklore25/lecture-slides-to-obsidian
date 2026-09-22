@@ -192,13 +192,13 @@ if grep -R -n '~/.config/lecture-slides-to-obsidian\|XDG_CONFIG_HOME' "$skill_di
  exit 1
 fi
 
-if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli, obsidian-canvas-designer"' "$skill_dir/SKILL.md" ||
+if ! grep -q 'required-skills: "obsidian-markdown, obsidian-canvas-designer"' "$skill_dir/SKILL.md" ||
  ! grep -q 'required-skills: "json-canvas, obsidian-cli"' "$canvas_skill_dir/SKILL.md"; then
  printf 'skill prerequisite metadata is missing or out of sync\n' >&2
  exit 1
 fi
 
-if ! grep -q 'required-skills: "obsidian-markdown, obsidian-cli"' "$live_notes_skill_dir/SKILL.md" ||
+if ! grep -q 'required-skills: "obsidian-markdown"' "$live_notes_skill_dir/SKILL.md" ||
  ! grep -q 'required-skills: "obsidian-markdown, obsidian-live-lecture-notes"' "$asr_skill_dir/SKILL.md"; then
  printf 'supplementary skill prerequisites are missing or out of sync\n' >&2
  exit 1

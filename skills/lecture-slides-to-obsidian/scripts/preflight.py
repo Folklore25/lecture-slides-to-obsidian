@@ -11,7 +11,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 MAX_BYTES = 200 * 1024 * 1024
 SUPPORTED = {
     ".pdf", ".png", ".jpg", ".jpeg", ".jp2", ".webp", ".gif", ".bmp",
@@ -20,14 +19,14 @@ SUPPORTED = {
 PROFILES = {"lecture-notes", "policy-document", "paper"}
 GRANULARITIES = {"single-note", "section-notes"}
 SYNTHESIS_PROFILE = "lecture-notes"
-REQUIRED_SKILLS = {"obsidian-markdown", "obsidian-cli", "obsidian-canvas-designer"}
+REQUIRED_SKILLS = {"obsidian-markdown", "obsidian-canvas-designer"}
 MINERU_LANGUAGES = {
     "ch", "ch_server", "en", "japan", "korean", "chinese_cht", "ta",
     "te", "ka", "el", "th", "latin", "arabic", "cyrillic",
     "east_slavic", "devanagari",
 }
-POLICY_HINTS = re.compile(r"(?:policy|code[-_ ]of[-_ ]conduct|regulation|handbook|guideline|rules?)", re.I)
-PAPER_HINTS = re.compile(r"(?:paper|article|thesis|dissertation|journal)", re.I)
+POLICY_HINTS = re.compile(r"(?:policy|code[-_ ]of[-_ ]conduct|regulation|handbook|guideline|rules?)", re.IGNORECASE)
+PAPER_HINTS = re.compile(r"(?:paper|article|thesis|dissertation|journal)", re.IGNORECASE)
 
 
 def inside(path: Path, parent: Path) -> bool:
@@ -180,18 +179,9 @@ def main() -> int:
         errors.append("Obsidian CLI is unavailable for renderer QA")
     elif obsidian_cli:
         checks["obsidian_cli"] = obsidian_cli
-        if not args.fixture_mode:
-            version = subprocess.run(
-                [obsidian_cli, "version"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=False,
-            )
-            if version.returncode != 0:
-                errors.append("Obsidian CLI version check failed")
-            else:
-                checks["obsidian_cli_version"] = version.stdout.splitlines()[0].strip()
+        # Deliberately no version probe. Every CLI invocation activates the Obsidian
+        # window, and this one only confirmed a fact we do not need: that the binary
+        # is present, which is all the Canvas DOM measurement step requires.
 
     openssl = shutil.which("openssl")
     if openssl is None:
@@ -211,8 +201,7 @@ def main() -> int:
         if not args.fixture_mode:
             version = subprocess.run(
                 [mineru_cli, "version"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
                 check=False,
             )
@@ -223,7 +212,7 @@ def main() -> int:
 
     token_file = args.token_file.resolve()
     if extraction != "mineru":
-        checks["mineru_token"] = "not-required"
+        checks["mineru_token"] = "not-required"  # noqa: S105 - a status marker, not a secret
     elif not token_file.is_file():
         questions.append({"id": "encrypted_token", "prompt": "尚未配置加密 MinerU token；现在运行 token-store.py set 吗？"})
     else:
@@ -235,8 +224,7 @@ def main() -> int:
         if not args.fixture_mode:
             status = subprocess.run(
                 [sys.executable, str(Path(__file__).resolve().parent / "token-store.py"), "status"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
                 check=False,
             )

@@ -14,7 +14,7 @@ Identify the source file, course, document title, and any explicit profile. Reso
 2. **Granularity.** Ask the user every time: `single-note` or `section-notes`. Offer the rule of thumb (three or more independent sections and sixty or more source pages → `section-notes`). Never default it.
 3. **Profile.** `lecture-notes`, `policy-document`, or `paper` via [document-profiles.md](document-profiles.md).
 
-Load `obsidian-markdown`, `obsidian-cli`, and `obsidian-canvas-designer` explicitly. Then run `scripts/token-store.py status` only if MinerU was selected.
+Load `obsidian-markdown` and `obsidian-canvas-designer` explicitly. Then run `scripts/token-store.py status` only if MinerU was selected.
 
 ## 3. Source reading
 
