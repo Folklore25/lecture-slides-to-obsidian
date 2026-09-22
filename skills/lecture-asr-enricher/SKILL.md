@@ -20,7 +20,9 @@ The transcript may be inside or outside the vault. It is evidence, not a replace
 
 ## Workflow
 
-1. Load `obsidian-markdown` and `obsidian-live-lecture-notes`. This post-class task drives the shared apply script from the filesystem; it does not load or use Obsidian CLI.
+1. Load `obsidian-markdown` and `obsidian-live-lecture-notes`. This post-class task drives the shared apply script from the filesystem backend.
+
+**Never run the Obsidian CLI while Obsidian is not running.** This is the one hard rule. With the app up, CLI calls talk to it and do not steal focus, so ordinary use is fine. With the app down, the CLI cold-starts Obsidian: the window pops to the front, the app checks for updates, and the command **never returns** — measured, three commands produced three launches and three window pop-outs. So check that the app is running before any CLI call, bound every call with a timeout, and never let a CLI call be the thing that launches Obsidian.
 2. Read the complete course note and ASR transcript. Inventory exact target H2/H3 headings.
 3. Apply [references/novelty-policy.md](references/novelty-policy.md): discard repetition and filler; retain only source-supported additions.
 4. Write `enrichment-plan.json` following [references/enrichment-plan.md](references/enrichment-plan.md).

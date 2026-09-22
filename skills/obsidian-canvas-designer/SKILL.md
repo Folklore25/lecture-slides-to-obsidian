@@ -29,7 +29,9 @@ A vault root must be supplied explicitly. Do not discover it with `obsidian vaul
 
 ## Workflow
 
-1. Explicitly load `json-canvas`. Load `obsidian-cli` only to understand the DOM commands; **never call `obsidian` yourself.** The single permitted caller is `scripts/canvas-render-qa.py`.
+1. Explicitly load `json-canvas`. Do not call `obsidian` yourself; the single permitted caller is `scripts/canvas-render-qa.py`.
+
+**Never run the Obsidian CLI while Obsidian is not running.** This is the one hard rule. With the app up, CLI calls talk to it and do not steal focus, so ordinary use is fine. With the app down, the CLI cold-starts Obsidian: the window pops to the front, the app checks for updates, and the command **never returns** — measured, three commands produced three launches and three window pop-outs. So check that the app is running before any CLI call, bound every call with a timeout, and never let a CLI call be the thing that launches Obsidian.
 2. Run `scripts/recall-skeleton.py` before semantic authoring. It inventories exact H2 anchors, H3 review candidates, coverage rows, and whether the note carries page provenance. `concept.source_heading` may reference only a real `## H2`; never promote or edit the user's headings inside this skill.
 3. Read the complete note and fill the recall-model draft. Reject unsupported relationships. Omit `source_page` for a note without page markers; require it, and the matching heading/page pair, when markers are present.
 4. Read [references/axton-aesthetics.md](references/axton-aesthetics.md) and choose a layout pattern from the semantic graph, not from source section order.

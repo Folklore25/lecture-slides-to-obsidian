@@ -205,8 +205,23 @@ if ! grep -q 'required-skills: "obsidian-markdown"' "$live_notes_skill_dir/SKILL
 fi
 
 if grep -q 'name: "obsidian"' "$asr_skill_dir/requirements/tools.yaml"; then
-	printf 'ASR enricher must not require the Obsidian CLI tool\n' >&2
-	exit 1
+  printf 'ASR enricher must not require the Obsidian CLI tool\n' >&2
+  exit 1
+fi
+
+# `obsidian version` is not a harmless probe: with the app down it cold-starts Obsidian,
+# pops the window forward, and never returns. Verify the binary without running it.
+if grep -rq 'verify_command: "obsidian version"' "$repo_dir/skills"; then
+  printf 'a manifest verifies the Obsidian CLI by running it, which cold-starts the app\n' >&2
+  exit 1
+fi
+
+if ! grep -q 'Never run the Obsidian CLI while Obsidian is not running' "$skill_dir/SKILL.md" ||
+ ! grep -q 'Never run the Obsidian CLI while Obsidian is not running' "$canvas_skill_dir/SKILL.md" ||
+ ! grep -q 'Never run the Obsidian CLI while Obsidian is not running' "$live_notes_skill_dir/SKILL.md" ||
+ ! grep -q 'Never run the Obsidian CLI while Obsidian is not running' "$asr_skill_dir/SKILL.md"; then
+  printf 'the Obsidian CLI cold-start rule must be stated in every skill that can reach it\n' >&2
+  exit 1
 fi
 
 if ! grep -q 'optional-skills: "obsidian-latex-refiner"' "$skill_dir/SKILL.md" ||

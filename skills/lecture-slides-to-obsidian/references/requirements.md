@@ -23,7 +23,12 @@ Normalize and verify Obsidian Flavored Markdown: properties, wikilinks, embeds, 
 
 ### `obsidian-cli` (Canvas DOM measurement only)
 
-Scope: the Canvas renderer QA, where a genuinely rendered DOM is required and nothing else can produce it. Everywhere else the filesystem is simpler, faster, and independent of whether the app is open. This scoping is about keeping the dependency surface minimal: measuring on this machine, CLI calls including `open` and `eval` did **not** move window focus, so focus was never the reason.
+The CLI is safe to use, with one hard condition, and the earlier claim that it never moves focus was only half the story.
+
+- **Obsidian running**: calls including `open`, `eval`, and `version` did **not** move window focus in repeated tests, so ordinary use is fine.
+- **Obsidian not running**: every command cold-starts the app. The window pops to the front, the app logs its own startup and checks for updates, and the command **never returns** — three commands produced three launches and three window pop-outs, confirmed independently by the user watching the screen.
+
+Therefore: confirm the app is running before any CLI call, bound every call with a timeout, and never let a CLI call be the thing that launches Obsidian. `tools.yaml` verifies the binary with `command -v obsidian` rather than `obsidian version` for exactly this reason.
 
 Vault-native note operations and final artifact verification. The delegated Canvas designer also loads it for real DOM measurement.
 

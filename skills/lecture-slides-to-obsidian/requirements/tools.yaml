@@ -2,16 +2,19 @@ schema_version: 1
 
 required_tools:
   - name: "obsidian"
-    purpose: "Perform vault-native reads, writes, moves, opens, and final artifact checks, including Canvas renderer QA."
+    purpose: "Drive the Obsidian app for Canvas renderer QA. Vault reads and
+      writes use the filesystem. Never run the CLI while Obsidian is not
+      running: it cold-starts the app and never returns."
     source: "https://obsidian.md/help/cli"
-    verify_command: "obsidian version"
+    verify_command: "command -v obsidian"
     tested_version: "1.13.7 (installer 1.12.4)"
 
 optional_tools:
   - name: "mineru-open-api"
-    purpose: "Official MinerU client for authenticated extraction, polling, and Markdown/assets/JSON output."
+    purpose: "Official MinerU client for authenticated extraction, polling,
+      and Markdown/assets/JSON output."
     used_only_with_extraction_mode: "mineru"
-    source: "https://github.com/opendatalab/MinerU-Ecosystem/tree/main/cli/mineru-open-api"
+    source: "https://github.com/opendatalab/MinerU-Ecosystem"
     verify_command: "mineru-open-api version"
     tested_version: "0.5.9"
     install:
@@ -20,7 +23,8 @@ optional_tools:
     token_transport: "MINERU_TOKEN child-process environment only"
     direct_http_fallback: "forbidden"
   - name: "openssl"
-    purpose: "Encrypt and decrypt the MinerU API token stored inside the installed skill directory."
+    purpose: "Encrypt and decrypt the MinerU API token stored inside the
+      installed skill directory."
     used_only_with_extraction_mode: "mineru"
     verify_command: "openssl version"
     required_cipher: "aes-256-cbc"
@@ -37,7 +41,8 @@ optional_tools:
       wrapping_key_backend: "macos-keychain"
       wrapping_key_service: "lecture-slides-to-obsidian.mineru-token-key"
   - name: "security"
-    purpose: "Store and retrieve the random wrapping key from macOS Keychain without repeated user input."
+    purpose: "Store and retrieve the random wrapping key from macOS Keychain
+      without repeated user input."
     used_only_with_extraction_mode: "mineru"
     verify_command: "security help"
     platform: "macos"
