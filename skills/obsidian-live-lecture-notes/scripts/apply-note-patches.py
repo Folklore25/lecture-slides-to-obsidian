@@ -10,7 +10,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -206,11 +205,6 @@ def apply_entries(text: str, entries: list[dict]) -> tuple[str, list[dict]]:
     return result, outcomes
 
 
-def run_cli(arguments: list[str], vault_root: Path) -> str:
-    completed = subprocess.run(arguments, cwd=vault_root, check=False, capture_output=True, text=True)
-    if completed.returncode != 0:
-        raise PatchError((completed.stderr or completed.stdout).strip() or "Obsidian CLI command failed")
-    return completed.stdout
 
 
 
