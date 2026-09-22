@@ -23,7 +23,7 @@ Normalize and verify Obsidian Flavored Markdown: properties, wikilinks, embeds, 
 
 ### `obsidian-cli` (Canvas DOM measurement only)
 
-Scope: the Canvas renderer QA. Every `obsidian` invocation activates the Obsidian window - measured directly, where `obsidian version` alone moved focus from the terminal to Obsidian - so there is no read-only subset that is safe to call elsewhere. Note and vault operations use the filesystem instead.
+Scope: the Canvas renderer QA, where a genuinely rendered DOM is required and nothing else can produce it. Everywhere else the filesystem is simpler, faster, and independent of whether the app is open. This scoping is about keeping the dependency surface minimal: measuring on this machine, CLI calls including `open` and `eval` did **not** move window focus, so focus was never the reason.
 
 Vault-native note operations and final artifact verification. The delegated Canvas designer also loads it for real DOM measurement.
 

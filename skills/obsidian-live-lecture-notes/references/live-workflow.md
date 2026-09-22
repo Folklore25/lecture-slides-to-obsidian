@@ -2,7 +2,7 @@
 
 ## Note binding
 
-The user normally has the course note and terminal open together. Take the note path from the caller or the open document rather than enumerating leaves through Obsidian; a CLI query here activates the Obsidian window mid-lecture. Prefer an already open note whose frontmatter has `type: course-material` and `conversion_profile: lecture-notes`.
+The user normally has the course note and terminal open together. Take the note path from the caller or the open document rather than enumerating leaves through Obsidian; the note reads straight from disk. Prefer an already open note whose frontmatter has `type: course-material` and `conversion_profile: lecture-notes`.
 
 Bind once per chat. Re-resolve only when the user explicitly changes course/note or the bound path disappears.
 

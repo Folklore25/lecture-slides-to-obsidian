@@ -25,7 +25,7 @@ When a document produced several notes, each note gets its own task, its own Can
 
 If delegated by another Agent, follow [references/delegation-contract.md](references/delegation-contract.md). Do not re-interpret course routing, extraction-mode, or profile decisions.
 
-A vault root must be supplied explicitly. Do not discover it with `obsidian vault info=path`: every CLI call activates the Obsidian window, and this would fire once per Canvas task before any measurement is needed. If the caller did not supply one, ask for it. Never infer the root from an arbitrary ancestor folder and never fall back to a bare filename.
+A vault root must be supplied explicitly. Do not discover it with `obsidian vault info=path`: an explicit root is deterministic and keeps this step independent of the app. If the caller did not supply one, ask for it. Never infer the root from an arbitrary ancestor folder and never fall back to a bare filename.
 
 ## Workflow
 

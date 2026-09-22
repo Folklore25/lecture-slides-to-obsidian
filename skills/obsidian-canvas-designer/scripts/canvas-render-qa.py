@@ -342,8 +342,7 @@ def measure_canvas(
 def installed_obsidian_version() -> tuple[str, str]:
     """Read the app version from the installed bundle instead of asking the app.
 
-    The `obsidian version` command is a CLI call, and every CLI call activates the
-    Obsidian window. The version already exists on disk, so read it there.
+    The version already exists on disk, so there is no reason to shell out for it.
     """
     import plistlib
 

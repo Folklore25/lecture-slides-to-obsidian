@@ -13,7 +13,7 @@ Keep the learner focused on the lecture: accept short thoughts in chat, route ea
 
 Because the Obsidian terminal may be the active leaf, do not trust the active file implicitly. At the start of a classroom session:
 
-1. Load `obsidian-markdown`. Do not load or call `obsidian-cli`: every invocation activates the Obsidian window, which is worst during a live class.
+1. Load `obsidian-markdown`. Do not load or call `obsidian-cli`: the filesystem backend is sufficient and does not depend on the app.
 2. Take the target note path from the caller or the open document, and read it directly from disk. Do not enumerate open leaves through Obsidian.
 3. If one open note has `type: course-material`, bind it for this chat. If several qualify, ask once for the exact note.
 4. Keep the binding in conversation state. Do not create a user-level session file.

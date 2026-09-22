@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Apply idempotent student/teacher callout patches to an Obsidian course note on the filesystem.
 
-There is a single backend because every Obsidian CLI call activates the Obsidian window."""
+There is a single backend because the filesystem write is simpler and does not depend on the app being open."""
 
 from __future__ import annotations
 
@@ -273,8 +273,8 @@ def main() -> int:
     parser.add_argument("--patch", required=True, type=Path)
     parser.add_argument("--backend", required=True, choices=["fs"],
                         help="fs reads and writes the vault file directly. The former "
-                             "obsidian-cli backend is gone: every obsidian call activates "
-                             "the Obsidian window.")
+                             "obsidian-cli backend is gone: the filesystem is enough "
+                             "and needs no app.")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     try:

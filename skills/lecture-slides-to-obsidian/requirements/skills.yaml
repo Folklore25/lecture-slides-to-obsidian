@@ -17,8 +17,8 @@ required_skills:
       skill_name: "obsidian-markdown"
 
   - name: "obsidian-cli"
-    purpose: "Canvas DOM measurement only. Every call activates the
-      Obsidian window, so no other purpose may use it."
+    purpose: "Canvas DOM measurement only. The rest of the pipeline uses
+      the filesystem."
     source: "https://github.com/kepano/obsidian-skills/tree/main/skills/obsidian-cli"
     verify:
       skill_name: "obsidian-cli"

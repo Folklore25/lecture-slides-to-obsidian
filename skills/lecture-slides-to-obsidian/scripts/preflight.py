@@ -179,9 +179,8 @@ def main() -> int:
         errors.append("Obsidian CLI is unavailable for renderer QA")
     elif obsidian_cli:
         checks["obsidian_cli"] = obsidian_cli
-        # Deliberately no version probe. Every CLI invocation activates the Obsidian
-        # window, and this one only confirmed a fact we do not need: that the binary
-        # is present, which is all the Canvas DOM measurement step requires.
+        # Deliberately no version probe: presence on PATH is all the Canvas DOM
+        # measurement step requires, and no gate consumes the version string.
 
     openssl = shutil.which("openssl")
     if openssl is None:
