@@ -5,7 +5,6 @@ import unittest
 from contextlib import contextmanager
 from pathlib import Path
 
-
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "skills/obsidian-canvas-designer/scripts/canvas-render-qa.py"
 SPEC = importlib.util.spec_from_file_location("canvas_render_qa", SCRIPT)
@@ -13,10 +12,18 @@ assert SPEC is not None and SPEC.loader is not None
 RENDER_QA = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(RENDER_QA)
 
-# The renderer QA refuses to run unless Obsidian is already up, because the CLI would
-# otherwise cold-start it and pop the window forward. Stub that check here; the guard
-# itself is covered by test_refuses_to_measure_when_obsidian_is_not_running.
-RENDER_QA.obsidian_is_running = lambda: True
+
+def stub_obsidian_running(running: bool) -> None:
+    """Point the renderer QA's precondition check at a fixed answer.
+
+    The real check asks whether the Obsidian GUI is already up, because the CLI would
+    otherwise cold-start the app and pop its window forward. setattr is used because the
+    module is loaded from a path and has no static attribute list.
+    """
+    setattr(RENDER_QA, "obsidian_is_running", lambda: running)
+
+
+stub_obsidian_running(True)
 
 
 PROFILE = {
@@ -100,13 +107,12 @@ class CanvasRenderQaTests(unittest.TestCase):
         self.assertNotIn("'open'", source)
 
     def test_refuses_to_measure_when_obsidian_is_not_running(self):
-        original = RENDER_QA.obsidian_is_running
-        RENDER_QA.obsidian_is_running = lambda: False
+        stub_obsidian_running(False)
         try:
             with self.assertRaises(RENDER_QA.RenderQaError) as caught:
                 RENDER_QA.require_obsidian_running()
         finally:
-            RENDER_QA.obsidian_is_running = original
+            stub_obsidian_running(True)
         self.assertIn("Obsidian is not running", str(caught.exception))
 
     def test_measurement_takes_the_shared_gui_lease(self):
