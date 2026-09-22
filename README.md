@@ -118,8 +118,8 @@ cc-switch 卸载时可能创建自己的 skill backup。若要求卸载备份中
 默认的 `--extraction native` 不上传、不联网、不需要凭据。转换前必须：
 
 - 能发现并加载 `obsidian-markdown`，用于 Obsidian properties、wikilinks、embeds、callouts 和 Markdown 语法。
-- 能发现并加载 `obsidian-canvas-designer`；其绘图 subagent 会加载 `json-canvas` 和 `obsidian-cli` 完成格式、美术与真实 DOM 检查。
-- 主技能加载 `obsidian-cli` 处理 vault-native 操作和最终交付验证。
+- 能发现并加载 `obsidian-canvas-designer`；其绘图 subagent 加载 `json-canvas`，真实 DOM 检查由 `canvas-render-qa.py` 驱动本机 Obsidian 完成。
+- **Obsidian 未运行时禁止执行任何 Obsidian CLI 命令**：此时 CLI 会冷启动 Obsidian，把窗口弹到最前面，并且**永不返回**（实测 3 条命令 = 3 次启动、3 次弹窗，已由用户独立确认）。Obsidian 已运行时 CLI 调用不抢焦点，可正常使用。所有 CLI 调用都必须先确认 app 在运行并带硬超时；vault 读写一律走文件系统。
 - **当前模型能直接查看源 PDF 或逐页渲染图**（原生模式硬性要求）。
 - 当前只支持已测量的 MacBook Pro 14 / Composer 主题 / Obsidian 1.13.7 环境，不宣称其他机器兼容。
 
@@ -209,7 +209,7 @@ obsidian-canvas-designer/recall-skeleton.py       H2/page inventory → authorin
 obsidian-canvas-designer/canvas-aesthetic-qa.py   Axton-informed static visual score
 obsidian-canvas-designer/canvas-render-qa.py      本机 DOM → 实测高度、字体与 PASS/FAIL
 
-obsidian-live-lecture-notes/apply-note-patches.py  学生/老师callout → 幂等插入（fs 文件系统 / obsidian-cli 双后端）
+obsidian-live-lecture-notes/apply-note-patches.py  学生/老师callout → 幂等插入（fs 文件系统后端，原子替换 + SHA 回读，不调用 CLI）
 lecture-asr-enricher/validate-enrichment-plan.py   ASR增量计划 → 可应用teacher patch
 obsidian-latex-refiner/normalize-latex.py          LaTeX → Obsidian可渲染数学语法（--analyze只读预扫，原位覆盖，--dry-run预览）
 obsidian-latex-refiner/self-check.py               内置fixtures冒烟测试（不接触vault）

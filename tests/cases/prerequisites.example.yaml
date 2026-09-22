@@ -18,9 +18,12 @@ extraction_modes:
 
 always_required:
   - "obsidian-markdown"
-  - "obsidian-cli"
   - "obsidian-canvas-designer"
   - "obsidian-renderer-for-canvas-qa"
+
+# The obsidian-cli binary is still required for the Canvas DOM measurement, but it is not a
+# skill to load: preflight tracks skills to load, and tools.yaml tracks the binary. Never run
+# it while Obsidian is not running - that cold-starts the app, pops the window, and hangs.
 
 cases:
   - id: "native-default-ready"
