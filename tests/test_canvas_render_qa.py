@@ -13,6 +13,11 @@ assert SPEC is not None and SPEC.loader is not None
 RENDER_QA = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(RENDER_QA)
 
+# The renderer QA refuses to run unless Obsidian is already up, because the CLI would
+# otherwise cold-start it and pop the window forward. Stub that check here; the guard
+# itself is covered by test_refuses_to_measure_when_obsidian_is_not_running.
+RENDER_QA.obsidian_is_running = lambda: True
+
 
 PROFILE = {
     "profile_id": "test-profile",
@@ -93,6 +98,16 @@ class CanvasRenderQaTests(unittest.TestCase):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertNotIn('"-a"', source)
         self.assertNotIn("'open'", source)
+
+    def test_refuses_to_measure_when_obsidian_is_not_running(self):
+        original = RENDER_QA.obsidian_is_running
+        RENDER_QA.obsidian_is_running = lambda: False
+        try:
+            with self.assertRaises(RENDER_QA.RenderQaError) as caught:
+                RENDER_QA.require_obsidian_running()
+        finally:
+            RENDER_QA.obsidian_is_running = original
+        self.assertIn("Obsidian is not running", str(caught.exception))
 
     def test_measurement_takes_the_shared_gui_lease(self):
         lock = FakeLock()

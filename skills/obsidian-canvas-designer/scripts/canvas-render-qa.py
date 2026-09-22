@@ -125,8 +125,52 @@ def load_gui_lock():
     return module
 
 
-def run_cli(arguments: list[str], cwd: Path) -> str:
-    result = subprocess.run(arguments, cwd=cwd, check=False, capture_output=True, text=True)
+def obsidian_is_running() -> bool:
+    """Is the Obsidian GUI already up?
+
+    This matters more than it looks. When Obsidian is not running the CLI does not
+    fail: it cold-starts the application, which pops the window forward, checks for
+    updates, and then never returns. Measured while Obsidian was quit, three commands
+    produced three launches and three window pop-outs. So refuse to start the app
+    rather than let a measurement do it.
+    """
+    probe = subprocess.run(
+        ["pgrep", "-x", "Obsidian"], capture_output=True, text=True, check=False
+    )
+    return probe.returncode == 0
+
+
+def require_obsidian_running() -> None:
+    if not obsidian_is_running():
+        raise RenderQaError(
+            "Obsidian is not running. The renderer QA measures a real rendered DOM, so "
+            "the app must be open with this vault loaded before it can run. Refusing to "
+            "start it: the CLI would cold-start Obsidian, pop the window forward, and "
+            "then hang indefinitely. Open Obsidian on the target vault and re-run."
+        )
+
+
+def run_cli(arguments: list[str], cwd: Path, timeout: float = 60.0) -> str:
+    """Run an Obsidian CLI command with a hard timeout.
+
+    Every CLI call must be bounded. The CLI does not return at all when Obsidian is
+    not running, so an unbounded call hangs the whole step forever.
+    """
+    try:
+        result = subprocess.run(
+            arguments,
+            cwd=cwd,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RenderQaError(
+            f"the Obsidian CLI did not return within {timeout:.0f}s: "
+            f"{' '.join(arguments[:2])}. This usually means Obsidian is not running, "
+            "or a modal dialog is blocking the app."
+        ) from exc
     if result.returncode != 0:
         message = (result.stderr or result.stdout).strip()
         raise RenderQaError(f"Obsidian CLI failed: {message}")
@@ -313,6 +357,7 @@ def measure_canvas(
     lock_timeout: float = 120.0,
 ) -> dict:
     relative = canvas.relative_to(vault_root).as_posix()
+    require_obsidian_running()
     gui_lock = load_gui_lock()
 
     # The GUI step is the only shared resource. Queue for it instead of requiring
