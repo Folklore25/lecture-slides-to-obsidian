@@ -10,8 +10,8 @@ The source original stays outside the Obsidian vault. The deliverable is one sel
             ├── <note-slug>.md          # one or more
             ├── <note-slug>.canvas      # exactly one per note
             └── assets/
-                ├── qualitative-research-cycle.png
-                └── coding-stages.png
+                ├── qualitative-research-cycle.webp
+                └── coding-stages.webp
 ```
 
 The folder must not contain a conversion report, PDF, PPT/PPTX, DOC/DOCX, XLS/XLSX, archive original, second/backup note, or dot-prefixed file/directory. It must not depend on staging paths.
@@ -57,6 +57,7 @@ status: pre-class
 - Copy only derived visuals: extracted figures or self-produced crops that carry meaning.
 - Follow [asset-naming.md](asset-naming.md): lowercase semantic kebab-case, for example `coding-stages.png`.
 - Keep assets flat under the document's `assets/`, and reference every asset from a note embed or a Canvas file node.
+- Every delivered raster is WebP with a longest edge of at most 1600px, produced by `scripts/optimize-assets.py`. Both are validator-enforced: a `.png`/`.jpg` left in the folder and an asset over the edge are each a validation failure, not a style note. `gif` and `svg` are the only other delivered extensions.
 - Never place the original document in `assets/`.
 - `page-PPP-kind-NN.ext` remains valid only for `--extraction mineru` transcription folders.
 
@@ -123,7 +124,7 @@ Rules:
 
 **Extracting a visual is the default.** Every kept or merged page declares `visuals`: a list, possibly empty, saying what happened to each visual on that page.
 
-- `{"disposition": "kept", "asset": "<semantic-name>.<ext>"}` — the visual was extracted, named, and embedded at its point of use. The file must exist under `assets/` and be embedded by its note or attached to a Canvas concept.
+- `{"disposition": "kept", "asset": "<semantic-name>.webp"}` — the visual was extracted, named, and embedded at its point of use. The file must exist under `assets/` and be embedded by its note or attached to a Canvas concept. Record the delivered name: `optimize-assets.py` rewrites the ledger alongside the embeds, so a ledger that still names a `.png` is a ledger that no longer matches the folder.
 - `{"disposition": "dropped", "reason": "<reason>"}` — the visual was genuinely not worth keeping. Allowed reasons: `repeated-chrome` (logo, watermark, template ornament, footer bar), `decorative`, `redundant-with-text`, `duplicate`, `illegible`, `superseded-by-table`.
 - `superseded-by-table` must also state `"rendered_as": "markdown-table"`, so replacing a visual with text is an explicit, auditable choice rather than a silent omission.
 

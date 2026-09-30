@@ -18,11 +18,33 @@ Load `obsidian-markdown` and `obsidian-canvas-designer` explicitly. Then run `sc
 
 ## 3. Source reading
 
-Read the source natively, page by page, before planning. On each page decide: substantive content, structural skeleton (agenda, divider, outline), furniture (title bar, logo, page number, footer), or administrative (welcome, staff, schedule, exercises).
+### 3a. Render the pages to read
+
+`pi.read` cannot open a PDF, and a page rasterised at 150 DPI is a ~1 MB PNG that the harness inlines as base64: 1.4 MB of request body per page, 29 MB for a 34-page deck. That is what makes a gateway answer 413 before the model ever sees a page.
+
+So render once, properly, with `scripts/render-source-pages.py`:
+
+```text
+scripts/render-source-pages.py <source.pdf> --output-dir <run>/pages \
+  --pages 1-8 --report <run>/page-render.json
+```
+
+Each page comes back as `page-<PPP>.webp`, encoded at the resolution the model will actually receive and never larger than the harness's own 2000px ceiling. On a 34-page CityU deck that is 3.3 MB on disk and 4.4 MB of base64 instead of 21.8 MB and 29.1 MB — an 85% cut with identical pixel dimensions, so nothing about what the model sees changes.
+
+Two rules make this work, and both are the script's job rather than yours:
+
+- **Never exceed the ceiling.** The harness passes a small image through untouched but re-encodes anything over 2000px, trying PNG first. A 2000×2827 WebP comes back out as a 1.9 MB PNG — worse than sending the original. `--max-edge` defaults to 2000 and refuses a larger value.
+- **Never upscale.** `--dpi` is a ceiling, not a target: the script lowers it until the longer side fits. Ask for more resolution by raising `--dpi` only up to that limit.
+
+Read in batches of about eight pages and write each batch's verdict into the staging triage file before starting the next batch. Page images accumulate in the request, so a deck read in one pass is a deck that eventually trips the limit again.
+
+### 3b. Read the source natively
+
+Read the rendered pages, page by page, before planning. On each page decide: substantive content, structural skeleton (agenda, divider, outline), furniture (title bar, logo, page number, footer), or administrative (welcome, staff, schedule, exercises).
 
 This pass is what makes the output a note instead of a dump. Record what you saw; do not rely on a text layer to tell you what a page was for.
 
-## 3b. Optional MinerU extraction
+## 3c. Optional MinerU extraction
 
 With `--extraction mineru`: create a uniquely named run directory under the system temporary directory (or the installed skill's non-hidden `tmp/`), outside the vault. Run `scripts/mineru-cli-adapter.py`; it unlocks the token, sets `MINERU_TOKEN`, calls `mineru-open-api extract -f md,json`, and writes page groups plus an asset map. Follow [mineru-cli.md](mineru-cli.md). Never call MinerU over raw HTTP and never parse the PDF locally.
 
@@ -45,7 +67,20 @@ It writes a draft `note-plan.json` and `page-ledger.json`. With MinerU it also p
 
 Write one note per entry in the plan. Apply [obsidian-style.md](obsidian-style.md). Distil rather than transcribe: keep definitions, mechanisms, formulas, comparison tables, and decision rules; drop furniture. Convert matrices into real Markdown tables. Finish with `## In-class notes` for `lecture-notes`.
 
-Extract only visuals whose structure matters and name them per [asset-naming.md](asset-naming.md). Record one `evidence` phrase per kept page in the ledger.
+Extract only visuals whose structure matters and name them per [asset-naming.md](asset-naming.md). Record one `evidence` phrase per kept page in the ledger. Crop to the figure, not to the slide.
+
+## 5b. Bounding the delivered assets
+
+Run `scripts/optimize-assets.py`:
+
+```text
+scripts/optimize-assets.py <document-folder> --vault-root <vault-root> \
+  --ledger <run>/page-ledger.json --report <run>/asset-optimization.json
+```
+
+Extraction hands over full-resolution page renders: the MinerU adapter copies its downloads byte for byte, and native reading saves whatever the page looked like. A reader sees an embed at a few hundred pixels, so those bytes are never read. This step delivers every raster as WebP within a 1600px longest edge, rewrites the note embeds, the Canvas file nodes, and the ledger, and unlinks an original only after a vault-wide scan proves nothing references it. Add `--dry-run` to see the byte totals before touching a folder that already exists.
+
+Run it before the Canvas is delegated. The Canvas then points at delivered file names, and the render-QA hash it measures stays the hash of the file on disk. An asset that would not shrink keeps its current file and is reported under `kept`; a `.gif` or `.svg` passes through untouched.
 
 ### Optional deterministic LaTeX normalization
 
@@ -56,7 +91,7 @@ Disabled by default. When enabled, load `obsidian-latex-refiner` and run `script
 Write:
 
 - the note or notes;
-- a flat `assets/` directory referenced from the notes;
+- a flat `assets/` directory of delivered WebP files referenced from the notes;
 - one `<note-slug>.canvas` per note, delegated to `obsidian-canvas-designer`;
 - staging `recall-model.json` per note after reading it;
 - staging `canvas-aesthetic-check.json`, `canvas-render-metrics.json`, and `canvas-render-check.json` per Canvas;

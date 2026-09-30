@@ -50,6 +50,11 @@ When the LaTeX refinement report is supplied it must form a single snapshot-to-r
 - Every wikilink resolves inside the vault when `--vault-root` is supplied.
 - Content-driven assets use lowercase semantic kebab-case names; MinerU transcription assets use flat `page-PPP-kind-NN.ext` with contiguous per-page sequences.
 - Content-driven assets are referenced by a note or a Canvas file node.
+- Every delivered raster is `.webp` with a longest edge of at most 1600px, and the folder holds exactly the WebP files the notes and Canvases embed. `scripts/optimize-assets.py` runs before the Canvas step, so a Canvas file node and a note embed always name the same delivered file. `cwebp` and poppler are checked at intake, so neither step can be skipped by discovering the tool is missing halfway through.
+
+## Asset delivery check
+
+`scripts/optimize-assets.py` is its own gate and leaves a JSON report. Read `converted`, `kept`, `retained_originals`, and `failed` before continuing: a `failed` entry means a visual was not delivered in the promised format, and a `retained_originals` entry means some reference the rewriter could not safely follow still points at the original. Both are review items, not silent successes. Delete the report with the rest of the staging QA state.
 
 ## Ledger and conservation checks
 

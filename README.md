@@ -20,8 +20,10 @@
 - 幻灯片外壳不进笔记：封面页、目录页、章节分隔页、课程行政页、习题页、重复页眉页脚和装饰页，全部在 page ledger 里标记为 `dropped` 并给出受控理由。
 - 每次转换前必须询问笔记粒度（`single-note` 或 `section-notes`），不设默认值。
 - 原生模式必须由能直接查看源页面的原生多模态模型执行；模型无法读图时应改用 `--extraction mineru`，而不是凭文本层猜测。
+- 永远不要把整页 PNG 直接喂给模型：`pi.read` 把图片以 base64 内联，且只有超过 2000px 才重编码、且先试 PNG，于是 1MB 的 PNG 页要付 1.4MB 请求体，被放大的页更贵。34 页 deck 因此从 29MB 降到 4MB——这正是网关返回 413 与否的差别。
 - 可选用确定性脚本把MinerU的`\[...\]`、`\begin{equation}`、`align`等LaTeX规范成Obsidian MathJax可渲染的`$...$`/`$$...$$`与`aligned`/`gathered`，并给数学环境内的中文加`\text{}`；只改数学语法，非数学文本、链接、页面资产和marker保持不变，守恒验证失败自动回滚。
-- 内容驱动笔记的视觉资产使用小写语义 kebab-case 命名，例如 `coding-stages.png`；`page-PPP-kind-NN.ext` 只保留在 MinerU 逐页转录模式。
+- 内容驱动笔记的视觉资产使用小写语义 kebab-case 命名，例如 `coding-stages.webp`；`page-PPP-kind-NN.ext` 只保留在 MinerU 逐页转录模式。
+- 交付资产统一为 WebP 且最长边不超过 1600px：`optimize-assets.py` 用 `cwebp` 重编码，并改写笔记 embed、Canvas file node 与 page ledger，只有在扫描确认无引用后才删除原图。提取路径本身不压缩任何图片（MinerU adapter 是字节级复制，原生模式保存整页渲染），不收敛的话一个学期的课件就会在 vault 里堆出上百 MB 无人会看的位图。
 - 源 PDF/PPT/Office 文件始终留在 Obsidian vault 外部。
 - 每份资料在 vault 中拥有独立文件夹：完整 Markdown、assets 和知识回忆 Canvas。report、snapshot、recall model、aesthetic/render checks 只存在于系统 tmp 或技能安装目录的 `tmp/`，验证完成即删除；不会在 vault 中创建任何点号开头的工作目录。
 - Canvas 不是目录图：它提炼中心问题、学习模块、概念依赖/因果/对比链、边界条件和主动回忆问题，并让每个概念回链到完整课件。
@@ -94,7 +96,7 @@ lecture-slides-to-obsidian/
         └── <document-slug>/
             ├── <note-slug>.md          # 内容驱动笔记，一个或多个
             ├── <note-slug>.canvas      # 每篇笔记一个一分钟知识回忆地图
-            └── assets/                 # 语义命名的派生视觉素材
+            └── assets/                 # 语义命名的派生视觉素材，统一交付为 WebP
 ```
 
 原始 PDF/PPT 等不会复制、移动、symlink、embed 或作为 Canvas file node 放进 vault。Canvas 只连接完整 Markdown、经语义建模的关键概念，以及最多六个真正有助于记忆的派生视觉素材。
@@ -158,11 +160,13 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 ### 默认流程（原生多模态）
 
 1. `preflight.py` 分段确认 vault、课程、提取模式、笔记粒度、profile 和助手技能。
-2. 主 Agent **逐页原生阅读源文件**：判断每一页是实质内容、结构骨架、页面外壳还是行政信息。这一步决定了输出是笔记还是素材包。
-3. `plan-note-structure.py --page-count N` 生成 `note-plan.json` 与 `page-ledger.json` 草稿；Agent 按实际所见修正章节、页处置和每页 evidence 短语，并把两者设为 `draft: false`。
-4. 按 plan 写一篇或多篇笔记：H2 等于计划章节，丢弃外壳页，对比矩阵转成 Markdown 表格。
-5. 只导出真正承载结构的视觉素材，用语义名放进 `assets/`。
-6. 每篇笔记交给 `obsidian-canvas-designer` 子技能：布局、美术评分、DOM 实测、重排由 subagent 完成；主 Agent 只消费 Canvas 与 PASS/FAIL 证据。
+2. `render-source-pages.py <source.pdf> --output-dir <run>/pages --pages 1-8` 先把要读的页面渲染成 WebP（两边 ≤2000px，harness 上限；超过会被 harness 重新编码成更大的 PNG）。实测 34 页 CityU deck：PNG 路线请求体 29.1MB，WebP 路线 4.4MB（−85%），像素尺寸完全相同。
+3. 主 Agent **逐页原生阅读**这些页面：判断每一页是实质内容、结构骨架、页面外壳还是行政信息。这一步决定了输出是笔记还是素材包。每轮读约 8 页并把结论先写进 staging，避免整副 deck 的页面图累积进同一个请求。
+4. `plan-note-structure.py --page-count N` 生成 `note-plan.json` 与 `page-ledger.json` 草稿；Agent 按实际所见修正章节、页处置和每页 evidence 短语，并把两者设为 `draft: false`。
+5. 按 plan 写一篇或多篇笔记：H2 等于计划章节，丢弃外壳页，对比矩阵转成 Markdown 表格。
+6. 只导出真正承载结构的视觉素材，裁到图本身而不是整页，用语义名放进 `assets/`。
+7. `optimize-assets.py <document-folder> --vault-root <vault-root> --ledger <run>/page-ledger.json` 把交付资产收敛为 WebP（最长边 ≤1600px），同步改写 embed、Canvas file node 与台账。它必须跑在 Canvas 之前：Canvas 于是直接指向交付文件名，render-QA 记录的 hash 仍然等于磁盘上的文件。
+8. 每篇笔记交给 `obsidian-canvas-designer` 子技能：布局、美术评分、DOM 实测、重排由 subagent 完成；主 Agent 只消费 Canvas 与 PASS/FAIL 证据。
 
 ### 可选 MinerU 辅助流程
 
@@ -200,6 +204,8 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 ```text
 preflight.py            分段收集/验证 vault、course、提取模式、笔记粒度、profile、helper skills、token state
 plan-note-structure.py  骨架规划：page-count/page-groups → note-plan.json + page-ledger.json（并校验定稿版）
+render-source-pages.py  原生阅读前的页面渲染：poppler 光栅化 + cwebp 编码，两边都 ≤2000px（harness 的上限，超过会被重新编码成更大的 PNG），按 DPI 上限自动降采样，报告给出每页 base64 请求体预算；不抽取任何文本
+optimize-assets.py      交付资产收敛：全量转 WebP、最长边 ≤1600px、改写笔记 embed / Canvas file node / page ledger，仅在确认无引用后删除原图
 validate-output.py      交付文件夹校验：结构、台账、evidence、内容守恒、assets、Canvas
 reconstruct-note.py     MinerU 转录模式：content_list_v2.json → 带 source-page marker 的 Markdown
 fill-report.py          QA context JSON → staging 临时 report

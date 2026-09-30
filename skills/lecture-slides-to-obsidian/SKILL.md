@@ -34,7 +34,7 @@ Turn an external course document into readable, content-driven Obsidian notes wh
 - MinerU token handling applies only with `--extraction mineru`. Run `scripts/token-store.py status` before asking for a token; `configured` means unlock and use it silently.
 - Anchor the outline with `scripts/plan-note-structure.py`. Pass `--page-count` for native reading or `--page-groups` when MinerU ran. It drafts `note-plan.json` plus `page-ledger.json`; the Agent corrects both and sets `draft: false`.
 - Write one note per entry in `note-plan.json`. H2 headings must equal the planned section headings, so the Canvas keeps a real anchor. For `section-notes` the slug is `<document>-<NN>-<section>`, so a filename listing keeps source order.
-- Assets use lowercase semantic kebab-case names (`qualitative-research-cycle.png`). `page-PPP-kind-NN.ext` survives only in MinerU-mode transcription.
+- Assets use lowercase semantic kebab-case names (`qualitative-research-cycle.webp`). `page-PPP-kind-NN.ext` survives only in MinerU-mode transcription.
 - Canvas: delegate to `obsidian-canvas-designer` with the note, semantic model, assets, paths, and overwrite boundary; consume only its artifacts and PASS/FAIL evidence.
 - Multi-file rule: two or more source files in one request must be dispatched as one subagent task per file. Resolve course routing and the registry once before dispatch. Follow [references/multi-file-conversion.md](references/multi-file-conversion.md).
 - Canvas rule: Canvas authoring parallelises freely, and the DOM step is serialized by an exclusive cross-process GUI lease that `canvas-render-qa.py` takes itself. Never activate the Obsidian window. Follow [references/canvas-batch-delegation.md](references/canvas-batch-delegation.md).
@@ -49,26 +49,30 @@ Read [requirements/skills.yaml](requirements/skills.yaml), [requirements/service
 1. Run `scripts/preflight.py` and ask its questions in stages. Resolve the course through the persistent registry. Read [references/course-routing.md](references/course-routing.md).
 2. Confirm the extraction mode, the note granularity, and the conversion profile. Read [references/document-profiles.md](references/document-profiles.md).
 3. Derive one self-contained output folder per document from the matched semester, course, and document slug. Keep every source PDF/PPT/DOC/XLS outside the vault.
-4. Read the source **natively**, page by page, before writing anything. Drop furniture, find the document's own section outline, and note which pages carry real content.
-5. Work in a uniquely named system temporary directory, falling back to a non-hidden `tmp/` directory inside the installed skill.
-6. Run `scripts/plan-note-structure.py` to draft `note-plan.json` and `page-ledger.json`, then correct them against what you actually saw. Set `draft: false` on both.
-7. Write the note or notes. Apply [references/obsidian-style.md](references/obsidian-style.md) and [references/output-contract.md](references/output-contract.md).
-8. Extract and place every meaningful visual at its point of use, and name each one semantically. Record the per-page visual decision in the ledger. See [references/asset-naming.md](references/asset-naming.md).
-9. Optional deterministic LaTeX normalization: run `obsidian-latex-refiner` when enabled; it handles marker-free notes as a single segment.
-10. If the request covers two or more source files, dispatch one subagent task per file before converting anything, then own the Canvas lane yourself. Read each note and allocate one isolated staging/output tuple per Canvas. Run `scripts/plan-conversion-batch.py` for the file split and `scripts/plan-canvas-batch.py` for the serial Canvas order. Never build two Canvases at once.
-11. Render temporary QA with `scripts/fill-report.py`, run [references/validation.md](references/validation.md), extract the facts needed for the final response, delete all QA state on success, then send the concise summary.
+4. Work in a uniquely named system temporary directory, falling back to a non-hidden `tmp/` directory inside the installed skill.
+5. Render the pages you are about to read: `scripts/render-source-pages.py <source.pdf> --output-dir <run>/pages --pages <spec> --report <run>/page-render.json`. It rasterises through poppler and encodes each page as WebP inside the harness's own 2000px ceiling, so a page costs about 130KB of request body instead of 850KB. Read those `.webp` files, never a raw page render.
+6. Read the source **natively**, page by page, before writing anything. Drop furniture, find the document's own section outline, and note which pages carry real content. Keep the batch small — eight pages per turn — and write each batch's verdict into the staging triage file before reading the next batch, so a long deck never accumulates every page image in one request.
+7. Run `scripts/plan-note-structure.py` to draft `note-plan.json` and `page-ledger.json`, then correct them against what you actually saw. Set `draft: false` on both.
+8. Write the note or notes. Apply [references/obsidian-style.md](references/obsidian-style.md) and [references/output-contract.md](references/output-contract.md).
+9. Extract and place every meaningful visual at its point of use, and name each one semantically. Record the per-page visual decision in the ledger. See [references/asset-naming.md](references/asset-naming.md).
+10. Bound the delivered assets: run `scripts/optimize-assets.py <document-folder> --vault-root <vault-root> --ledger <run>/page-ledger.json`. Every delivered raster is WebP within a 1600px longest edge; the script rewrites the note embeds, the Canvas file nodes, and the ledger, and unlinks an original only once nothing references it. Run it before the Canvas step so the Canvas is authored against delivered names and its render-QA hash stays valid.
+11. Optional deterministic LaTeX normalization: run `obsidian-latex-refiner` when enabled; it handles marker-free notes as a single segment.
+12. If the request covers two or more source files, dispatch one subagent task per file before converting anything, then own the Canvas lane yourself. Read each note and allocate one isolated staging/output tuple per Canvas. Run `scripts/plan-conversion-batch.py` for the file split and `scripts/plan-canvas-batch.py` for the serial Canvas order. Never build two Canvases at once.
+13. Render temporary QA with `scripts/fill-report.py`, run [references/validation.md](references/validation.md), extract the facts needed for the final response, delete all QA state on success, then send the concise summary.
 
 ## Non-negotiable boundaries
 
 - Do not claim that source-to-note conversion is lossless. Optimize for semantic fidelity with visual fallback.
 - Do not dump the extraction result into the vault. The extraction is input, never the deliverable.
 - Never summarize a visual in prose and drop it. Extract the image and place it where it belongs; replace it with text only when the text carries exactly the same information, and declare that in the ledger.
+- Never deliver a full-resolution page render. Every delivered raster is WebP with a longest edge of at most 1600px, produced by `scripts/optimize-assets.py`; a note embed shows a few hundred pixels, so the extra bytes are never read. Crop tighter before you optimize: a whole slide is mostly whitespace the reader pays for.
 - Do not invent missing content or normalize an uncertain equation into a confident-looking result.
 - Do not keep slide furniture: agendas, section dividers, course-admin pages, exercise pages, repeated chrome, page numbers, and decorative slides belong in the ledger as `dropped`, not in the note.
 - Never decide note granularity silently.
 - Never convert two or more requested files serially in the main Agent when dispatch is available.
 - Never measure two Canvases concurrently outside the GUI lease, and never activate the Obsidian window. The lease, not a policy ban, is what keeps concurrent agents safe. Ask the user on every conversion.
 - Never run native conversion on a model that cannot see the source pages; re-run with `--extraction mineru` instead.
+- Never hand the model a raw page render. `pi.read` sends an image inline as base64 and only re-encodes one whose side exceeds 2000px, trying PNG first, so a 1 MB PNG page costs 1.4 MB of request body and a carelessly upscaled one costs more than that. Read the WebP pages from `render-source-pages.py`; a 34-page deck then costs 4 MB of request body instead of 29 MB, which is the difference between a gateway accepting the request and answering 413.
 - Resolve every destination under the registered semester root. Reject absolute child paths, `..` traversal, or a resolved path that escapes the course folder.
 - Do not copy, move, embed, or symlink source PDFs, presentations, office documents, or archives into the Obsidian vault.
 - Do not create `.staging`, `.tmp`, `.cache`, backup directories, second Markdown versions, or any other dot-prefixed path in the vault.
@@ -83,7 +87,7 @@ Read [requirements/skills.yaml](requirements/skills.yaml), [requirements/service
 - [references/document-profiles.md](references/document-profiles.md) — what each profile must produce.
 - [references/output-contract.md](references/output-contract.md) — folders, notes, assets, plan and ledger.
 - [references/obsidian-style.md](references/obsidian-style.md) — note anatomy and Obsidian syntax.
-- [references/asset-naming.md](references/asset-naming.md) — semantic asset names.
+- [references/asset-naming.md](references/asset-naming.md) — semantic asset names and the delivered WebP format.
 - [references/quality-gates.md](references/quality-gates.md) — completion gates.
 - [references/validation.md](references/validation.md) — the validator invocation and checks.
 - [references/mineru-cli.md](references/mineru-cli.md) and [references/mineru-normalization.md](references/mineru-normalization.md) — only when `--extraction mineru`.

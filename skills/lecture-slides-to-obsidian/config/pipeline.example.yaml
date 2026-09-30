@@ -14,6 +14,17 @@ extraction:
       - "rendered-page-images"
   mineru:
     enabled_only_with_mode: "mineru"
+  page_rendering:
+    script: "render-source-pages.py"
+    rasteriser: "pdftoppm"                   # poppler; renders pages, extracts no text
+    encoder: "cwebp"
+    format: "webp"
+    max_edge_px: 2000                        # the harness re-encodes anything larger, PNG first
+    dpi_ceiling: 150                         # lowered automatically until the page fits max_edge_px
+    quality: 82
+    read_batch_pages: 8                      # keeps one request from accumulating a whole deck
+    report_name: "page-render.json"
+    pages_directory: "pages"                 # staging only; never the vault
 
 course_routing:
   registry: "state/course-registry.yaml"
@@ -51,6 +62,19 @@ output:
   assets_directory: "assets"
   asset_name_style: "semantic-kebab-case"      # content-driven notes
   asset_name_pattern: "{semantic-slug}.{ext}"
+  asset_delivery:
+    script: "optimize-assets.py"
+    encoder: "cwebp"
+    format: "webp"                          # every delivered raster
+    max_edge_px: 1600                       # longest edge; matches validate-output.py
+    quality: 80
+    passthrough_extensions:                 # animation and vector art are not re-encoded
+      - "gif"
+      - "svg"
+    rewrite_references: true                # note embeds, Canvas file nodes, page ledger
+    delete_unreferenced_original: true
+    run_before_canvas_delegation: true      # keeps the render-QA hash equal to the file on disk
+    report_name: "asset-optimization.json"
   mineru_transcription_asset_name_pattern: "page-{page:03d}-{kind}-{index:02d}.{ext}"
   asset_kinds:
     - "figure"

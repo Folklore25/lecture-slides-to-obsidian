@@ -525,8 +525,8 @@ class SynthesisValidationTests(unittest.TestCase):
             note = folder / "week3-qualitative-research.md"
             note.write_text(
                 note.read_text().replace(
-                    "![[assets/qualitative-research-cycle.png|420]]",
-                    "![[assets/qualitative-research-cycle.png|420]]\n\n![[assets/undeclared-extra.png|300]]",
+                    "![[assets/qualitative-research-cycle.webp|420]]",
+                    "![[assets/qualitative-research-cycle.webp|420]]\n\n![[assets/undeclared-extra.png|300]]",
                 )
             )
             (folder / "assets/undeclared-extra.png").write_bytes(b"synthetic")

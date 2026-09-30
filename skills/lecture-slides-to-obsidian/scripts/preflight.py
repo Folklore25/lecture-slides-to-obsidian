@@ -182,6 +182,34 @@ def main() -> int:
         # Deliberately no version probe: presence on PATH is all the Canvas DOM
         # measurement step requires, and no gate consumes the version string.
 
+    # Delivery and native reading both depend on these two. Checking them here means a
+    # missing encoder fails at intake instead of halfway through a conversion, and it
+    # makes the "render WebP pages, deliver WebP assets" rule impossible to skip by
+    # accident: without the tools the pipeline cannot run at all.
+    cwebp = shutil.which("cwebp")
+    if cwebp is None and not args.fixture_mode:
+        errors.append(
+            "cwebp is unavailable; install it with: brew install webp. Delivered assets must be "
+            "WebP and source pages must be read as WebP"
+        )
+    elif cwebp:
+        checks["cwebp"] = cwebp
+    pdftoppm = shutil.which("pdftoppm")
+    pdfinfo = shutil.which("pdfinfo")
+    if extraction == "native" and not args.fixture_mode and (pdftoppm is None or pdfinfo is None):
+        missing = [
+            name
+            for name, path in (("pdftoppm", pdftoppm), ("pdfinfo", pdfinfo))
+            if path is None
+        ]
+        errors.append(
+            "poppler is unavailable for source page rendering (missing: "
+            + ", ".join(missing)
+            + "); install it with: brew install poppler"
+        )
+    elif pdftoppm and pdfinfo:
+        checks["poppler"] = pdftoppm
+
     openssl = shutil.which("openssl")
     if openssl is None:
         errors.append("OpenSSL is unavailable")

@@ -8,7 +8,7 @@
 
 - Lowercase kebab-case `[a-z0-9]+(-[a-z0-9]+)*`, 3–48 characters.
 - The slug names the *idea*, not the page: `coding-stages.png`, `qualitative-research-cycle.png`, `case-study-vs-ethnography.png`.
-- One extension from `png`, `jpg`, `jpeg`, `webp`, `gif`, `bmp`, `svg`.
+- The delivered extension is `webp`, whatever you saved first: `scripts/optimize-assets.py` canonicalises the folder before delivery. `gif` and `svg` are the exceptions, because animation and vector art do not survive a re-encode.
 - Flat files directly under the document's `assets/` directory.
 - Never use a `page-` prefix, a MinerU hash, a random id, or the original asset basename.
 - Never derive a name from a caption sentence; derive it from what the visual explains.
@@ -30,6 +30,16 @@ page-<PPP>-<kind>-<NN>.<ext>
 Examples: `page-001-figure-01.png`, `page-004-table-01.png`, `page-012-fallback-01.png`.
 
 Assign names in content-list order so a repeat conversion produces identical names. If one original asset path is referenced repeatedly, copy it once and reuse the first standardized name. A different source file resolving to an occupied name is an error, not an overwrite. `asset-map.json` stays in staging QA and is not copied into the vault.
+
+## Delivered bytes
+
+The name says what the picture is. The delivered file says how many bytes it costs, and the two are decided by different steps.
+
+Save the crop under its semantic name in any raster format, then run `scripts/optimize-assets.py` before the Canvas step. It re-encodes every raster to WebP, caps the longest edge at 1600px, rewrites the note embeds, the Canvas file nodes, and the ledger, and deletes an original only after a vault-wide scan finds no reference to it. On a real course that is the difference between 145MB and about 25MB of images, and the reader cannot see the difference: an embed renders at a few hundred pixels wide.
+
+Optimizing is not cropping. A full slide at 1600px is still a slide, and a slide is mostly title bar, logo, and margin the reader pays for on every open. Crop to the figure first, then optimize. `validate-output.py` rejects a delivered asset whose longest edge exceeds 1600px, and it rejects the sliver crops that come from cropping too hard.
+
+The delivered set is exactly what the notes and Canvases reference. An asset nothing references is still a validation failure: a smaller vault is not a licence to keep a picture nobody opens.
 
 ## Choosing what to keep
 

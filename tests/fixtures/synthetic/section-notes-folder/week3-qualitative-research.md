@@ -21,7 +21,7 @@ qualitative work focuses on words, quantitative work focuses on numbers.
 An interview is a **data collection technique**, not a method, and a questionnaire is one part of a
 survey method rather than a method of its own.
 
-![[assets/qualitative-research-cycle.png|420]]
+![[assets/qualitative-research-cycle.webp|420]]
 
 ## 2. Grounded theory
 

@@ -36,7 +36,9 @@ scripts/plan-canvas-batch.py
 scripts/fill-report.py
 scripts/mineru-cli-adapter.py
 scripts/preflight.py
+scripts/optimize-assets.py
 scripts/plan-note-structure.py
+scripts/render-source-pages.py
 scripts/reconstruct-note.py
 scripts/purge-state.sh
 scripts/token-store.py
@@ -310,6 +312,32 @@ if ! grep -q 'must declare visual: true or false' "$skill_dir/scripts/plan-note-
 	exit 1
 fi
 
+if ! grep -q 'name: "cwebp"' "$skill_dir/requirements/tools.yaml" ||
+   ! grep -q 'MAX_ASSET_EDGE_PX' "$skill_dir/scripts/validate-output.py" ||
+   ! grep -q 'DELIVERED_EXTENSIONS' "$skill_dir/scripts/validate-output.py" ||
+   ! grep -q 'optimize-assets.py' "$skill_dir/references/asset-naming.md" ||
+   ! grep -q 'max_edge_px: 1600' "$skill_dir/config/pipeline.example.yaml" ||
+   ! grep -q 'Bound the delivered assets' "$skill_dir/SKILL.md" ||
+   ! grep -q '## 5b. Bounding the delivered assets' "$skill_dir/references/workflow.md"; then
+	printf 'delivered-asset WebP contract is missing or out of sync\n' >&2
+	exit 1
+fi
+
+# A page the harness would have to re-encode costs more request body than the PNG it
+# replaced, so the renderer owns the ceiling and the skill owns the rule that it is used.
+if ! grep -q 'name: "poppler"' "$skill_dir/requirements/tools.yaml" ||
+   ! grep -q 'pdftoppm' "$skill_dir/requirements/tools.yaml" ||
+   ! grep -q 'HARNESS_MAX_EDGE' "$skill_dir/scripts/render-source-pages.py" ||
+   ! grep -q 'cwebp is unavailable' "$skill_dir/scripts/preflight.py" ||
+   ! grep -q 'poppler is unavailable' "$skill_dir/scripts/preflight.py" ||
+   ! grep -q 'read_batch_pages' "$skill_dir/config/pipeline.example.yaml" ||
+   ! grep -q '### 3a. Render the pages to read' "$skill_dir/references/workflow.md" ||
+   ! grep -q 'Render the pages you are about to read' "$skill_dir/SKILL.md" ||
+   ! grep -q 'Never hand the model a raw page render' "$skill_dir/SKILL.md"; then
+	printf 'model-ready page rendering contract is missing or out of sync\n' >&2
+	exit 1
+fi
+
 if ! grep -q 'MIN_ASSET_EDGE_PX' "$skill_dir/scripts/validate-output.py" ||
 	! grep -q 'A crop must contain the thing it is named after' "$skill_dir/references/asset-naming.md" ||
 	! grep -q 'Tables and equations are not visuals' "$skill_dir/references/asset-naming.md" ||
@@ -370,6 +398,12 @@ fi
 
 if ! grep -q 'repeated_user_confirmation: false' "$skill_dir/requirements/services.yaml"; then
 	printf 'automatic credential reuse contract is missing\n' >&2
+	exit 1
+fi
+
+if [ ! -x "$skill_dir/scripts/optimize-assets.py" ] ||
+	[ ! -x "$skill_dir/scripts/render-source-pages.py" ]; then
+	printf 'the asset optimizer and page renderer must be executable\n' >&2
 	exit 1
 fi
 

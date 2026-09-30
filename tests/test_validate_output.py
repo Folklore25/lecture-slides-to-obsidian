@@ -1,4 +1,5 @@
 import hashlib
+import importlib.util
 import json
 import shutil
 import subprocess
@@ -12,6 +13,18 @@ REPO = Path(__file__).resolve().parents[1]
 VALIDATOR = REPO / "skills/lecture-slides-to-obsidian/scripts/validate-output.py"
 FIXTURE = REPO / "tests/fixtures/synthetic/valid-document-folder"
 REPORT_FIXTURE = REPO / "tests/fixtures/staging/conversion-report.md"
+
+
+def webp_bytes(width: int, height: int) -> bytes:
+    """A lossy WebP header carrying the given canvas size, which is all a gate reads."""
+    payload = (
+        bytes(3) + bytes((0x9D, 0x01, 0x2A))
+        + (width).to_bytes(2, "little") + (height).to_bytes(2, "little")
+    )
+    return (
+        b"RIFF" + (len(payload) + 4).to_bytes(4, "little") + b"WEBP"
+        + b"VP8 " + (len(payload)).to_bytes(4, "little") + payload
+    )
 
 
 def run_validator(
@@ -77,6 +90,69 @@ def write_canvas_qa(staging: Path, canvas: Path) -> tuple[Path, Path, Path]:
         "canvas_sha256": canvas_hash,
     }))
     return aesthetic, metrics, check
+
+
+class ImageDimensionTests(unittest.TestCase):
+    """The dimension reader decides which axis a delivered asset is bounded on."""
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location("validate_output", VALIDATOR)
+        cls.validator = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.validator)
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.folder = Path(self.temp.name)
+
+    def write(self, name: str, payload: bytes) -> Path:
+        path = self.folder / name
+        path.write_bytes(payload)
+        return path
+
+    def test_a_jpeg_reports_width_before_height(self):
+        # SOI, APP0, then a start-of-frame whose segment stores height before width.
+        payload = (
+            b"\xff\xd8"
+            + b"\xff\xe0" + (16).to_bytes(2, "big") + bytes(14)
+            + b"\xff\xc0" + (17).to_bytes(2, "big") + b"\x08"
+            + (1200).to_bytes(2, "big") + (1600).to_bytes(2, "big")
+        )
+        path = self.write("figure.jpg", payload)
+        self.assertEqual(self.validator.image_dimensions(path), (1600, 1200))
+
+    def test_a_webp_reports_its_canvas_size(self):
+        payload = (
+            b"RIFF" + (30).to_bytes(4, "little") + b"WEBP"
+            + b"VP8 " + (10).to_bytes(4, "little")
+            + b"\x00\x00\x00" + bytes((0x9D, 0x01, 0x2A))
+            + (1600).to_bytes(2, "little") + (900).to_bytes(2, "little")
+        )
+        path = self.write("figure.webp", payload)
+        self.assertEqual(self.validator.image_dimensions(path), (1600, 900))
+
+    def test_a_lossless_webp_reports_its_canvas_size(self):
+        bits = 1199 | (899 << 14)
+        payload = (
+            b"RIFF" + (26).to_bytes(4, "little") + b"WEBP"
+            + b"VP8L" + (5).to_bytes(4, "little") + b"\x2f" + bits.to_bytes(4, "little")
+        )
+        path = self.write("flat.webp", payload)
+        self.assertEqual(self.validator.image_dimensions(path), (1200, 900))
+
+    def test_an_extended_webp_reports_its_canvas_size(self):
+        payload = (
+            b"RIFF" + (40).to_bytes(4, "little") + b"WEBP"
+            + b"VP8X" + (10).to_bytes(4, "little")
+            + bytes(4) + (1599).to_bytes(3, "little") + (899).to_bytes(3, "little")
+        )
+        path = self.write("animated.webp", payload)
+        self.assertEqual(self.validator.image_dimensions(path), (1600, 900))
+
+    def test_a_truncated_webp_is_reported_as_unreadable(self):
+        path = self.write("broken.webp", b"RIFF" + (4).to_bytes(4, "little") + b"WEBP")
+        self.assertIsNone(self.validator.image_dimensions(path))
 
 
 class ValidateOutputTests(unittest.TestCase):
@@ -287,8 +363,7 @@ class ValidateOutputTests(unittest.TestCase):
             folder = Path(temp) / "document"
             shutil.copytree(FIXTURE, folder)
             # A 900x30 strip: the classic "table edge" crop that still resolves and embeds.
-            header = b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR" + (900).to_bytes(4, "big") + (30).to_bytes(4, "big")
-            (folder / "assets/page-001-figure-01.png").write_bytes(header + b"\x00" * 16)
+            (folder / "assets/page-001-figure-01.webp").write_bytes(webp_bytes(900, 30))
             code, result = run_validator(folder)
             self.assertNotEqual(code, 0)
             self.assertTrue(any("cannot carry its subject" in item for item in result["errors"]))
@@ -297,18 +372,37 @@ class ValidateOutputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp) / "document"
             shutil.copytree(FIXTURE, folder)
-            header = b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR" + (1200).to_bytes(4, "big") + (700).to_bytes(4, "big")
-            (folder / "assets/page-001-figure-01.png").write_bytes(header + b"\x00" * 16)
+            (folder / "assets/page-001-figure-01.webp").write_bytes(webp_bytes(1200, 700))
             code, result = run_validator(folder)
             self.assertEqual(code, 0, result["errors"])
+
+    def test_an_unoptimized_page_render_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / "document"
+            shutil.copytree(FIXTURE, folder)
+            # A 2400px full-page render: what an extraction drops in when nothing bounds it.
+            (folder / "assets/page-001-figure-01.webp").write_bytes(webp_bytes(2400, 1500))
+            code, result = run_validator(folder)
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("optimize-assets.py" in item for item in result["errors"]))
+
+    def test_a_leftover_png_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / "document"
+            shutil.copytree(FIXTURE, folder)
+            # Small enough to pass every dimension gate, and still the wrong format.
+            (folder / "assets/page-001-figure-01.png").write_bytes(webp_bytes(1200, 700))
+            code, result = run_validator(folder)
+            self.assertNotEqual(code, 0)
+            self.assertTrue(any("optimize-assets.py" in item for item in result["errors"]))
 
     def test_standardized_asset_name_passes(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp) / "document"
             shutil.copytree(FIXTURE, folder)
-            (folder / "assets/page-001-figure-01.png").write_bytes(b"synthetic")
+            (folder / "assets/page-001-figure-01.webp").write_bytes(webp_bytes(1200, 700))
             code, result = run_validator(folder)
-            self.assertEqual(code, 0)
+            self.assertEqual(code, 0, result["errors"])
             self.assertTrue(result["valid"])
 
     def test_unstandardized_asset_name_is_rejected(self):
@@ -324,8 +418,8 @@ class ValidateOutputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp) / "document"
             shutil.copytree(FIXTURE, folder)
-            (folder / "assets/page-001-figure-01.png").write_bytes(b"synthetic")
-            (folder / "assets/page-001-figure-03.png").write_bytes(b"synthetic")
+            (folder / "assets/page-001-figure-01.webp").write_bytes(b"synthetic")
+            (folder / "assets/page-001-figure-03.webp").write_bytes(b"synthetic")
             code, result = run_validator(folder)
             self.assertNotEqual(code, 0)
             self.assertTrue(any("contiguous from 01" in item for item in result["errors"]))

@@ -26,10 +26,17 @@ SOURCE_EXTENSIONS = {
     ".zip", ".7z", ".rar", ".tar", ".gz",
 }
 VISUAL_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"}
+# What may sit in a delivered assets/ directory. Animation and vector art are exempt from
+# re-encoding; every photographic or screenshot raster is delivered as WebP, and a leftover
+# PNG is the visible symptom of a skipped optimize-assets.py step.
+DELIVERED_EXTENSIONS = {".webp", ".gif", ".svg"}
 # A crop that loses the thing it is named after is the most common silent failure:
 # a table edge or a figure sliver still resolves, still gets embedded, and carries nothing.
 MIN_ASSET_EDGE_PX = 40
 MAX_ASSET_ASPECT = 8.0
+# A reader sees an embed at a few hundred pixels wide, so an edge far past this is
+# bytes nobody can use. optimize-assets.py is what brings a delivered asset under it.
+MAX_ASSET_EDGE_PX = 1600
 PAGE_ASSET_NAME = re.compile(
     r"^page-(\d{3})-(figure|table|equation|chart|fallback)-(\d{2})\.[a-z0-9]+$"
 )
@@ -587,6 +594,41 @@ def validate_report(path: Path) -> list[str]:
     return errors
 
 
+VP8_SYNC_CODE = bytes((0x9D, 0x01, 0x2A))
+
+
+def webp_dimensions(path: Path) -> tuple[int, int] | None:
+    """Read a WebP canvas size from the RIFF container.
+
+    The delivered format is WebP, so a parser that stopped at JPEG would silently
+    skip every dimension gate for every asset this pipeline actually ships.
+    """
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return None
+    offset = 12
+    while offset + 8 <= len(data):
+        chunk = data[offset:offset + 4]
+        size = int.from_bytes(data[offset + 4:offset + 8], "little")
+        payload = data[offset + 8:offset + 8 + size]
+        if chunk == b"VP8X" and len(payload) >= 10:
+            return (
+                int.from_bytes(payload[4:7], "little") + 1,
+                int.from_bytes(payload[7:10], "little") + 1,
+            )
+        if chunk == b"VP8 " and len(payload) >= 10 and payload[3:6] == VP8_SYNC_CODE:
+            return (
+                int.from_bytes(payload[6:8], "little") & 0x3FFF,
+                int.from_bytes(payload[8:10], "little") & 0x3FFF,
+            )
+        if chunk == b"VP8L" and len(payload) >= 5 and payload[0] == 0x2F:
+            bits = int.from_bytes(payload[1:5], "little")
+            return (bits & 0x3FFF) + 1, ((bits >> 14) & 0x3FFF) + 1
+        offset += 8 + size + (size & 1)
+    return None
+
+
 def image_dimensions(path: Path) -> tuple[int, int] | None:
     """Read raster dimensions with the stdlib so a degenerate crop can be rejected."""
     try:
@@ -600,6 +642,8 @@ def image_dimensions(path: Path) -> tuple[int, int] | None:
             return int.from_bytes(head[6:8], "little"), int.from_bytes(head[8:10], "little")
         if head.startswith(b"BM"):
             return int.from_bytes(head[18:22], "little"), int.from_bytes(head[22:26], "little")
+        if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+            return webp_dimensions(path)
         if head.startswith(b"\xff\xd8"):
             with path.open("rb") as handle:
                 handle.read(2)
@@ -608,8 +652,13 @@ def image_dimensions(path: Path) -> tuple[int, int] | None:
                     if len(marker) < 2 or marker[0] != 0xFF:
                         return None
                     if 0xC0 <= marker[1] <= 0xCF and marker[1] not in (0xC4, 0xC8, 0xCC):
+                        # A start-of-frame segment carries length, sample precision, then
+                        # height before width. Returning them in the wrong order survived
+                        # every symmetric check here and only surfaced once something had to
+                        # decide which axis to bound.
                         handle.read(3)
-                        return int.from_bytes(handle.read(2), "big"), int.from_bytes(handle.read(2), "big")
+                        height = int.from_bytes(handle.read(2), "big")
+                        return int.from_bytes(handle.read(2), "big"), height
                     size = int.from_bytes(handle.read(2), "big")
                     handle.read(max(size - 2, 0))
     except (OSError, ValueError):
@@ -638,8 +687,20 @@ def validate_assets(
             errors.append(f"visual asset must be a flat file directly under assets/: {path.relative_to(assets)}")
             continue
         seen.add(path.name)
+        if path.suffix.lower() not in DELIVERED_EXTENSIONS:
+            errors.append(
+                f"visual asset {path.name} is a {path.suffix.lstrip('.')} raster; a delivered asset is "
+                f"{'/'.join(sorted(ext.lstrip('.') for ext in DELIVERED_EXTENSIONS))}, so run "
+                "scripts/optimize-assets.py before delivery"
+            )
         size = image_dimensions(path)
         if size is not None:
+            if max(size) > MAX_ASSET_EDGE_PX:
+                errors.append(
+                    f"visual asset {path.name} is {size[0]}x{size[1]}px; a delivered asset is WebP "
+                    f"with a longest edge of at most {MAX_ASSET_EDGE_PX}px, so run "
+                    "scripts/optimize-assets.py before delivery"
+                )
             reason = degenerate_asset_reason(*size)
             if reason is not None:
                 errors.append(

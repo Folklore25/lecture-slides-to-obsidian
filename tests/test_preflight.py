@@ -44,6 +44,39 @@ class PreflightTests(unittest.TestCase):
             "--loaded-skill", "obsidian-canvas-designer",
         ]
 
+    # --- toolchain gates -------------------------------------------------------
+
+    def run_without_homebrew(self, arguments):
+        """Run with a PATH that has the system tools but neither cwebp nor poppler."""
+        return subprocess.run(
+            [sys.executable, str(SCRIPT), *map(str, arguments)],
+            capture_output=True, text=True, check=False, env={"PATH": "/usr/bin:/bin", "HOME": "/tmp"},
+        )
+
+    def test_a_missing_encoder_fails_intake_rather_than_mid_conversion(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source, vault, token = self.make_paths(Path(temp))
+            result = self.run_without_homebrew([
+                *self.base_arguments(source, vault, token, "lecture-notes"),
+                "--note-granularity", "single-note",
+                "--visual-input", "true",
+            ])
+            payload = json.loads(result.stdout)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertTrue(any("cwebp is unavailable" in item for item in payload["errors"]))
+            self.assertTrue(any("poppler is unavailable" in item for item in payload["errors"]))
+
+    def test_poppler_is_only_required_for_native_reading(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source, vault, token = self.make_paths(Path(temp))
+            result = self.run_without_homebrew([
+                *self.base_arguments(source, vault, token, "policy-document", extraction="mineru"),
+            ])
+            payload = json.loads(result.stdout)
+            self.assertFalse(any("poppler is unavailable" in item for item in payload["errors"]))
+            # cwebp still gates delivery, because assets are delivered in both modes.
+            self.assertTrue(any("cwebp is unavailable" in item for item in payload["errors"]))
+
     # --- content-driven lecture-notes synthesis -------------------------------
 
     def test_synthesis_preflight_passes_with_granularity_and_visual_input(self):

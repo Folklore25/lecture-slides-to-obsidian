@@ -9,6 +9,26 @@ required_tools:
     verify_command: "command -v obsidian"
     tested_version: "1.13.7 (installer 1.12.4)"
 
+  - name: "poppler"
+    purpose: "Rasterise source PDF pages for native reading. Renders only; it
+extracts no text, no tables, and no structure."
+    binaries:
+      - "pdftoppm"
+      - "pdfinfo"
+    verify_command: "command -v pdftoppm && command -v pdfinfo"
+    tested_version: "26.09.0"
+    install:
+      brew: "brew install poppler"
+      apt: "apt-get install poppler-utils"
+  - name: "cwebp"
+    purpose: "Deliver every visual asset as WebP under a bounded longest edge. The
+extraction paths copy or save full-resolution page renders, so without an encoder a
+single course fills the vault with multi-megabyte PNGs."
+    verify_command: "command -v cwebp"
+    tested_version: "1.6.0"
+    install:
+      brew: "brew install webp"
+
 optional_tools:
   - name: "mineru-open-api"
     purpose: "Official MinerU client for authenticated extraction, polling,

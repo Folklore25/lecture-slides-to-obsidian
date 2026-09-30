@@ -7,7 +7,7 @@ Hand-authored inputs (committed as-is):
 
 Generated outputs:
   week3-qualitative-research.canvas   built by the real recall-model -> Canvas renderer
-  assets/qualitative-research-cycle.png  a deterministic 8x8 PNG placeholder
+  assets/qualitative-research-cycle.webp  a deterministic placeholder, encoded from PNG by cwebp
 
 The Canvas is built inside a throwaway vault so the real script's path checks run, then its
 vault-relative file nodes are rewritten to document-relative ones for `--fixture-mode`.
@@ -29,11 +29,39 @@ FIXTURE = Path(__file__).resolve().parent / "section-notes-folder"
 REPO = Path(__file__).resolve().parents[3]
 CANVAS_SKILL = REPO / "skills/obsidian-canvas-designer"
 NOTE_NAME = "week3-qualitative-research"
-ASSET_NAME = "qualitative-research-cycle.png"
+ASSET_NAME = "qualitative-research-cycle.webp"
 VAULT_PREFIX = "COURSE101/Lectures/week3/"
 
 
-def png_bytes(width: int = 640, height: int = 360) -> bytes:
+def webp_bytes(width: int = 640, height: int = 360) -> bytes:
+    """A deterministic solid-colour WebP: a PNG intermediate pushed through cwebp.
+
+    A delivered asset is WebP, so the fixture has to be one; the PNG only exists because
+    writing a VP8 bitstream by hand is not worth it and cwebp is a declared tool.
+    """
+    raw = b"".join(b"\x00" + bytes([30, 90, 160] * width) for _ in range(height))
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data))
+            + tag
+            + data
+            + struct.pack(">I", zlib.crc32(tag + data))
+        )
+
+    header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    png = (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(raw))
+        + chunk(b"IEND", b"")
+    )
+    with tempfile.TemporaryDirectory() as temp:
+        source = Path(temp) / "page.png"
+        target = Path(temp) / "page.webp"
+        source.write_bytes(png)
+        subprocess.run(["cwebp", "-quiet", "-q", "82", str(source), "-o", str(target)], check=True)
+        return target.read_bytes()
     raw = b"".join(b"\x00" + bytes([30, 90, 160] * width) for _ in range(height))
 
     def chunk(tag: bytes, data: bytes) -> bytes:
@@ -67,7 +95,7 @@ def main() -> int:
         document = vault / VAULT_PREFIX
         (document / "assets").mkdir(parents=True)
         shutil.copy2(note, document / f"{NOTE_NAME}.md")
-        (document / "assets" / ASSET_NAME).write_bytes(png_bytes())
+        (document / "assets" / ASSET_NAME).write_bytes(webp_bytes())
 
         canvas_path = document / f"{NOTE_NAME}.canvas"
         built = subprocess.run(
@@ -97,7 +125,7 @@ def main() -> int:
             json.dumps(data, ensure_ascii=False, indent="\t") + "\n", encoding="utf-8"
         )
         (FIXTURE / "assets").mkdir(exist_ok=True)
-        (FIXTURE / "assets" / ASSET_NAME).write_bytes(png_bytes())
+        (FIXTURE / "assets" / ASSET_NAME).write_bytes(webp_bytes())
 
     print(f"regenerated {NOTE_NAME}.canvas and assets/{ASSET_NAME}")
     return 0
