@@ -62,7 +62,8 @@ Mark each dropped page in the ledger with a controlled reason.
 
 - Use `[[wikilinks]]` for internal notes and `![[assets/file.png|420]]` for local embeds.
 - Use standard Markdown links only for external URLs.
-- Keep equations in LaTeX delimiters so they render in MathJax.
+- **Every formula is standard MathJax or it is a defect.** Delimit inline math with `$...$` and display math with `$$...$$`; never `\(...\)`, `\[...\]`, or `$$` on its own line. Inside math, `aligned`, `gathered`, `cases`, `array`, and the `matrix` family render; `align`, `align*`, `eqnarray`, `alignat`, `flalign`, `gather`, `multline`, `equation`, and `split` do not. Drop `\label`, `\nonumber`, and `\notag`; wrap any Chinese run in `\text{}`.
+- **Write the command, never the letters.** A radical is `\sqrt{...}` and a summation is `\sum_{i=1}^{n}`; typing `sqrt` or `sum` renders the word in math italics and the symbol is gone. The same applies to every Greek letter and every relation: `\sigma` not `sigma`, `\leq` not `leq`, `\infty` not `infty`, `\times` not `times`. A backslash eaten anywhere in a formula is the single most common way a note ships a wrong equation, and it is invisible until the reader looks for the symbol.
 - Use callouts for warnings or review items, not for ordinary source content. Wrap conversion-generated callouts in `<!-- conversion-layer:<kind>:<id>:start -->` / `<!-- conversion-layer:<kind>:<id>:end -->` markers.
 - Prefer a Markdown table over an image only for a legible numeric data table. For anything whose structure matters, keep the visual.
 

@@ -52,6 +52,14 @@ When the LaTeX refinement report is supplied it must form a single snapshot-to-r
 - Content-driven assets are referenced by a note or a Canvas file node.
 - Every delivered raster is `.webp` with a longest edge of at most 1600px, and the folder holds exactly the WebP files the notes and Canvases embed. `scripts/optimize-assets.py` runs before the Canvas step, so a Canvas file node and a note embed always name the same delivered file. `cwebp` and poppler are checked at intake, so neither step can be skipped by discovering the tool is missing halfway through.
 
+## MathJax gate
+
+`validate-output.py` reads every delivered note and rejects math that Obsidian will not render. It is read-only: it inspects, never writes, and needs no optional skill. The classes it fails on are a non-MathJax environment (`align`, `eqnarray`, `equation`, `split`, a bare `\label` or `\nonumber`), document LaTeX left in prose, raw CJK inside math, an unclosed or empty delimiter, inline math spanning a line break, a legacy `\(`/`\[` delimiter, and a **lost backslash** — a control character inside math, or `sqrt`/`sum`/`sigma` written as letters. The last class is the one that ships wrong equations silently, so the error names the symbol the reader should have seen: "must see √".
+
+Currency is not math. `$6.50`, `$15`, `>$75,000`, and `HK$163.66` are never treated as delimiters, while `$1/(n-1)$` is, because a line carrying two or more `$` has already proven it is writing math. A line that mixes a currency amount and a math span is genuinely ambiguous and is reported for the author to disambiguate.
+
+A failure here means the formula is already broken on disk. `obsidian-latex-refiner` repairs the LaTeX classes with a snapshot, a conservation check, and an automatic rollback; the lost-backslash and control-character classes are authoring corruption and must be rewritten. Re-run the validator afterwards.
+
 ## Asset delivery check
 
 `scripts/optimize-assets.py` is its own gate and leaves a JSON report. Read `converted`, `kept`, `retained_originals`, and `failed` before continuing: a `failed` entry means a visual was not delivered in the promised format, and a `retained_originals` entry means some reference the rewriter could not safely follow still points at the original. Both are review items, not silent successes. Delete the report with the rest of the staging QA state.

@@ -37,6 +37,65 @@ MAX_ASSET_ASPECT = 8.0
 # A reader sees an embed at a few hundred pixels wide, so an edge far past this is
 # bytes nobody can use. optimize-assets.py is what brings a delivered asset under it.
 MAX_ASSET_EDGE_PX = 1600
+# MathJax conformance. Obsidian renders math with MathJax, so only $...$ and $$...$$ are
+# portable. Two classes of defect are checked: LaTeX that MathJax does not implement, and
+# formulas mangled before they were ever valid LaTeX.
+MATHJAX_UNSUPPORTED_ENVIRONMENTS = {
+    "align", "align*", "alignat", "alignat*", "eqnarray", "eqnarray*", "flalign",
+    "flalign*", "gather", "gather*", "multline", "multline*", "split", "equation",
+    "equation*", "displaymath", "math", "multlined", "IEEEeqnarray", "tabular",
+    "table", "subequations", "array*",
+}
+MATHJAX_STRIPPED_COMMANDS = {
+    "label": r"\\label\s*\{", "nonumber": r"\\nonumber\b", "notag": r"\\notag\b",
+    "tag": r"\\tag\s*\{", "caption": r"\\caption\s*\{", "hline": r"\\hline\b",
+    "cline": r"\\cline\s*\{", "centering": r"\\centering\b",
+}
+MATHJAX_DOCUMENT_COMMANDS = re.compile(
+    r"\\(?:documentclass|usepackage|maketitle|bibliography|bibitem|includegraphics|"
+    r"href|url|cite|citep|citet|ref|eqref|footnote|newpage|clearpage|setlength|"
+    r"renewcommand)\s*[{a-zA-Z]"
+)
+# A control sequence that lost its backslash renders as plain letters. This is not a
+# LaTeX-dialect problem: the authoring path interpreted \t and \f as escape sequences and
+# dropped the backslash from the ones JSON does not define, so sqrt arrives as "sqrt" and
+# \frac as a form feed followed by "rac". No dialect wants those.
+MATHJAX_LOST_COMMANDS = (
+    "frac", "sqrt", "sum", "prod", "cdot", "times", "leq", "geq", "neq", "approx",
+    "equiv", "propto", "infty", "partial", "nabla", "ldots", "cdots", "lambda",
+    "alpha", "beta", "gamma", "delta", "theta", "sigma", "omega", "mathbf", "mathrm",
+    "mathit", "mathcal", "binom", "vec", "hat", "tilde", "overline", "underline",
+    "displaystyle", "tfrac", "dfrac", "substack",
+)
+# Operators that LaTeX accepts without a backslash, so a missing one is not a defect.
+MATHJAX_BARE_OK = {"log", "exp", "lim", "max", "min", "sin", "cos", "tan", "det", "dim",
+                   "arg", "sup", "inf", "gcd", "deg", "ker", "mod"}
+# What the reader should have seen instead of the italic letters. A note that renders
+# "sqrt sum" in math italics is not a formatting nit: the radical and the summation sign
+# are gone, and the formula is no longer the one the source stated.
+MATHJAX_COMMAND_SYMBOLS = {
+    "sqrt": "√", "sum": "∑", "prod": "∏", "int": "∫", "iint": "∬", "oint": "∮",
+    "infty": "∞", "partial": "∂", "nabla": "∇", "times": "×", "cdot": "·",
+    "pm": "±", "mp": "∓", "leq": "≤", "le": "≤", "geq": "≥", "ge": "≥",
+    "neq": "≠", "approx": "≈", "equiv": "≡", "propto": "∝", "therefore": "∴",
+    "because": "∵", "ldots": "…", "cdots": "⋯", "forall": "∀", "exists": "∃",
+    "in": "∈", "notin": "∉", "subset": "⊂", "cup": "∪", "cap": "∩",
+    "emptyset": "∅", "to": "→", "rightarrow": "→", "leftarrow": "←",
+    "Rightarrow": "⇒", "Leftarrow": "⇐", "leftrightarrow": "↔",
+    "alpha": "α", "beta": "β", "gamma": "γ", "delta": "δ", "epsilon": "ε",
+    "theta": "θ", "lambda": "λ", "mu": "μ", "pi": "π", "rho": "ρ",
+    "sigma": "σ", "tau": "τ", "phi": "φ", "omega": "ω", "kappa": "κ",
+}
+MATHJAX_CONTROL_CHARACTERS = {
+    "\t": "tab", "\r": "carriage return", "\x0b": "vertical tab", "\x08": "backspace",
+    "\x0c": "form feed", "\x00": "null",
+}
+MATHJAX_CJK = re.compile("[\u2e80-\u9fff\u3400-\u4dbf\u3040-\u30ff\uac00-\ud7af]")
+MATHJAX_TEXT_COMMAND = re.compile(r"\\text\s*\{[^{}]*\}")
+MATHJAX_ENVIRONMENT = re.compile(r"\\begin\s*\{([A-Za-z*]+)\}")
+MATHJAX_CODE_FENCE = re.compile(r"(?ms)^([ \t]*)(?:`{3,}|~{3,}).*?^[ \t]*(?:`{3,}|~{3,})[ \t]*$")
+MATHJAX_INLINE_CODE = re.compile(r"`[^`\n]*`")
+MATHJAX_FRONTMATTER = re.compile(r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*(?:\r?\n|\Z)", re.S)
 PAGE_ASSET_NAME = re.compile(
     r"^page-(\d{3})-(figure|table|equation|chart|fallback)-(\d{2})\.[a-z0-9]+$"
 )
@@ -309,6 +368,196 @@ def validate_visual_assets(ledger: dict, assets: Path, referenced: set[str]) -> 
         errors.append(
             "assets are not declared as kept in the page ledger: " + ", ".join(undeclared)
         )
+    return errors
+
+
+def strip_frontmatter(text: str) -> tuple[str, int]:
+    """Return the body and how many lines the frontmatter took, so line numbers hold."""
+    match = MATHJAX_FRONTMATTER.match(text)
+    if not match:
+        return text, 0
+    return text[match.end():], text.count("\n", 0, match.end())
+
+
+def blank_out(value: str) -> str:
+    """Replace a span with spaces but keep its newlines, so reported line numbers hold."""
+    return "".join(character if character == "\n" else " " for character in value)
+
+
+def mask_code(text: str) -> str:
+    """Blank fenced and inline code so a LaTeX sample in a code block is not math."""
+    masked = MATHJAX_CODE_FENCE.sub(lambda match: blank_out(match.group(0)), text)
+    return MATHJAX_INLINE_CODE.sub(lambda match: blank_out(match.group(0)), masked)
+
+
+def unescaped_dollars(text: str) -> set[int]:
+    """Positions of every $ that is not escaped."""
+    positions: set[int] = set()
+    index = 0
+    while index < len(text):
+        if text[index] == "\\":
+            index += 2
+            continue
+        if text[index] == "$":
+            positions.add(index)
+        index += 1
+    return positions
+
+
+def math_delimiters(text: str) -> set[int]:
+    """Which $ characters delimit math, decided line by line.
+
+    "$6.50", "$15" and ">$75,000" are money, and a business-plan or wage note is full of
+    them; pairing those invents spans that swallow whole paragraphs. A lone $ followed by
+    a digit is therefore money. Everything else is a delimiter, which keeps "$k$" and
+    "$1/(n-1)$" working: a line carrying two or more $ has already proven it is writing
+    math, and a $ that opens math may end on a letter or a digit.
+    """
+    dollars = unescaped_dollars(text)
+    delimiters: set[int] = set()
+    for start, end in line_bounds(text):
+        positions = sorted(position for position in dollars if start <= position < end)
+        if len(positions) == 1:
+            only = positions[0]
+            if only + 1 < len(text) and text[only + 1].isdigit():
+                continue
+        delimiters.update(positions)
+    return delimiters
+
+
+def line_bounds(text: str) -> list[tuple[int, int]]:
+    bounds: list[tuple[int, int]] = []
+    start = 0
+    for line in text.split("\n"):
+        bounds.append((start, start + len(line)))
+        start += len(line) + 1
+    return bounds
+
+
+def find_math_spans(text: str) -> list[tuple[int, int, str, str]]:
+    """Return (start, end, delimiter, inner) for every $$ and $ span, in order."""
+    spans: list[tuple[int, int, str, str]] = []
+    delimiters = math_delimiters(text)
+    index = 0
+    length = len(text)
+    while index < length:
+        if text.startswith("$$", index) and index in delimiters:
+            end = text.find("$$", index + 2)
+            if end < 0:
+                return spans
+            spans.append((index, end + 2, "$$", text[index + 2:end]))
+            index = end + 2
+            continue
+        if text[index] == "\\":
+            index += 2
+            continue
+        if index in delimiters:
+            cursor = index + 1
+            closing = -1
+            while cursor < length:
+                if text[cursor] == "\\":
+                    cursor += 2
+                    continue
+                if text[cursor] == "\n" and text.startswith("\n\n", cursor):
+                    break
+                if cursor in delimiters:
+                    closing = cursor
+                    break
+                cursor += 1
+            if closing > index + 1:
+                spans.append((index, closing + 1, "$", text[index + 1:closing]))
+                index = closing + 1
+                continue
+            index += 1
+            continue
+        index += 1
+    return spans
+
+
+def validate_note_math(text: str, name: str) -> list[str]:
+    """Reject math that Obsidian's MathJax will not render. Read-only, by design.
+
+    The sibling latex refiner repairs these constructs, but it is an optional skill that
+    rewrites in place, so it cannot be the gate. This is the gate: it inspects and never
+    writes, and a note that fails it is a note whose formulas are already broken.
+    """
+    errors: list[str] = []
+    body, line_offset = strip_frontmatter(text)
+    body = mask_code(body)
+    spans = find_math_spans(body)
+
+    for _start, _end, delimiter, inner in spans:
+        if not inner.strip():
+            errors.append(f"{name}: an empty math span renders nothing; drop the stray delimiter")
+            continue
+        for character, label in MATHJAX_CONTROL_CHARACTERS.items():
+            if character in inner:
+                errors.append(
+                    f"{name}: a {label} inside math means a LaTeX escape was interpreted while the "
+                    "formula was written; rewrite it with its backslashes intact"
+                )
+                break
+        if delimiter == "$" and "\n" in inner.strip():
+            errors.append(
+                f"{name}: inline math spans a line break, which MathJax cannot delimit; use $$ instead"
+            )
+        masked_inner = MATHJAX_TEXT_COMMAND.sub("", inner)
+        for command, pattern in sorted(MATHJAX_STRIPPED_COMMANDS.items()):
+            if re.search(pattern, inner):
+                errors.append(f"{name}: the {command} command is not standard MathJax; remove it")
+        for match in MATHJAX_ENVIRONMENT.finditer(inner):
+            environment = match.group(1)
+            if environment in MATHJAX_UNSUPPORTED_ENVIRONMENTS:
+                errors.append(
+                    f"{name}: the {environment} environment is LaTeX, not MathJax; use aligned, "
+                    "gathered, or cases"
+                )
+        if MATHJAX_CJK.search(masked_inner):
+            errors.append(
+                f"{name}: raw CJK inside math is not standard MathJax; wrap the Chinese run in a "
+                "text command"
+            )
+        for command in MATHJAX_LOST_COMMANDS:
+            if not re.search(rf"(?<![A-Za-z\\]){command}(?![A-Za-z])", masked_inner):
+                continue
+            symbol = MATHJAX_COMMAND_SYMBOLS.get(command)
+            if symbol:
+                errors.append(
+                    f"{name}: {command} lost its backslash and renders as italic letters; the reader "
+                    f"must see {symbol}, so write the command as " + chr(92) + command
+                )
+            else:
+                errors.append(
+                    f"{name}: {command} lost its backslash and will render as plain text; the formula "
+                    "needs it back"
+                )
+
+    # Whatever is left sits outside every math span, so MathJax never sees it.
+    outside = body
+    for start, end, _delimiter, _inner in reversed(spans):
+        outside = outside[:start] + " " * (end - start) + outside[end:]
+    for match in re.finditer(r"\\([(\[])", outside):
+        errors.append(
+            f"{name}: a legacy \\{match.group(1)} delimiter outside math renders as literal "
+            "backslashes; use $ or $$"
+        )
+    for match in MATHJAX_ENVIRONMENT.finditer(outside):
+        errors.append(
+            f"{name}: the {match.group(1)} environment is not inside a math span, so MathJax never "
+            "sees it; wrap it in $$"
+        )
+    for match in MATHJAX_DOCUMENT_COMMANDS.finditer(outside):
+        errors.append(
+            f"{name}: {match.group(0)} is document LaTeX, not MathJax; say it in prose instead"
+        )
+    unpaired = math_delimiters(outside) - {position for span in spans for position in (span[0], span[1] - 1)}
+    for start, end in line_bounds(outside):
+        for position in unpaired:
+            if start <= position < end:
+                errors.append(
+                    f"{name}: line {outside.count(chr(10), 0, position) + 1 + line_offset} opens a math "
+                    "span it never closes; MathJax will swallow the rest of the paragraph"
+                )
     return errors
 
 
@@ -958,6 +1207,7 @@ def main() -> int:
             bodies[note.stem] = body
             note_texts[note.stem] = note.read_text(encoding="utf-8")
             errors += note_errors
+            errors += validate_note_math(note_texts[note.stem], note.name)
 
         if mode == "legacy":
             if len(markdown_files) != 1:

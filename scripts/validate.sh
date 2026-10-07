@@ -338,6 +338,18 @@ if ! grep -q 'name: "poppler"' "$skill_dir/requirements/tools.yaml" ||
 	exit 1
 fi
 
+# A formula that lost its backslash still renders, as italic letters with the symbol
+# missing, so the gate has to be part of delivery rather than a style note.
+if ! grep -q 'validate_note_math' "$skill_dir/scripts/validate-output.py" ||
+   ! grep -q 'MATHJAX_COMMAND_SYMBOLS' "$skill_dir/scripts/validate-output.py" ||
+   ! grep -q 'math_lint' "$skill_dir/config/pipeline.example.yaml" ||
+   ! grep -q 'Write the command, never the letters' "$skill_dir/references/obsidian-style.md" ||
+   ! grep -q 'MathJax gate' "$skill_dir/references/validation.md" ||
+   ! grep -q 'Never ship a formula that is not standard MathJax' "$skill_dir/SKILL.md"; then
+	printf 'MathJax math gate contract is missing or out of sync\n' >&2
+	exit 1
+fi
+
 if ! grep -q 'MIN_ASSET_EDGE_PX' "$skill_dir/scripts/validate-output.py" ||
 	! grep -q 'A crop must contain the thing it is named after' "$skill_dir/references/asset-naming.md" ||
 	! grep -q 'Tables and equations are not visuals' "$skill_dir/references/asset-naming.md" ||

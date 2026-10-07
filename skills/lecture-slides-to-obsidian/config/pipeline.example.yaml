@@ -165,6 +165,24 @@ conversion:
   equation_policy: "preserve-and-flag"
   table_policy: "markdown-preferred"
   drop_slide_furniture: true
+  math_lint:
+    script: "validate-output.py"              # built in, read-only, runs on every delivery
+    required: true
+    scope: "every-delivered-note"
+    rule: "standard-mathjax"                  # $...$ and $$...$$ only
+    fails_on:
+      - "unsupported-environment"             # align, eqnarray, equation, split, gather, multline
+      - "non-rendering-command"               # label, nonumber, notag, tag, hline
+      - "document-latex-in-prose"             # includegraphics, href, cite, documentclass
+      - "raw-cjk-in-math"
+      - "unclosed-or-empty-delimiter"
+      - "inline-math-across-line-break"
+      - "legacy-delimiter"                    # \( \) \[ \]
+      - "lost-backslash"                      # sqrt, sum, sigma: a control character or bare letters
+    never_reports:
+      - "currency"                            # $6.50, $15, >$75,000, HK$163.66
+    repair_skill: "obsidian-latex-refiner"    # LaTeX classes only; authoring corruption is rewritten
+    writes: false
   latex_refinement:
     enabled: false
     skill: "obsidian-latex-refiner"

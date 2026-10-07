@@ -155,6 +155,100 @@ class ImageDimensionTests(unittest.TestCase):
         self.assertIsNone(self.validator.image_dimensions(path))
 
 
+class MathJaxLintTests(unittest.TestCase):
+    """The MathJax gate. Obsidian renders math with MathJax, so $...$ and $$...$$ only."""
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location("validate_output", VALIDATOR)
+        cls.validator = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.validator)
+
+    def lint(self, text: str) -> list[str]:
+        return self.validator.validate_note_math(text, "n.md")
+
+    def test_standard_mathjax_passes(self):
+        self.assertEqual(self.lint("Choose $k$ clusters.\n\n$$\nd(x, y) = " + chr(92) + "sqrt{" + chr(92) + "sum_{i=1}^{n} (x_i - y_i)^2}\n$$\n"), [])
+
+    def test_the_mathjax_environments_pass(self):
+        text = (
+            "$$\n" + chr(92) + "begin{aligned}\na &= b " + chr(92) + chr(92) + "\n"
+            + chr(92) + "end{aligned}\n$$\n\n$$" + chr(92) + "begin{gathered} x = y "
+            + chr(92) + "end{gathered}$$\n\n" + "$$\\begin{cases} a & b \\\\end{cases}$$\n"
+        )
+        self.assertEqual(self.lint(text), [])
+
+    def test_a_text_command_carries_its_own_words(self):
+        self.assertEqual(self.lint("$$d(" + chr(92) + "text{apple}, " + chr(92) + "text{orange})$$"), [])
+
+    def test_operators_legitimately_written_bare_pass(self):
+        self.assertEqual(self.lint("$log x$, $exp(y)$, $\\lim_{n}$, $max k$, $\\sin x$"), [])
+
+    def test_currency_is_not_math(self):
+        for text in ("a $15 minimum wage", "income above $75,000 per year", "**+HK$163.66.**"):
+            self.assertEqual(self.lint(text), [], text)
+
+    def test_math_that_starts_with_a_digit_is_math(self):
+        self.assertEqual(self.lint("multiplying by $1/(n-1)$ rescales"), [])
+
+    def test_a_lost_backslash_is_reported_with_the_symbol_it_erased(self):
+        errors = self.lint("$$d(x, y) = sqrt{sum_{i=1}^{n} (x_i - y_i)^2}$$")
+        self.assertEqual(len(errors), 2)
+        self.assertIn("must see √", errors[0])
+        self.assertIn("must see ∑", errors[1])
+
+    def test_a_tab_inside_math_is_reported_as_an_interpreted_escape(self):
+        self.assertTrue(any("tab" in item for item in self.lint("$$d(" + chr(9) + "ext{apple})$$")))
+
+    def test_a_form_feed_inside_math_is_reported_as_an_interpreted_escape(self):
+        self.assertTrue(any("form feed" in item for item in self.lint("$$z = " + chr(12) + "rac{X - mu}{sigma}$$")))
+
+    def test_a_latex_environment_inside_math_is_rejected(self):
+        errors = self.lint("$$\n" + chr(92) + "begin{eqnarray}E = mc^2" + chr(92) + chr(92) + chr(92) + chr(92) + "\n" + chr(92) + "end{eqnarray}\n$$")
+        self.assertTrue(any("eqnarray" in item for item in errors))
+
+    def test_a_non_rendering_command_is_rejected(self):
+        for command in ("label{eq:one}", "nonumber", "notag", "hline"):
+            errors = self.lint("$$x = y " + chr(92) + command + "$$")
+            self.assertTrue(errors, command)
+
+    def test_raw_cjk_inside_math_is_rejected(self):
+        self.assertTrue(any("CJK" in item for item in self.lint("$$" + chr(92) + "text{ok} 总收益 = 1$$")))
+
+    def test_document_latex_in_prose_is_rejected(self):
+        self.assertTrue(any("includegraphics" in item for item in self.lint("See " + chr(92) + "includegraphics{plot.pdf} for the figure.")))
+
+    def test_an_environment_outside_math_is_rejected(self):
+        errors = self.lint(chr(92) + "begin{align} x &= y " + chr(92) + "end{align}")
+        self.assertTrue(any("not inside a math span" in item for item in errors))
+
+    def test_an_empty_display_block_is_rejected(self):
+        self.assertTrue(any("empty math span" in item for item in self.lint("$$\n$$")))
+
+    def test_inline_math_spanning_a_line_break_is_rejected(self):
+        self.assertTrue(any("line break" in item for item in self.lint("cost $a + b\n+ c$ dollars")))
+
+    def test_an_unclosed_delimiter_is_reported_with_its_line(self):
+        errors = self.lint("---\ntype: course-material\n---\n\n# T\n\ntext $x and more\n")
+        self.assertTrue(any("line 7" in item for item in errors), errors)
+
+    def test_latex_in_a_code_block_is_not_math(self):
+        text = "```\n" + chr(92) + "begin{align}\n$$x$$\n```\n\nand $y$ is fine\n"
+        self.assertEqual(self.lint(text), [])
+
+    def test_inline_code_holding_dollars_is_not_math(self):
+        self.assertEqual(self.lint("use `$var` and `$other` in the shell"), [])
+
+    def test_frontmatter_dollars_are_not_math(self):
+        self.assertEqual(self.lint("---\ntitle: A $5 note\n---\n\nbody $k$ here\n"), [])
+
+    def test_the_gate_never_writes(self):
+        original = "$$d(x,y) = sqrt{sum x_i}$$"
+        before = original
+        self.lint(original)
+        self.assertEqual(original, before)
+
+
 class ValidateOutputTests(unittest.TestCase):
     def test_valid_fixture_passes(self):
         code, result = run_validator(FIXTURE)
