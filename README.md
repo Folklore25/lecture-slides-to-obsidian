@@ -161,7 +161,7 @@ skills/lecture-slides-to-obsidian/scripts/token-store.py set
 
 1. `preflight.py` 分段确认 vault、课程、提取模式、笔记粒度、profile 和助手技能。
 2. `render-source-pages.py <source.pdf> --output-dir <run>/pages --pages 1-8` 先把要读的页面渲染成 WebP（两边 ≤2000px，harness 上限；超过会被 harness 重新编码成更大的 PNG）。实测 34 页 CityU deck：PNG 路线请求体 29.1MB，WebP 路线 4.4MB（−85%），像素尺寸完全相同。
-3. 主 Agent **逐页原生阅读**这些页面：判断每一页是实质内容、结构骨架、页面外壳还是行政信息。这一步决定了输出是笔记还是素材包。每轮读约 8 页并把结论先写进 staging，避免整副 deck 的页面图累积进同一个请求。
+3. 主 Agent **逐页原生阅读**这些页面（读的是渲染出来的图，不是 PDF 本身）：判断每一页是实质内容、结构骨架、页面外壳还是行政信息。这一步决定了输出是笔记还是素材包。每轮读 8 页并把结论先写进 staging——页面图会留在整个会话里，而网关每个会话最多接受 200 张，所以长 deck 是先撑满图片额度、不是先读完页数；页数超过额度的文档该走 `--extraction mineru`，不是读快一点。
 4. `plan-note-structure.py --page-count N` 生成 `note-plan.json` 与 `page-ledger.json` 草稿；Agent 按实际所见修正章节、页处置和每页 evidence 短语，并把两者设为 `draft: false`。
 5. 按 plan 写一篇或多篇笔记：H2 等于计划章节，丢弃外壳页，对比矩阵转成 Markdown 表格。
 6. 只导出真正承载结构的视觉素材，裁到图本身而不是整页，用语义名放进 `assets/`。

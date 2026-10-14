@@ -14,6 +14,10 @@ extraction:
       - "rendered-page-images"
   mineru:
     enabled_only_with_mode: "mineru"
+  native_reading:
+    source_is_read_directly: false           # the source document is never opened to read
+    only_input: "rendered-page-images"
+    reason: "read refuses a PDF, and a text layer cannot tell furniture from content"
   page_rendering:
     script: "render-source-pages.py"
     rasteriser: "pdftoppm"                   # poppler; renders pages, extracts no text
@@ -22,7 +26,10 @@ extraction:
     max_edge_px: 2000                        # the harness re-encodes anything larger, PNG first
     dpi_ceiling: 150                         # lowered automatically until the page fits max_edge_px
     quality: 82
-    read_batch_pages: 8                      # keeps one request from accumulating a whole deck
+    read_batch_pages: 8                      # verified working batch size
+    conversation_image_cap: 200              # observed provider ceiling on images per conversation
+    read_from: "rendered-pages"              # never the source document: a PDF is not readable
+    beyond_image_cap: "switch-to-extraction-mineru"   # a bigger deck is not a faster-read problem
     report_name: "page-render.json"
     pages_directory: "pages"                 # staging only; never the vault
 

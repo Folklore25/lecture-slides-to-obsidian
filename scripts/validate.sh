@@ -333,7 +333,14 @@ if ! grep -q 'name: "poppler"' "$skill_dir/requirements/tools.yaml" ||
    ! grep -q 'read_batch_pages' "$skill_dir/config/pipeline.example.yaml" ||
    ! grep -q '### 3a. Render the pages to read' "$skill_dir/references/workflow.md" ||
    ! grep -q 'Render the pages you are about to read' "$skill_dir/SKILL.md" ||
-   ! grep -q 'Never hand the model a raw page render' "$skill_dir/SKILL.md"; then
+   ! grep -q 'Never hand the model a raw page render' "$skill_dir/SKILL.md" ||
+   ! grep -q 'Never open the source document to read it' "$skill_dir/SKILL.md" ||
+   ! grep -q 'source_is_read_directly: false' "$skill_dir/config/pipeline.example.yaml" ||
+   ! grep -q 'conversation_image_cap: 200' "$skill_dir/config/pipeline.example.yaml" ||
+   ! grep -q 'rendered pages' "$skill_dir/references/workflow.md" ||
+   ! grep -q 'Never rasterise a page yourself' "$skill_dir/SKILL.md" ||
+   ! grep -q 'Render with this script and nothing else' "$skill_dir/references/workflow.md" ||
+   ! grep -q 'If the script fails, stop and report it' "$skill_dir/references/workflow.md"; then
 	printf 'model-ready page rendering contract is missing or out of sync\n' >&2
 	exit 1
 fi
@@ -473,6 +480,36 @@ python3 "$skill_dir/scripts/validate-output.py" \
 	--ledger "$repo_dir/tests/fixtures/staging/page-ledger.json" \
 	--page-groups "$repo_dir/tests/fixtures/staging/page-groups.json" \
 	--report "$repo_dir/tests/fixtures/staging/conversion-report.md" >/dev/null
+
+# A multi-line quoted YAML scalar must keep its continuation lines indented past the
+# key. A flush-left continuation silently ends the scalar and leaves an unterminated
+# quote, which no grep-based gate here can see: the tool manifest parsed as YAML until
+# this check existed.
+python3 - "$repo_dir" <<'YAML_CHECK' || exit 1
+import re
+import subprocess
+import sys
+
+root = sys.argv[1]
+files = subprocess.run(
+    ["git", "-C", root, "ls-files", "*.yaml"],
+    capture_output=True, text=True, check=False,
+).stdout.split()
+key = re.compile(r"""^[A-Za-z0-9_.$'"\-]+\s*:|^-\s|^#|^---|^\.\.\.""")
+failures = []
+for name in files:
+    with open(f"{root}/{name}", encoding="utf-8") as handle:
+        for number, line in enumerate(handle, start=1):
+            stripped = line.rstrip("\n")
+            if not stripped.strip():
+                continue
+            if not stripped[0].isspace() and not key.match(stripped):
+                failures.append(f"{name}:{number}: unindented YAML line breaks the scalar above it")
+if failures:
+    print("\\n".join(failures), file=sys.stderr)
+    print("YAML indentation is broken", file=sys.stderr)
+    sys.exit(1)
+YAML_CHECK
 
 python3 -m unittest discover -s "$repo_dir/tests" -p 'test_*.py' >/dev/null
 

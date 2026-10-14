@@ -11,7 +11,7 @@ required_tools:
 
   - name: "poppler"
     purpose: "Rasterise source PDF pages for native reading. Renders only; it
-extracts no text, no tables, and no structure."
+      extracts no text, no tables, and no structure."
     binaries:
       - "pdftoppm"
       - "pdfinfo"
@@ -20,10 +20,11 @@ extracts no text, no tables, and no structure."
     install:
       brew: "brew install poppler"
       apt: "apt-get install poppler-utils"
+
   - name: "cwebp"
     purpose: "Deliver every visual asset as WebP under a bounded longest edge. The
-extraction paths copy or save full-resolution page renders, so without an encoder a
-single course fills the vault with multi-megabyte PNGs."
+      extraction paths copy or save full-resolution page renders, so without an encoder
+      a single course fills the vault with multi-megabyte PNGs."
     verify_command: "command -v cwebp"
     tested_version: "1.6.0"
     install:

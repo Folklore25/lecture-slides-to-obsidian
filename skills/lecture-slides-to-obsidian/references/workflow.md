@@ -22,7 +22,7 @@ Load `obsidian-markdown` and `obsidian-canvas-designer` explicitly. Then run `sc
 
 `pi.read` cannot open a PDF, and a page rasterised at 150 DPI is a ~1 MB PNG that the harness inlines as base64: 1.4 MB of request body per page, 29 MB for a 34-page deck. That is what makes a gateway answer 413 before the model ever sees a page.
 
-So render once, properly, with `scripts/render-source-pages.py`:
+So render once, properly, with the bundled script. First run of a deck, ask for the first batch:
 
 ```text
 scripts/render-source-pages.py <source.pdf> --output-dir <run>/pages \
@@ -31,18 +31,24 @@ scripts/render-source-pages.py <source.pdf> --output-dir <run>/pages \
 
 Each page comes back as `page-<PPP>.webp`, encoded at the resolution the model will actually receive and never larger than the harness's own 2000px ceiling. On a 34-page CityU deck that is 3.3 MB on disk and 4.4 MB of base64 instead of 21.8 MB and 29.1 MB — an 85% cut with identical pixel dimensions, so nothing about what the model sees changes.
 
-Two rules make this work, and both are the script's job rather than yours:
+**Render with this script and nothing else.** Not `pdftoppm`, not `pdftocairo`, not `qlmanage`, not `sips`, not a Python PDF library. A hand-rolled `pdftoppm -png` produces exactly the PNG pages this step exists to avoid, so bypassing the script restores the 29 MB request that gets the deck rejected. The script is not a convenience wrapper: the DPI ceiling, the edge ceiling, the WebP encode, the verification of every delivered page, and the removal of each intermediate PNG all live inside it.
+
+**If the script fails, stop and report it.** A missing `cwebp` or `pdftoppm`, a corrupt page, an unverified output: say which page and why, and do not substitute another route. `preflight.py` already fails intake when either tool is absent, so a failure here is a real fault to surface, not an obstacle to route around.
+
+Two rules inside the script make the ceiling hold, and both are the script's job rather than yours:
 
 - **Never exceed the ceiling.** The harness passes a small image through untouched but re-encodes anything over 2000px, trying PNG first. A 2000×2827 WebP comes back out as a 1.9 MB PNG — worse than sending the original. `--max-edge` defaults to 2000 and refuses a larger value.
 - **Never upscale.** `--dpi` is a ceiling, not a target: the script lowers it until the longer side fits. Ask for more resolution by raising `--dpi` only up to that limit.
 
-Read in batches of about eight pages and write each batch's verdict into the staging triage file before starting the next batch. Page images accumulate in the request, so a deck read in one pass is a deck that eventually trips the limit again.
+The rendered pages then govern how you read them: batch size, the 200-image conversation ceiling, and what to do about a deck larger than that are in [3b](#3b-read-the-rendered-pages-natively).
 
-### 3b. Read the source natively
+### 3b. Read the rendered pages natively
 
-Read the rendered pages, page by page, before planning. On each page decide: substantive content, structural skeleton (agenda, divider, outline), furniture (title bar, logo, page number, footer), or administrative (welcome, staff, schedule, exercises).
+The rendered pages are the only way in. Do not open the source PDF to read it: `read` refuses a PDF with a binary-file error, and a text layer cannot tell a section divider from a substantive page, which is the one judgement this whole pass exists to make. An image source is already an image and needs no rendering.
 
-This pass is what makes the output a note instead of a dump. Record what you saw; do not rely on a text layer to tell you what a page was for.
+Read the pages, page by page, before planning. On each page decide: substantive content, structural skeleton (agenda, divider, outline), furniture (title bar, logo, page number, footer), or administrative (welcome, staff, schedule, exercises).
+
+Record what you saw; do not rely on a text layer to tell you what a page was for. Read in batches of about eight pages and write each batch's verdict into the staging triage file before starting the next batch. Page images stay in the conversation for the rest of the session, and the provider accepts at most 200 of them, so the batching is what keeps a long deck inside a conversation that also has to hold the note, the Canvas, and the QA state. A document with more pages than the conversation can hold is the case for `--extraction mineru`, not for reading faster.
 
 ## 3c. Optional MinerU extraction
 
